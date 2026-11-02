@@ -23,7 +23,7 @@ function vista(ctx: ContextoPagina, escuela: Escuela | null): Vista {
       nombre: 'nivel', etiqueta: 'Nivel educativo', requerido: true, valor: escuela?.nivel ?? 'secundaria',
       opciones: NIVELES_EDUCATIVOS.map((n) => ({ valor: n, texto: NIVEL_ETIQUETA[n] })),
     }),
-    campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: escuela?.cct, maxlength: 20, mayusculas: true, ayuda: 'Letras y números, sin espacios. Evita registrar la misma escuela dos veces.' }),
+    campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: escuela?.cct, maxlength: 14, mayusculas: true, ayuda: '10 caracteres, por ejemplo 00AAA0000A. Evita registrar la misma escuela dos veces.' }),
     campo(f, { nombre: 'localidad', etiqueta: 'Localidad o municipio', valor: escuela?.localidad, maxlength: 120 }),
     h('div', { class: 'acciones' },
       h('a', { class: 'boton boton--secundario', href: escuela ? `#/escuela/${escuela.id}` : '#/' }, 'Cancelar'),

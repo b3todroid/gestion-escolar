@@ -13,7 +13,7 @@
 
 ## Verificación (ejecutada el 2026-11-02)
 - `npm run typecheck`: sin errores.
-- `npm test`: 5 archivos, 41 pruebas — validación, reglas, tiempo/traslapes, duplicados, persistencia (cerrar y reabrir BD), atomicidad, aislamiento entre escuelas/ciclos.
+- `npm test`: 5 archivos, 43 pruebas (incluye formato CCT) — validación, reglas, tiempo/traslapes, duplicados, persistencia (cerrar y reabrir BD), atomicidad, aislamiento entre escuelas/ciclos.
 - `npm run test:e2e` (Chromium, perfil Pixel 7): 5 pruebas — flujo completo con recarga, errores por campo, texto no interpretado como HTML, confirmación de borrado, funcionamiento sin conexión.
 - `npm run build`: correcto (≈ 70 KB JS gzip).
 

@@ -11,7 +11,7 @@ export interface Metadatos {
   version: number; // se incrementa en cada actualización
 }
 
-export const NIVELES_EDUCATIVOS = ['preescolar', 'primaria', 'secundaria', 'media_superior', 'otro'] as const;
+export const NIVELES_EDUCATIVOS = ['inicial', 'preescolar', 'primaria', 'secundaria', 'media_superior', 'otro'] as const;
 export type NivelEducativo = (typeof NIVELES_EDUCATIVOS)[number];
 
 export const ESTADOS_CICLO = ['planeacion', 'activo', 'cerrado'] as const;
@@ -22,7 +22,7 @@ export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface Escuela extends Metadatos {
   nombre: string;
-  cct: string | null; // Clave de Centro de Trabajo (opcional)
+  cct: string | null; // Clave de Centro de Trabajo SEP (opcional, formato oficial)
   nivel: NivelEducativo;
   localidad: string | null;
 }

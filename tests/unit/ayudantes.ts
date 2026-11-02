@@ -9,7 +9,7 @@ export function nuevoEntorno() {
   return { nombre, db, s: crearServicios(db) };
 }
 
-export const ESCUELA_FICTICIA = { nombre: 'Escuela Secundaria Ficticia 1', cct: '00XXX0000A', nivel: 'secundaria', localidad: 'Ciudad Ejemplo' } as const;
+export const ESCUELA_FICTICIA = { nombre: 'Escuela Secundaria Ficticia 1', cct: '32ZZZ0000A', nivel: 'secundaria', localidad: 'Ciudad Ejemplo' } as const;
 
 export async function escuelaConCiclo(s: ReturnType<typeof nuevoEntorno>['s']) {
   const escuela = await s.escuelas.crear({ ...ESCUELA_FICTICIA });

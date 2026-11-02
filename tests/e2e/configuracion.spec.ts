@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 // Datos ficticios únicamente.
 
-async function registrarEscuela(page: Page, nombre = 'Escuela Secundaria Ficticia 7', cct = '00xxx0007z') {
+async function registrarEscuela(page: Page, nombre = 'Escuela Secundaria Ficticia 7', cct = '32zzz0007z') {
   await page.goto('/');
   await page.getByRole('link', { name: 'Registrar escuela' }).click();
   await page.getByLabel('Nombre de la escuela').fill(nombre);
@@ -14,7 +14,7 @@ async function registrarEscuela(page: Page, nombre = 'Escuela Secundaria Fictici
 
 test('configura una escuela completa y los datos persisten al recargar', async ({ page }) => {
   await registrarEscuela(page);
-  await expect(page.getByText('00XXX0007Z')).toBeVisible(); // CCT normalizado
+  await expect(page.getByText('32ZZZ0007Z')).toBeVisible(); // CCT normalizado
 
   // Ciclo escolar (el formulario se abre automáticamente cuando no hay ciclos)
   await page.getByLabel('Nombre del ciclo').fill('2026-2027');
@@ -93,7 +93,7 @@ test('los textos se muestran como texto, no como HTML', async ({ page }) => {
 });
 
 test('pide confirmación antes de eliminar y respeta la cancelación', async ({ page }) => {
-  await registrarEscuela(page, 'Escuela Para Borrar', '00XXX0009Z');
+  await registrarEscuela(page, 'Escuela Para Borrar', '32ZZZ0009Z');
   await page.getByRole('button', { name: 'Eliminar escuela' }).click();
   const dialogo = page.getByRole('dialog');
   await expect(dialogo).toContainText('¿Eliminar «Escuela Para Borrar»?');
@@ -105,7 +105,7 @@ test('pide confirmación antes de eliminar y respeta la cancelación', async ({ 
 });
 
 test('funciona sin conexión después de la primera carga', async ({ page, context }) => {
-  await registrarEscuela(page, 'Escuela Sin Red', '00XXX0010Z');
+  await registrarEscuela(page, 'Escuela Sin Red', '32ZZZ0010Z');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   // Asegura que el SW controle la página antes de cortar la red.
   await page.reload();

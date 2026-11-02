@@ -14,7 +14,7 @@ beforeEach(async () => {
 
 describe('escuelas', () => {
   it('impide escuelas duplicadas por clave (sin importar mayúsculas)', async () => {
-    await expect(s.escuelas.crear({ ...ESCUELA_FICTICIA, nombre: 'Otra', cct: '00xxx0000a' })).rejects.toMatchObject({ codigo: 'DUPLICADO' });
+    await expect(s.escuelas.crear({ ...ESCUELA_FICTICIA, nombre: 'Otra', cct: '32zzz0000a' })).rejects.toMatchObject({ codigo: 'DUPLICADO' });
   });
 
   it('impide escuelas sin clave con el mismo nombre', async () => {
@@ -38,7 +38,7 @@ describe('ciclos escolares', () => {
   });
 
   it('separa los ciclos por escuela', async () => {
-    const otra = await s.escuelas.crear({ nombre: 'Escuela Ficticia 2', cct: '00XXX0000B', nivel: 'secundaria' });
+    const otra = await s.escuelas.crear({ nombre: 'Escuela Ficticia 2', cct: '32ZZZ0000B', nivel: 'secundaria' });
     // El mismo nombre y fechas son válidos en otra escuela.
     await s.ciclos.crear(otra.id, { nombre: '2026-2027', fechaInicio: '2026-08-31', fechaFin: '2027-07-15' });
     expect(await s.ciclos.listar(escuela.id)).toHaveLength(1);

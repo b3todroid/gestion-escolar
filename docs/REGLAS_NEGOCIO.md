@@ -10,7 +10,8 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Ninguna eliminación ocurre sin confirmación explícita en la interfaz.
 
 ## Escuela
-- Nombre 3–150 caracteres; nivel obligatorio; CCT opcional (5–20 letras/números/guiones, se guarda en mayúsculas).
+- Nombre 3–150 caracteres; nivel obligatorio; CCT opcional; si se captura debe cumplir el formato SEP: entidad 01–32, 3 letras, 4 dígitos y 1 letra verificadora (p. ej. `00AAA0000A`). Se ignoran espacios y guiones y se guarda en mayúsculas. Sólo se valida la estructura, no que la clave exista.
+- Niveles: educación inicial, preescolar, primaria, secundaria, media superior, otro.
 - No puede haber dos escuelas con el mismo CCT. Si no tienen CCT, no puede repetirse el nombre.
 - Sólo se elimina si no tiene ciclos escolares.
 

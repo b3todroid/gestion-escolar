@@ -31,6 +31,13 @@ const textoOpcional = (campo: string, max: number) =>
     .optional()
     .transform((v) => v ?? null);
 
+/**
+ * Clave de Centro de Trabajo (SEP): 2 dígitos de entidad federativa (01–32),
+ * 3 letras (sostenimiento y tipo de servicio), 4 dígitos (consecutivo) y
+ * 1 letra verificadora. Sólo se valida la estructura, no su existencia.
+ */
+export const PATRON_CCT = /^(0[1-9]|[12]\d|3[0-2])[A-Z]{3}\d{4}[A-Z]$/;
+
 const hora = (campo: string) =>
   z.string(`${campo} es obligatoria.`).trim().regex(PATRON_HORA, `${campo} debe tener formato HH:MM (24 h).`);
 
@@ -51,14 +58,14 @@ export const esquemaEscuela = z.object({
   nombre: texto('El nombre', 3, 150),
   cct: z
     .string()
-    .trim()
     .toUpperCase()
+    .transform((v) => v.replace(/[\s-]/g, '')) // se aceptan espacios o guiones al capturar
     .transform((v) => (v === '' ? null : v))
     .nullable()
     .optional()
     .transform((v) => v ?? null)
-    .refine((v) => v === null || /^[A-Z0-9-]{5,20}$/.test(v), {
-      message: 'La clave sólo admite letras, números y guiones (5 a 20 caracteres).',
+    .refine((v) => v === null || PATRON_CCT.test(v), {
+      message: 'La CCT debe tener 10 caracteres: entidad (01 a 32), 3 letras, 4 dígitos y 1 letra. Formato: 00AAA0000A.',
     }),
   nivel: z.enum(NIVELES_EDUCATIVOS, 'Selecciona un nivel educativo.'),
   localidad: textoOpcional('La localidad', 120),

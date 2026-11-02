@@ -16,14 +16,27 @@ function errores(fn: () => unknown): string[] {
 
 describe('validación de escuela', () => {
   it('recorta textos, normaliza la clave y convierte vacíos en null', () => {
-    const r = validar(esquemaEscuela, { nombre: '  Escuela Ejemplo  ', cct: ' 00xxx0000a ', nivel: 'secundaria', localidad: '   ' });
-    expect(r).toEqual({ nombre: 'Escuela Ejemplo', cct: '00XXX0000A', nivel: 'secundaria', localidad: null });
+    const r = validar(esquemaEscuela, { nombre: '  Escuela Ejemplo  ', cct: ' 32zzz0000a ', nivel: 'secundaria', localidad: '   ' });
+    expect(r).toEqual({ nombre: 'Escuela Ejemplo', cct: '32ZZZ0000A', nivel: 'secundaria', localidad: null });
   });
 
   it('rechaza nombre corto, nivel inválido y clave con símbolos', () => {
     expect(errores(() => validar(esquemaEscuela, { nombre: 'ab', cct: '<script>', nivel: 'x' }))).toEqual(
       expect.arrayContaining(['nombre', 'cct', 'nivel']),
     );
+  });
+
+  it('valida la CCT con el formato oficial (entidad 01–32, 3 letras, 4 dígitos, 1 letra)', () => {
+    const cct = (v: string) => validar(esquemaEscuela, { nombre: 'Escuela Ejemplo', nivel: 'primaria', cct: v }).cct;
+    expect(cct('32zzz-0001 a')).toBe('32ZZZ0001A'); // espacios y guiones se ignoran
+    expect(cct('')).toBeNull();
+    for (const mala of ['00ZZZ0001A', '33ZZZ0001A', '32ZZ0001A', '32ZZZ00011', '32ZZZ0001AB', '3ZZZZ0001A']) {
+      expect(errores(() => cct(mala)), mala).toEqual(['cct']);
+    }
+  });
+
+  it('acepta educación inicial como nivel', () => {
+    expect(validar(esquemaEscuela, { nombre: 'Escuela Ejemplo', nivel: 'inicial' }).nivel).toBe('inicial');
   });
 
   it('rechaza caracteres de control', () => {

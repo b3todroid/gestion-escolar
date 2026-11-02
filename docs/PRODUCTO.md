@@ -1,6 +1,8 @@
 # Producto
 
 ## Propósito
+Plataforma para escuelas de México, inicialmente de educación básica, configurable por nivel, plantel y turno. Principio: **un dato se captura una sola vez y se reutiliza** (las entidades se relacionan por identificador, nunca se vuelve a escribir un nombre).
+
 Aplicación web progresiva (PWA) para que el personal directivo configure y, en fases posteriores, opere la gestión diaria de una escuela, **desde el teléfono y sin depender de una conexión permanente**.
 
 ## Usuarios (Fase 1)

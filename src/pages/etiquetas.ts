@@ -1,6 +1,7 @@
 import type { NivelEducativo } from '../models';
 
 export const NIVEL_ETIQUETA: Record<NivelEducativo, string> = {
+  inicial: 'Educación inicial',
   preescolar: 'Preescolar',
   primaria: 'Primaria',
   secundaria: 'Secundaria',
