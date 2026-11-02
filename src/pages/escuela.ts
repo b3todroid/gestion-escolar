@@ -19,7 +19,7 @@ export function insigniaCiclo(estado: EstadoCiclo): HTMLElement {
 }
 
 /** Sugiere el siguiente ciclo (p. ej. "2026-2027") a partir de la fecha actual. */
-function sugerenciaCiclo(): { nombre: string; fechaInicio: string; fechaFin: string } {
+export function sugerenciaCiclo(): { nombre: string; fechaInicio: string; fechaFin: string } {
   const hoy = new Date();
   const a = hoy.getMonth() >= 6 ? hoy.getFullYear() : hoy.getFullYear() - 1;
   return { nombre: `${a}-${a + 1}`, fechaInicio: `${a}-08-31`, fechaFin: `${a + 1}-07-15` };

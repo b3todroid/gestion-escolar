@@ -26,6 +26,12 @@ export class ServicioEscuelas {
     });
   }
 
+  /** Valida datos y duplicados sin guardar (lo usa el asistente antes de avanzar). */
+  async validarNueva(entrada: EntradaEscuela): Promise<void> {
+    const datos = validar(esquemaEscuela, entrada);
+    await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
+  }
+
   actualizar(id: string, entrada: EntradaEscuela): Promise<Escuela> {
     const datos = validar(esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {

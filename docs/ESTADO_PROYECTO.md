@@ -3,6 +3,8 @@
 **Última actualización:** 2026-11-02 · **Fase:** 1 — Configuración escolar · **Estado:** completada
 
 ## Hecho en Fase 1
+- Asistente guiado de 6 pasos con generación de periodos, recesos y grupos, vista previa proporcional de la jornada («regla») y borrador recuperable.
+- Identidad visual propia (pizarrón, tiza, lápiz) con tipografía de alta legibilidad y modo oscuro.
 - Proyecto Vite + TypeScript estricto; arquitectura por capas.
 - IndexedDB con Dexie (esquema v1), repositorios con interfaz, unidad de trabajo transaccional.
 - Validación Zod; reglas de negocio puras.
@@ -13,8 +15,8 @@
 
 ## Verificación (ejecutada el 2026-11-02)
 - `npm run typecheck`: sin errores.
-- `npm test`: 5 archivos, 43 pruebas (incluye formato CCT) — validación, reglas, tiempo/traslapes, duplicados, persistencia (cerrar y reabrir BD), atomicidad, aislamiento entre escuelas/ciclos.
-- `npm run test:e2e` (Chromium, perfil Pixel 7): 5 pruebas — flujo completo con recarga, errores por campo, texto no interpretado como HTML, confirmación de borrado, funcionamiento sin conexión.
+- `npm test`: 6 archivos, 51 pruebas (incluye formato CCT, generadores, asistente atómico) — validación, reglas, tiempo/traslapes, duplicados, persistencia (cerrar y reabrir BD), atomicidad, aislamiento entre escuelas/ciclos.
+- `npm run test:e2e` (Chromium, perfil Pixel 7): 6 pruebas — asistente completo con cierre y reapertura del navegador, flujo manual con recarga, errores por campo, texto no interpretado como HTML, confirmación de borrado, funcionamiento sin conexión.
 - `npm run build`: correcto (≈ 70 KB JS gzip).
 
 ## Pendiente / siguientes pasos

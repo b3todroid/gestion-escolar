@@ -28,6 +28,9 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 | Unicidad verificada en servicios (normalizada) | Los índices únicos no ignoran acentos/mayúsculas; el volumen por ciclo es pequeño. |
 | Metadatos `creadoEn`, `actualizadoEn`, `version` | Base para detectar cambios y conflictos al sincronizar. |
 | CSP estricta sólo en build | El servidor de desarrollo requiere estilos en línea y WebSocket. |
+| Asistente que reutiliza servicios en transacciones anidadas de Dexie | Las mismas reglas aplican al alta guiada y a la edición; si un paso falla no queda nada a medias. |
+| Generadores puros (`domain/generadores.ts`) | Un dato se captura una vez: 3 parámetros producen todos los módulos y recesos; grados × letras producen los grupos. |
+| Borrador del asistente en localStorage | Comodidad por dispositivo; IndexedDB sigue siendo la única fuente de verdad. |
 | `registerType: 'prompt'` en la PWA | El usuario decide cuándo actualizar; no se recarga a mitad de una captura. |
 
 ## Dependencias (verificadas el 2026-11-02)
@@ -35,6 +38,7 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 |---|---|---|---|---|
 | dexie | 4.4.7 | Apache-2.0 | IndexedDB | Producción. Mantenimiento activo. |
 | zod | 4.6.7 | MIT | Validación | Producción. Mayor parte del bundle (~70 KB gzip total). |
+| @fontsource/atkinson-hyperlegible-next | 5.3.0 | OFL-1.1 | Tipografía legible, servida localmente (offline, sin CDN) | Producción. 2 pesos latin, 12 KB cada uno. |
 | vite | 8.3.5 | MIT | Dev/build | |
 | typescript | 7.0.2 | Apache-2.0 | Tipos | |
 | vite-plugin-pwa | 2.0.0 | MIT | Service Worker (Workbox) | Compatible con Vite 8. |

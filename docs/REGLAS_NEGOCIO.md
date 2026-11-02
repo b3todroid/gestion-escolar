@@ -35,6 +35,13 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Duración mayor que cero.
 - Se muestran ordenados por hora de inicio; el resumen calcula minutos de clase, receso y sin asignar.
 
+## Asistente de configuración
+- Pasos: escuela → ciclo → turno y días laborables → periodos y recesos → grados y grupos → revisar y guardar. Cada paso se valida antes de avanzar (la escuela, también contra duplicados).
+- Periodos: N módulos de M minutos consecutivos desde la entrada; recesos intercalados «después del módulo k» (k < N, uno por posición, máx. 5). Si el último bloque termina después de la salida, se informa la hora exacta y no se avanza.
+- Grados del X al Y (sugerencia: 6 en primaria, 3 en otros niveles; editable) con G grupos por grado nombrados A, B, C…, todos en el turno capturado.
+- «Es el ciclo en curso» activa el ciclo al guardar.
+- Todo se guarda en una sola transacción y con las mismas reglas que la edición manual.
+
 ## Grados y grupos
 - Número de grado entero 1–12, único por ciclo; nombre único por ciclo.
 - Un grado con grupos no se elimina.

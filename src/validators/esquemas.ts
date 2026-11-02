@@ -146,3 +146,47 @@ export function validar<S extends z.ZodType>(esquema: S, datos: unknown): z.outp
   }));
   throw new ErrorDominio('VALIDACION', campos[0]?.mensaje ?? 'Datos inválidos.', campos);
 }
+
+// ---------- Asistente de configuración ----------
+
+export const esquemaPlantillaHorario = z
+  .object({
+    duracionModulo: z.number('Indica la duración del módulo.').int('Usa minutos enteros.').min(10, 'Mínimo 10 minutos.').max(180, 'Máximo 180 minutos.'),
+    modulos: z.number('Indica cuántos módulos hay.').int('Usa un número entero.').min(1, 'Al menos 1 módulo.').max(15, 'Máximo 15 módulos.'),
+    recesos: z
+      .array(z.object({
+        despuesDe: z.number('Indica después de qué módulo.').int().min(1, 'Elige un módulo.'),
+        duracion: z.number('Indica la duración del receso.').int('Usa minutos enteros.').min(5, 'Mínimo 5 minutos.').max(120, 'Máximo 120 minutos.'),
+      }))
+      .max(5, 'Máximo 5 recesos.'),
+  })
+  .refine((v) => v.recesos.every((r) => r.despuesDe < v.modulos), {
+    message: 'Cada receso debe ir entre dos módulos (antes del último).',
+    path: ['recesos'],
+  })
+  .refine((v) => new Set(v.recesos.map((r) => r.despuesDe)).size === v.recesos.length, {
+    message: 'Hay dos recesos después del mismo módulo.',
+    path: ['recesos'],
+  });
+
+export const esquemaGradosGrupos = z
+  .object({
+    gradoDesde: z.number('Indica el primer grado.').int().min(1, 'El grado mínimo es 1.').max(12, 'El grado máximo es 12.'),
+    gradoHasta: z.number('Indica el último grado.').int().min(1, 'El grado mínimo es 1.').max(12, 'El grado máximo es 12.'),
+    gruposPorGrado: z.number('Indica cuántos grupos hay por grado.').int().min(1, 'Al menos 1 grupo.').max(15, 'Máximo 15 grupos por grado.'),
+    capacidad: z.number().int('Usa un número entero.').min(1, 'La capacidad mínima es 1.').max(80, 'La capacidad máxima es 80.').nullable().optional().transform((v) => v ?? null),
+  })
+  .refine((v) => v.gradoDesde <= v.gradoHasta, { message: 'El último grado debe ser mayor o igual que el primero.', path: ['gradoHasta'] });
+
+export const esquemaCicloAsistente = esquemaCiclo.and(z.object({ enCurso: z.boolean() }));
+
+export type EntradaPlantillaHorario = z.input<typeof esquemaPlantillaHorario>;
+export type EntradaGradosGrupos = z.input<typeof esquemaGradosGrupos>;
+
+export interface EntradaAsistente {
+  escuela: EntradaEscuela;
+  ciclo: EntradaCiclo & { enCurso: boolean };
+  turno: EntradaTurno;
+  horario: EntradaPlantillaHorario;
+  grados: EntradaGradosGrupos;
+}

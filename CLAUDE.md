@@ -15,6 +15,9 @@ Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs
 Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin-pwa 2 · Vitest 5 · Playwright.
 **Sin frameworks de UI** (React/Vue/Angular…): DOM nativo con `src/components/dom.ts`. Justificar por escrito antes de introducir uno.
 
+## Flujo principal
+`#/asistente` (pages/asistente.ts): 6 pasos que crean escuela, ciclo, turno, periodos/recesos generados, grados y grupos en **una** transacción (`services/asistente.ts`, que reutiliza los demás servicios). El borrador vive en localStorage sólo como comodidad. Las pantallas `#/escuela/ID`, `#/ciclo/ID`, `#/turno/ID` permiten ajustar después.
+
 ## Capas (dependencias sólo hacia abajo)
 `pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
 - Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.
@@ -26,6 +29,8 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 - Todo registro de configuración lleva `escuelaId` y `cicloEscolarId` cuando aplica. No mezclar escuelas ni ciclos.
 - Validar toda entrada con Zod (`validators/esquemas.ts` + `validar()`), errores como `ErrorDominio` con `campos`.
 - **Nunca** `innerHTML`/`outerHTML`/`insertAdjacentHTML` con datos: usar `h()` (textContent).
+- Estilos dinámicos sólo vía CSSOM (`el.style.setProperty`): la CSP bloquea atributos `style="…"`.
+- Identidad visual: verde pizarrón, tiza, amarillo lápiz; fuente Atkinson Hyperlegible Next (local, sin CDN). Tokens en `src/styles/main.css`.
 - **Nunca** `alert()`, `confirm()`, `prompt()`: usar `avisar()` y `confirmar()`.
 - Estados con texto + símbolo, no sólo color. Etiquetas visibles en todos los campos. Objetivos táctiles ≥ 44–48 px.
 - Esquema de BD: **nunca** modificar una versión publicada; agregar `version(n+1)` con `upgrade()` que conserve datos. Documentar en `docs/MODELO_DATOS.md`.

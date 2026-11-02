@@ -132,8 +132,8 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
         const nRecesos = r.bloques.length - nPeriodos;
         return h('li', { class: 'tarjeta' },
           h('div', { class: 'tarjeta__cabeza' }, h('h3', {}, t.turno.nombre),
-            nPeriodos ? insignia(`${plural(nPeriodos, 'periodo')} · ${plural(nRecesos, 'receso')}`, 'ok', '✓') : insignia('Sin periodos', 'aviso', '!')),
-          h('p', { class: 'tarjeta__meta' }, `${t.jornada.horaInicio} a ${t.jornada.horaFin} (${formatoDuracion(duracionMinutos(t.jornada.horaInicio, t.jornada.horaFin))}) · ${textoDias(t.jornada.dias)}`),
+            nPeriodos ? insignia(`${plural(nPeriodos, 'periodo')} y ${plural(nRecesos, 'receso')}`, 'ok', '✓') : insignia('Sin periodos', 'aviso', '!')),
+          h('p', { class: 'tarjeta__meta' }, `${textoDias(t.jornada.dias)}, de ${t.jornada.horaInicio} a ${t.jornada.horaFin} (${formatoDuracion(duracionMinutos(t.jornada.horaInicio, t.jornada.horaFin))})`),
           h('div', { class: 'acciones acciones--izq' },
             h('a', { class: 'boton boton--chico', href: `#/turno/${t.turno.id}` }, editable ? 'Periodos y recesos' : 'Ver periodos'),
             editable ? botonAccion('Editar', () => {
@@ -178,7 +178,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
           suyos.length
             ? h('ul', { class: 'grupos' }, ...suyos.map((gr) => h('li', { class: 'grupo' },
                 h('span', { class: 'grupo__nombre' }, `${g.numero}° ${gr.nombre}`),
-                h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? ` · ${gr.capacidad} lugares` : ''),
+                h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? `, ${gr.capacidad} lugares` : ''),
                 editable ? h('span', { class: 'grupo__acciones' },
                   botonAccion('Editar', () => {
                     contGrupo.replaceChildren(formularioGrupo(ctx, ciclo, grados, turnos, gr, altaGrupo));
@@ -219,7 +219,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
     titulo: `Ciclo ${ciclo.nombre}`,
     contenido: h('div', { class: 'pagina' },
       migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombre, href: `#/escuela/${escuela.id}` }, { texto: `Ciclo ${ciclo.nombre}` }]),
-      encabezado(`Ciclo ${ciclo.nombre}`, `${escuela.nombre} · ${formatoFecha(ciclo.fechaInicio)} – ${formatoFecha(ciclo.fechaFin)}`),
+      encabezado(`Ciclo ${ciclo.nombre}`, `${escuela.nombre}, del ${formatoFecha(ciclo.fechaInicio)} al ${formatoFecha(ciclo.fechaFin)}`),
       h('p', {}, insigniaCiclo(ciclo.estado)),
       editable ? null : h('p', { class: 'mensaje' }, icono('ℹ'), ' Este ciclo está cerrado: su configuración se muestra sólo para consulta.'),
       h('section', { class: 'avance', 'aria-label': 'Avance de la configuración' },

@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function registrarEscuela(page: Page, nombre = 'Escuela Secundaria Ficticia 7', cct = '32zzz0007z') {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Registrar escuela' }).click();
+  await page.goto('/#/escuela/nueva');
   await page.getByLabel('Nombre de la escuela').fill(nombre);
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill(cct);
   await page.getByLabel('Localidad o municipio').fill('Localidad Ejemplo');
@@ -29,14 +29,14 @@ test('configura una escuela completa y los datos persisten al recargar', async (
   await page.getByLabel('Entrada').fill('07:00');
   await page.getByLabel('Salida').fill('13:10');
   await page.getByRole('button', { name: 'Agregar turno' }).click();
-  await expect(page.getByText('07:00 a 13:10 (6 h 10 min) · Lunes a viernes')).toBeVisible();
+  await expect(page.getByText('Lunes a viernes, de 07:00 a 13:10 (6 h 10 min)')).toBeVisible();
 
   // Periodos y receso (inicio sugerido automáticamente)
   await page.getByRole('link', { name: 'Periodos y recesos' }).click();
   await page.getByRole('button', { name: 'Agregar bloque' }).click(); // Módulo 1: 07:00–07:50
-  await expect(page.getByText('Módulo 1', { exact: true })).toBeVisible();
+  await expect(page.locator('.bloque__nombre', { hasText: 'Módulo 1' })).toBeVisible();
   await page.getByRole('button', { name: 'Agregar bloque' }).click(); // Módulo 2: 07:50–08:40
-  await expect(page.getByText('Módulo 2', { exact: true })).toBeVisible();
+  await expect(page.locator('.bloque__nombre', { hasText: 'Módulo 2' })).toBeVisible();
   await page.getByLabel('Tipo de bloque').selectOption('receso');
   await expect(page.getByLabel('Nombre')).toHaveValue('Receso');
   await page.getByLabel('Fin').fill('09:00');
@@ -68,7 +68,7 @@ test('configura una escuela completa y los datos persisten al recargar', async (
   // Persistencia
   await page.reload();
   await expect(page.getByText('1° A')).toBeVisible();
-  await expect(page.getByText('Matutino · 35 lugares')).toBeVisible();
+  await expect(page.getByText('Matutino, 35 lugares')).toBeVisible();
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'Escuela Secundaria Ficticia 7' })).toBeVisible();
 });

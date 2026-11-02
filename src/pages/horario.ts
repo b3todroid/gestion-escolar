@@ -8,6 +8,7 @@ import type { BloqueHorario } from '../domain/reglas';
 import type { TipoBloque } from '../services/horario';
 import { aMinutos, desdeMinutos, duracionMinutos, formatoDuracion } from '../domain/tiempo';
 import { textoDias } from './ciclo';
+import { regla } from '../components/regla';
 
 const DURACION_SUGERIDA = 50; // minutos
 
@@ -102,13 +103,14 @@ export async function paginaHorario(ctx: ContextoPagina, turnoId: string): Promi
         { texto: `Ciclo ${ciclo.nombre}`, href: `#/ciclo/${ciclo.id}` },
         { texto: `Turno ${turno.nombre}` },
       ]),
-      encabezado(`Turno ${turno.nombre}`, `Jornada de ${jornada.horaInicio} a ${jornada.horaFin} · ${textoDias(jornada.dias)}`),
+      encabezado(`Turno ${turno.nombre}`, `${textoDias(jornada.dias)}, de ${jornada.horaInicio} a ${jornada.horaFin}`),
       h('dl', { class: 'totales' },
         h('div', {}, h('dt', {}, 'Clase'), h('dd', {}, formatoDuracion(r.minutosClase))),
         h('div', {}, h('dt', {}, 'Recesos'), h('dd', {}, formatoDuracion(r.minutosReceso))),
         h('div', {}, h('dt', {}, 'Sin asignar'), h('dd', {}, formatoDuracion(r.minutosLibres))),
       ),
       editable ? null : h('p', { class: 'mensaje' }, icono('ℹ'), ' El ciclo está cerrado: sólo consulta.'),
+      r.bloques.length ? seccion('vista-jornada', 'Así se ve la jornada', regla(jornada, r.bloques)) : null,
       seccion('bloques', 'Periodos y recesos', lista, editable ? panel : null),
       h('a', { class: 'boton boton--secundario', href: `#/ciclo/${ciclo.id}` }, '← Volver al ciclo'),
     ),

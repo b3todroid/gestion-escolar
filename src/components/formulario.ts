@@ -144,20 +144,20 @@ function mostrarErrores(form: HTMLFormElement, mensaje: string, campos: { campo:
 /**
  * Conecta el envío del formulario a una acción asíncrona.
  * Muestra «Guardando…», deshabilita el botón, y presenta errores por campo.
- * `accion` devuelve el mensaje de éxito.
+ * `accion` devuelve el mensaje de éxito, o null si el paso no guarda (p. ej. «Siguiente»).
  */
-export function alEnviar(form: HTMLFormElement, accion: () => Promise<string>): HTMLFormElement {
+export function alEnviar(form: HTMLFormElement, accion: () => Promise<string | null>, textoOcupado = 'Guardando…'): HTMLFormElement {
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const boton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
     const textoOriginal = boton?.textContent ?? '';
     if (boton?.disabled) return; // evita envíos dobles
     limpiarErrores(form);
-    if (boton) { boton.disabled = true; boton.textContent = 'Guardando…'; }
+    if (boton) { boton.disabled = true; boton.textContent = textoOcupado; }
     form.setAttribute('aria-busy', 'true');
     try {
       const mensaje = await accion();
-      avisar(`${mensaje} Guardado en este dispositivo.`, 'exito');
+      if (mensaje) avisar(`${mensaje} Guardado en este dispositivo.`, 'exito');
     } catch (e) {
       if (esErrorDominio(e)) {
         mostrarErrores(form, e.message, e.campos.length ? e.campos : [{ campo: 'formulario', mensaje: e.message }]);

@@ -6,6 +6,7 @@ import { paginaEscuelaEditar, paginaEscuelaNueva } from './pages/escuela-formula
 import { paginaEscuela } from './pages/escuela';
 import { paginaCiclo } from './pages/ciclo';
 import { paginaHorario } from './pages/horario';
+import { paginaAsistente } from './pages/asistente';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 
 const principal = document.getElementById('contenido');
@@ -18,6 +19,7 @@ if (typeof indexedDB === 'undefined') {
 } else {
   new Aplicacion(crearServicios(), principal)
     .ruta('/', paginaInicio)
+    .ruta('/asistente', paginaAsistente)
     .ruta('/escuela/nueva', paginaEscuelaNueva)
     .ruta('/escuela/:id', paginaEscuela)
     .ruta('/escuela/:id/editar', paginaEscuelaEditar)
