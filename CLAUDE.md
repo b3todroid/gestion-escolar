@@ -1,0 +1,38 @@
+# CLAUDE.md — Gestión Escolar
+
+PWA **local-first** para gestión escolar. Fase actual: **Fase 1 (configuración escolar) — completada**.
+Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
+
+## Comandos
+- `npm run dev` — servidor de desarrollo (http://localhost:5173)
+- `npm run typecheck` — TypeScript estricto
+- `npm test` — Vitest (unitarias + integración con IndexedDB en memoria)
+- `npm run test:e2e` — Playwright (compila y prueba la versión de producción con Service Worker)
+- `npm run build` / `npm run preview`
+- `npm run check` — typecheck + test + build. Ejecutarlo antes de declarar terminada una tarea.
+
+## Stack
+Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin-pwa 2 · Vitest 5 · Playwright.
+**Sin frameworks de UI** (React/Vue/Angular…): DOM nativo con `src/components/dom.ts`. Justificar por escrito antes de introducir uno.
+
+## Capas (dependencias sólo hacia abajo)
+`pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
+- Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.
+- Los servicios dependen de las interfaces de `repositories/tipos.ts`, no de Dexie.
+- Toda operación de escritura va dentro de `ctx.uow.ejecutar(...)` (transacción atómica).
+
+## Reglas obligatorias
+- IDs: `nuevoId()` (UUID). Nunca usar nombres como identificador.
+- Todo registro de configuración lleva `escuelaId` y `cicloEscolarId` cuando aplica. No mezclar escuelas ni ciclos.
+- Validar toda entrada con Zod (`validators/esquemas.ts` + `validar()`), errores como `ErrorDominio` con `campos`.
+- **Nunca** `innerHTML`/`outerHTML`/`insertAdjacentHTML` con datos: usar `h()` (textContent).
+- **Nunca** `alert()`, `confirm()`, `prompt()`: usar `avisar()` y `confirmar()`.
+- Estados con texto + símbolo, no sólo color. Etiquetas visibles en todos los campos. Objetivos táctiles ≥ 44–48 px.
+- Esquema de BD: **nunca** modificar una versión publicada; agregar `version(n+1)` con `upgrade()` que conserve datos. Documentar en `docs/MODELO_DATOS.md`.
+- No enviar datos escolares a servicios externos. No secretos en el cliente. Sólo datos ficticios en pruebas.
+- No afirmar que las pruebas pasan sin ejecutarlas.
+- No instalar ExcelJS, PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
+
+## Fuera de alcance hasta nuevas fases
+Importación PDF/Excel, OCR, asistencia, Prefectura, personal/alumnos, sincronización, autenticación.
+No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Configuración escolar local: escuelas, ciclos, turnos, periodos, recesos, grados y grupos." />
+    <meta name="theme-color" content="#1d4e89" />
+    <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icono-192.png" />
+    <title>Gestión Escolar</title>
+  </head>
+  <body>
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+    <header class="barra">
+      <a class="barra__marca" href="#/">
+        <img src="/icono.svg" alt="" width="28" height="28" />
+        <span>Gestión Escolar</span>
+      </a>
+      <p id="conexion" class="barra__conexion" aria-live="polite"></p>
+    </header>
+    <main id="contenido" tabindex="-1">
+      <p class="cargando">Cargando…</p>
+    </main>
+    <div id="avisos" class="avisos"></div>
+    <noscript>Esta aplicación necesita JavaScript activado.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
