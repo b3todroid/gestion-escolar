@@ -5,6 +5,7 @@ export interface OpcionesConfirmacion {
   mensaje: string;
   detalles?: string[];
   textoConfirmar?: string;
+  textoCancelar?: string;
   peligro?: boolean;
   /** Sólo informa (una acción imposible): un único botón «Entendido». */
   soloInformar?: boolean;
@@ -17,7 +18,7 @@ export interface OpcionesConfirmacion {
 export function confirmar(op: OpcionesConfirmacion): Promise<boolean> {
   return new Promise((resolver) => {
     const titulo = h('h2', { id: 'dialogo-titulo' }, op.titulo);
-    const cancelar = h('button', { type: 'button', class: 'boton boton--secundario', value: 'no' }, op.soloInformar ? 'Entendido' : 'Cancelar');
+    const cancelar = h('button', { type: 'button', class: 'boton boton--secundario', value: 'no' }, op.soloInformar ? 'Entendido' : (op.textoCancelar ?? 'Cancelar'));
     const aceptar = h('button', { type: 'button', class: `boton ${op.peligro ? 'boton--peligro' : ''}`, value: 'si' }, op.textoConfirmar ?? 'Confirmar');
     const dialogo = h('dialog', { class: 'dialogo', 'aria-labelledby': 'dialogo-titulo', 'aria-describedby': 'dialogo-mensaje' },
       titulo,

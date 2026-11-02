@@ -78,6 +78,7 @@ export async function paginaAsistente(ctx: ContextoPagina): Promise<Vista> {
 
   const pasoConFormulario = (clave: Exclude<ClavePaso, 'revisar'>, ...campos: Parameters<typeof formulario>[2][]) => {
     const form = formulario(`f-${clave}`, null, ...campos);
+    form.setAttribute('data-autoguardado', ''); // el borrador conserva lo capturado
     agregar(form, navegacion(form));
     form.addEventListener('change', () => leerPaso(form));
     return alEnviar(form, async () => {

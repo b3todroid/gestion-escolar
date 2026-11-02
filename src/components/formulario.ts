@@ -157,6 +157,7 @@ export function alEnviar(form: HTMLFormElement, accion: () => Promise<string | n
     form.setAttribute('aria-busy', 'true');
     try {
       const mensaje = await accion();
+      form.removeAttribute('data-sin-guardar'); // guardado: ya no hay cambios pendientes
       if (mensaje) avisar(`${mensaje} Guardado en este dispositivo.`, 'exito');
     } catch (e) {
       if (esErrorDominio(e)) {

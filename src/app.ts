@@ -1,6 +1,7 @@
 import type { Servicios } from './services';
 import { h, vaciar } from './components/dom';
 import { esErrorDominio } from './domain/errores';
+import { confirmar } from './components/dialogo';
 
 export interface Vista {
   titulo: string;
@@ -28,6 +29,8 @@ const ID = '([0-9a-f-]{36})';
 export class Aplicacion {
   private readonly rutas: Ruta[] = [];
   private generacion = 0;
+  private rutaActual = window.location.hash;
+  private ignorarCambio = false;
 
   constructor(private readonly s: Servicios, private readonly principal: HTMLElement) {}
 
@@ -37,8 +40,42 @@ export class Aplicacion {
   }
 
   iniciar(): void {
-    window.addEventListener('hashchange', () => void this.dibujar(true));
+    // Marca los formularios con cambios sin guardar (el asistente se excluye: guarda borrador).
+    this.principal.addEventListener('input', (ev) => {
+      const form = (ev.target as Element).closest('form');
+      if (form && !form.hasAttribute('data-autoguardado')) form.setAttribute('data-sin-guardar', '');
+    });
+    window.addEventListener('beforeunload', (ev) => {
+      if (this.hayCambiosSinGuardar()) ev.preventDefault(); // aviso nativo al recargar o cerrar
+    });
+    window.addEventListener('hashchange', () => void this.alCambiarRuta());
     void this.dibujar(false);
+  }
+
+  private hayCambiosSinGuardar(): boolean {
+    return this.principal.querySelector('form[data-sin-guardar]') !== null;
+  }
+
+  /** Antes de navegar, si hay cambios sin guardar, pregunta y permite quedarse. */
+  private async alCambiarRuta(): Promise<void> {
+    if (this.ignorarCambio) { this.ignorarCambio = false; return; }
+    if (this.hayCambiosSinGuardar()) {
+      const destino = window.location.hash;
+      this.ignorarCambio = true;
+      window.location.hash = this.rutaActual; // se queda en la vista actual mientras decide
+      const salir = await confirmar({
+        titulo: 'Tienes cambios sin guardar',
+        mensaje: 'Si sales ahora, se perderá lo que escribiste en el formulario.',
+        textoConfirmar: 'Salir sin guardar',
+        textoCancelar: 'Seguir editando',
+        peligro: true,
+      });
+      if (!salir) return;
+      this.principal.querySelectorAll('form[data-sin-guardar]').forEach((f) => f.removeAttribute('data-sin-guardar'));
+      window.location.hash = destino;
+      return;
+    }
+    await this.dibujar(true);
   }
 
   private contexto(): ContextoPagina {
@@ -64,6 +101,7 @@ export class Aplicacion {
       vista = vistaError('No se pudo mostrar la información', esErrorDominio(e) ? e.message : 'Ocurrió un error inesperado al leer los datos locales.');
     }
     if (gen !== this.generacion) return; // llegó una navegación más reciente
+    this.rutaActual = window.location.hash;
     document.title = `${vista.titulo} · Gestión Escolar`;
     vaciar(this.principal);
     this.principal.appendChild(vista.contenido);

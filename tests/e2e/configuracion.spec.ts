@@ -52,6 +52,8 @@ test('configura una escuela completa y los datos persisten al recargar', async (
 
   // Grados y grupos
   await page.getByRole('link', { name: 'Ciclo 2026-2027' }).click();
+  // El formulario quedó con el horario rechazado: la app pregunta antes de descartarlo.
+  await page.getByRole('dialog').getByRole('button', { name: 'Salir sin guardar' }).click();
   await expect(page.locator('#f-grado-nombre')).toHaveValue('Primer grado');
   await page.getByRole('button', { name: 'Agregar grado' }).click();
   await expect(page.getByRole('heading', { name: 'Primer grado' })).toBeVisible();

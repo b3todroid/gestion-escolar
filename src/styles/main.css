@@ -350,13 +350,15 @@ main:focus { outline: none; }
 .bloque__meta { margin: 0.2rem 0 0; color: var(--texto-suave); font-size: 0.92rem; }
 
 /* ----- Avisos ----- */
+/* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
+   El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */
 .avisos {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-  display: grid; gap: 0.5rem; padding: 0.75rem; padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  position: fixed; left: 0; right: 0; top: calc(3.6rem + env(safe-area-inset-top)); z-index: 50;
+  display: grid; gap: 0.5rem; padding: 0 0.75rem;
   pointer-events: none;
 }
 .aviso {
-  pointer-events: auto; display: flex; align-items: center; gap: 0.5rem;
+  pointer-events: none; display: flex; align-items: center; gap: 0.5rem;
   max-width: 40rem; margin: 0 auto; width: 100%;
   padding: 0.7rem 0.6rem 0.7rem 1rem; border-radius: var(--r-medio);
   background: var(--texto); color: var(--fondo);
@@ -368,10 +370,10 @@ main:focus { outline: none; }
 .aviso--error { background: var(--peligro); color: #fff; }
 @media (prefers-color-scheme: dark) { .aviso--exito .icono { color: var(--ok); } .aviso--error { color: #2a0b08; } }
 .aviso__cerrar {
-  min-width: 44px; min-height: 44px; font-size: 1.4rem; line-height: 1;
+  pointer-events: auto; min-width: 44px; min-height: 44px; font-size: 1.4rem; line-height: 1;
   background: transparent; color: inherit; border: 0; border-radius: 8px; cursor: pointer;
 }
-@keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes aparecer { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 
 .barra-actualizacion {
   position: fixed; left: 0.75rem; right: 0.75rem; top: 4.25rem; z-index: 40;
