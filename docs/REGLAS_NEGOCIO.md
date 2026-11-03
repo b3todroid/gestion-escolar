@@ -9,7 +9,12 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Operaciones compuestas son atómicas (todo o nada).
 - Ninguna eliminación ocurre sin confirmación explícita en la interfaz.
 
-## Escuela
+## Escuela (datos del plantel)
+- En el asistente y en «Editar datos escolares»: nombre oficial (3–150), CCT, nivel, entidad federativa y municipio/alcaldía **obligatorios**; nombre corto, zona, sector, domicilio, teléfono, correo y logotipo opcionales.
+- La CCT valida formato (10 caracteres) y que sus dos primeros dígitos coincidan con la clave de la entidad elegida. **No se afirma que la escuela exista oficialmente.** Al escribir la CCT se sugiere la entidad.
+- Teléfono: 10 dígitos (se aceptan espacios, guiones, paréntesis y +52). Correo: formato válido, en minúsculas.
+- Logotipo: sólo PNG, JPG o WebP (nunca SVG); se reduce a 256 px y se guarda como PNG en el dispositivo.
+
 - Nombre 3–150 caracteres; nivel obligatorio; CCT opcional; si se captura debe cumplir el formato SEP: entidad 01–32, 3 letras, 4 dígitos y 1 letra verificadora (p. ej. `00AAA0000A`). Se ignoran espacios y guiones y se guarda en mayúsculas. Sólo se valida la estructura, no que la clave exista.
 - Niveles: educación inicial, preescolar, primaria, secundaria, media superior, otro.
 - No puede haber dos escuelas con el mismo CCT. Si no tienen CCT, no puede repetirse el nombre.
@@ -30,6 +35,7 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Al eliminar un turno se eliminan su jornada, periodos y recesos (previa confirmación que muestra cuántos). Se bloquea si tiene grupos asignados.
 
 ## Periodos y recesos
+- En el asistente pueden generarse (módulos + recesos) o editarse uno por uno (nombre, inicio, fin; agregar/quitar). Se exige al menos un periodo y el bloque en conflicto se marca en su lugar.
 - Deben quedar completamente dentro de la jornada.
 - No pueden traslaparse entre sí (periodos con periodos, ni con recesos). Bloques **contiguos** (uno termina 08:40 y otro inicia 08:40) sí se permiten.
 - Duración mayor que cero.
@@ -43,7 +49,11 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Todo se guarda en una sola transacción y con las mismas reglas que la edición manual.
 
 ## Grados y grupos
-- Número de grado entero 1–12, único por ciclo; nombre único por ciclo.
+- Sin límite práctico: grados 1–99 y hasta 99 grupos por grado; después de la Z siguen AA, AB…
+- Asistente: generación rápida o personalizada; grados y nombres de grado sin repetir; grupos sin repetir dentro del grado (normalizado); cada grado con al menos un grupo.
+- **Desactivar grupo**: se conserva con su historial y deja de recibir materias, clases, alumnos y actividades; sólo si no tiene alumnos activos ni materias asignadas. Se puede reactivar.
+- «Agregar varios grupos» (grado + turno + «D, E, F»): todo o nada, sin duplicados.
+- Número de grado entero 1–99, único por ciclo; nombre único por ciclo.
 - Un grado con grupos no se elimina.
 - Un grupo pertenece a un grado y a un turno **del mismo ciclo** (no se mezclan ciclos ni escuelas).
 - Nombre de grupo único por grado + turno (puede existir 1° A matutino y 1° A vespertino).

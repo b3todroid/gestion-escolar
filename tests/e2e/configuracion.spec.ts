@@ -5,16 +5,16 @@ import { expect, test, type Page } from '@playwright/test';
 async function registrarEscuela(page: Page, nombre = 'Escuela Secundaria Ficticia 7', cct = '32zzz0007z') {
   await page.goto('/');
   await page.goto('/#/escuela/nueva');
-  await page.getByLabel('Nombre de la escuela').fill(nombre);
+  await page.getByLabel('Nombre oficial de la escuela').fill(nombre);
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill(cct);
-  await page.getByLabel('Localidad o municipio').fill('Localidad Ejemplo');
+  await page.getByLabel('Municipio o alcaldía').fill('Localidad Ejemplo');
   await page.getByRole('button', { name: 'Registrar escuela' }).click();
   await expect(page.getByRole('heading', { level: 1, name: nombre })).toBeVisible();
 }
 
 test('configura una escuela completa y los datos persisten al recargar', async ({ page }) => {
   await registrarEscuela(page);
-  await expect(page.getByText('32ZZZ0007Z')).toBeVisible(); // CCT normalizado
+  await expect(page.locator('.datos').getByText('32ZZZ0007Z')).toBeVisible(); // CCT normalizado
 
   // Ciclo escolar (el formulario se abre automáticamente cuando no hay ciclos)
   await page.getByLabel('Nombre del ciclo').fill('2026-2027');
@@ -77,18 +77,19 @@ test('configura una escuela completa y los datos persisten al recargar', async (
 
 test('muestra errores de validación junto a cada campo', async ({ page }) => {
   await page.goto('/#/escuela/nueva');
-  await page.getByLabel('Nombre de la escuela').fill('ab');
+  await page.getByLabel('Nombre oficial de la escuela').fill('ab');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill('mal clave!');
   await page.getByRole('button', { name: 'Registrar escuela' }).click();
-  await expect(page.locator('.resumen-errores')).toContainText('Revisa 2 campos');
-  await expect(page.getByLabel('Nombre de la escuela')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('.resumen-errores')).toContainText('Revisa 3 campos');
+  await expect(page.getByLabel('Nombre oficial de la escuela')).toHaveAttribute('aria-invalid', 'true');
   await expect(page.locator('#f-escuela-nombre-error')).toContainText('al menos 3 caracteres');
 });
 
 test('los textos se muestran como texto, no como HTML', async ({ page }) => {
   let ejecutado = false;
   page.on('dialog', async (d) => { ejecutado = true; await d.dismiss(); });
-  await registrarEscuela(page, '<img src=x onerror=alert(1)> Escuela', '');
+  await registrarEscuela(page, '<img src=x onerror=alert(1)> Escuela', '32ZZZ0008Z');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('<img src=x onerror=alert(1)> Escuela');
   expect(await page.locator('main img').count()).toBe(0);
   expect(ejecutado).toBe(false);
@@ -103,7 +104,7 @@ test('pide confirmación antes de eliminar y respeta la cancelación', async ({ 
   await expect(page.getByRole('heading', { level: 1, name: 'Escuela Para Borrar' })).toBeVisible();
   await page.getByRole('button', { name: 'Eliminar escuela' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Eliminar' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Escuelas' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Gestión escolar' })).toBeVisible();
 });
 
 test('funciona sin conexión después de la primera carga', async ({ page, context }) => {

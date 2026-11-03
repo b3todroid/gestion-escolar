@@ -21,14 +21,20 @@ const enEscuela = { ...meta, escuelaId: id };
 const enCiclo = { ...enEscuela, cicloEscolarId: id };
 
 export const ESQUEMAS_TABLA = {
-  escuelas: z.object({ ...meta, nombre: texto(150), cct: opcional(20), nivel: z.enum(NIVELES_EDUCATIVOS), localidad: opcional(120) }),
+  escuelas: z.object({
+    ...meta, nombre: texto(150), cct: opcional(20), nivel: z.enum(NIVELES_EDUCATIVOS), localidad: opcional(120),
+    // Campos de la versión 5; los respaldos anteriores no los tienen.
+    nombreCorto: opcional(60).default(null), entidad: opcional(2).default(null), zonaEscolar: opcional(20).default(null), sector: opcional(20).default(null),
+    domicilio: opcional(200).default(null), telefono: opcional(10).default(null), correo: opcional(120).default(null),
+    logotipo: z.string().max(400_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/).nullable().default(null),
+  }),
   ciclos: z.object({ ...enEscuela, nombre: texto(40), fechaInicio: fecha, fechaFin: fecha, estado: z.enum(ESTADOS_CICLO) }),
   turnos: z.object({ ...enCiclo, nombre: texto(40) }),
   jornadas: z.object({ ...enCiclo, turnoId: id, horaInicio: hora, horaFin: hora, dias: z.array(dia).max(7) }),
   periodos: z.object({ ...enCiclo, jornadaId: id, nombre: texto(40), horaInicio: hora, horaFin: hora }),
   recesos: z.object({ ...enCiclo, jornadaId: id, nombre: texto(40), horaInicio: hora, horaFin: hora }),
-  grados: z.object({ ...enCiclo, numero: z.number().int().min(1).max(12), nombre: texto(40) }),
-  grupos: z.object({ ...enCiclo, gradoId: id, turnoId: id, nombre: texto(20), capacidad: z.number().int().min(1).max(80).nullable() }),
+  grados: z.object({ ...enCiclo, numero: z.number().int().min(1).max(99), nombre: texto(40) }),
+  grupos: z.object({ ...enCiclo, gradoId: id, turnoId: id, nombre: texto(20), capacidad: z.number().int().min(1).max(80).nullable(), activo: z.boolean().default(true) }),
   personal: z.object({ ...enEscuela, nombre: texto(60), primerApellido: texto(60), segundoApellido: opcional(60), numeroEmpleado: opcional(20), funciones: z.array(z.enum(FUNCIONES_PERSONAL)).max(5), activo: z.boolean() }),
   materias: z.object({ ...enCiclo, nombre: texto(80), abreviatura: opcional(12) }),
   asignaciones: z.object({ ...enCiclo, grupoId: id, materiaId: id, personalId: id.nullable(), horasSemana: z.number().int().min(1).max(40) }),

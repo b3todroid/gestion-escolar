@@ -6,6 +6,8 @@ import { confirmar } from '../components/dialogo';
 import type { CicloEscolar, Escuela, EstadoCiclo } from '../models';
 import { ETIQUETA_ESTADO } from '../services/ciclos';
 import { NIVEL_ETIQUETA, formatoFecha } from './etiquetas';
+import { nombreEntidad } from '../domain/catalogos';
+import { textoDias } from './ciclo';
 
 const INSIGNIA_ESTADO: Record<EstadoCiclo, [variante: 'ok' | 'aviso' | 'neutro', simbolo: string]> = {
   activo: ['ok', '●'],
@@ -57,6 +59,55 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
   const ciclos = await ctx.s.ciclos.listar(id);
   const personal = await ctx.s.personal.listar(id);
 
+  // ---------- Panel principal: resumen del ciclo vigente ----------
+  const ciclo = ciclos.find((c) => c.estado === 'activo') ?? ciclos.find((c) => c.estado === 'planeacion') ?? ciclos[0] ?? null;
+  const turnos = ciclo ? await ctx.s.turnos.listar(ciclo.id) : [];
+  const grados = ciclo ? await ctx.s.grados.listarGrados(ciclo.id) : [];
+  const grupos = ciclo ? await ctx.s.grados.listarGrupos(ciclo.id) : [];
+  const activos = grupos.filter((g) => g.activo !== false);
+  const jornadas = await Promise.all(turnos.map(async (t) => {
+    const r = await ctx.s.horario.resumen(t.jornada.id);
+    const p = r.bloques.filter((b) => b.tipo === 'periodo').length;
+    return { t, texto: `${textoDias(t.jornada.dias)}, de ${t.jornada.horaInicio} a ${t.jornada.horaFin}; ${p} periodo(s) y ${r.bloques.length - p} receso(s)` };
+  }));
+  const dato = (etiqueta: string, valor: string | null, vacioTexto = 'Sin capturar') =>
+    h('div', { class: 'panel-escuela__dato' }, h('dt', {}, etiqueta), h('dd', {}, valor ?? vacioTexto));
+  const panel = h('section', { class: 'panel-escuela', 'aria-labelledby': 'panel-titulo' },
+    h('div', { class: 'panel-escuela__cabeza' },
+      escuela.logotipo ? h('img', { class: 'panel-escuela__logo', src: escuela.logotipo, alt: `Logotipo de ${escuela.nombre}`, width: 72, height: 72 }) : null,
+      h('div', {},
+        h('h2', { id: 'panel-titulo' }, escuela.nombreCorto ?? escuela.nombre),
+        escuela.nombreCorto ? h('p', { class: 'panel-escuela__oficial' }, escuela.nombre) : null,
+        h('p', { class: 'panel-escuela__oficial' }, [NIVEL_ETIQUETA[escuela.nivel], escuela.localidad, nombreEntidad(escuela.entidad)].filter(Boolean).join(', ')),
+      ),
+    ),
+    h('dl', { class: 'panel-escuela__datos' },
+      dato('CCT', escuela.cct),
+      dato('Ciclo escolar', ciclo ? `${ciclo.nombre} (${ETIQUETA_ESTADO[ciclo.estado].toLowerCase()})` : null, 'Sin ciclo'),
+      dato(turnos.length > 1 ? 'Turnos' : 'Turno', turnos.length ? turnos.map((t) => t.turno.nombre).join(', ') : null, 'Sin turno'),
+      dato('Grados', String(grados.length)),
+      dato('Grupos', `${activos.length}${grupos.length > activos.length ? ` activos (${grupos.length - activos.length} desactivados)` : ''}`),
+    ),
+    jornadas.length ? h('div', { class: 'panel-escuela__jornada' }, h('h3', {}, 'Jornada configurada'), ...jornadas.map((j) => h('p', {}, jornadas.length > 1 ? `${j.t.turno.nombre}: ${j.texto}` : j.texto))) : null,
+    h('nav', { class: 'panel-escuela__accesos', 'aria-label': 'Administración' },
+      h('a', { class: 'boton', href: `#/escuela/${escuela.id}/editar` }, 'Editar datos escolares'),
+      turnos.length === 1 ? h('a', { class: 'boton', href: `#/turno/${turnos[0]!.turno.id}` }, 'Administrar periodos')
+        : ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}` }, 'Administrar periodos') : null,
+      ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}` }, 'Administrar grupos') : null,
+    ),
+  );
+  const herramientas = h('section', { class: 'seccion', 'aria-labelledby': 'mas-titulo' },
+    h('h2', { id: 'mas-titulo' }, 'Otros módulos'),
+    h('ul', { class: 'modulos' },
+      h('li', {}, h('a', { href: `#/escuela/${escuela.id}/personal` }, 'Personal y docentes'), h('span', { class: 'modulos__estado' }, 'Disponible')),
+      ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/materias` }, 'Materias'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
+      ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/importar` }, 'Importar horarios desde Excel'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
+      h('li', {}, h('a', { href: '#/respaldos' }, 'Respaldos'), h('span', { class: 'modulos__estado' }, 'Disponible')),
+      ...['Prefectura', 'Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
+        h('li', { class: 'modulos__futuro' }, h('span', {}, m), h('span', { class: 'modulos__estado' }, 'Próximamente'))),
+    ),
+  );
+
   const contenedorForm = h('div', {});
   const panelForm = desplegable('Agregar ciclo escolar', ciclos.length === 0, contenedorForm);
   const mostrarAlta = () => contenedorForm.replaceChildren(formularioCiclo(ctx, escuela, null, mostrarAlta));
@@ -107,15 +158,21 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
   return {
     titulo: escuela.nombre,
     contenido: h('div', { class: 'pagina' },
-      migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombre }]),
-      encabezado(escuela.nombre, NIVEL_ETIQUETA[escuela.nivel]),
-      seccion('datos', 'Datos generales',
+      migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombreCorto ?? escuela.nombre }]),
+      encabezado(escuela.nombre, 'Panel principal'),
+      panel,
+      seccion('datos', 'Datos del plantel',
         h('dl', { class: 'datos' },
           h('dt', {}, 'Clave (CCT)'), h('dd', {}, escuela.cct ?? 'Sin registrar'),
-          h('dt', {}, 'Localidad'), h('dd', {}, escuela.localidad ?? 'Sin registrar'),
+          h('dt', {}, 'Entidad'), h('dd', {}, nombreEntidad(escuela.entidad) ?? 'Sin registrar'),
+          h('dt', {}, 'Municipio o alcaldía'), h('dd', {}, escuela.localidad ?? 'Sin registrar'),
+          escuela.zonaEscolar ? h('dt', {}, 'Zona escolar') : null, escuela.zonaEscolar ? h('dd', {}, escuela.zonaEscolar) : null,
+          escuela.sector ? h('dt', {}, 'Sector') : null, escuela.sector ? h('dd', {}, escuela.sector) : null,
+          escuela.domicilio ? h('dt', {}, 'Domicilio') : null, escuela.domicilio ? h('dd', {}, escuela.domicilio) : null,
+          escuela.telefono ? h('dt', {}, 'Teléfono') : null, escuela.telefono ? h('dd', {}, escuela.telefono.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1 $2 $3')) : null,
+          escuela.correo ? h('dt', {}, 'Correo') : null, escuela.correo ? h('dd', {}, escuela.correo) : null,
         ),
         h('div', { class: 'acciones acciones--izq' },
-          h('a', { class: 'boton boton--secundario boton--chico', href: `#/escuela/${escuela.id}/editar` }, 'Editar datos'),
           botonAccion('Eliminar escuela', async () => {
             const ok = await confirmar({
               titulo: `¿Eliminar «${escuela.nombre}»?`,
@@ -126,6 +183,7 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
           }, 'peligro'),
         ),
       ),
+      herramientas,
       seccion('personal', 'Personal',
         h('p', {}, personal.length ? `${personal.filter((p) => p.activo).length} persona(s) activa(s), ${personal.filter((p) => p.activo && p.funciones.includes('docente')).length} con función docente.` : 'Registra una vez a docentes y demás personal; sirve para todos los ciclos.'),
         h('a', { class: 'boton boton--chico', href: `#/escuela/${escuela.id}/personal` }, personal.length ? 'Ver personal' : 'Registrar personal'),

@@ -8,6 +8,13 @@ Aplicación web progresiva (PWA) para que el personal directivo configure y, en 
 ## Usuarios (Fase 1)
 Una persona responsable de la configuración (dirección, subdirección o coordinación) usando su propio dispositivo. No hay cuentas ni permisos todavía.
 
+## Fase 1 ampliada (2026-11-03, entregada)
+- Bienvenida: «GESTIÓN ESCOLAR», «Sistema de administración y organización escolar», «CONFIGURAR MI ESCUELA» o «Continuar» por escuela.
+- Datos del plantel: nombre oficial, nombre corto, CCT (formato y coherencia con la entidad), nivel, entidad federativa (catálogo de 32), municipio o alcaldía; opcionales: zona escolar, sector, domicilio, teléfono, correo institucional y logotipo.
+- Jornada: generación automática y edición de cada periodo y receso, con detección de traslapes en su lugar y vista previa.
+- Grados y grupos: generación rápida o personalizada (distinto número de grupos por grado, agregar varios, sin límite práctico); en la administración, agregar varios, editar y desactivar/reactivar grupos.
+- Panel principal de la escuela con resumen y accesos.
+
 ## Fase 1 — Configuración escolar (entregada)
 - Registrar, editar y eliminar escuelas (nombre, nivel, CCT opcional, localidad).
 - Ciclos escolares por escuela con estados *En planeación → Activo → Cerrado*.

@@ -8,7 +8,7 @@ import { nuevoEntorno } from './ayudantes';
 // Escuela, docentes y alumnos ficticios. 2026-11-02 es lunes.
 const LUNES = '2026-11-02';
 const ENTRADA: EntradaAsistente = {
-  escuela: { nombre: 'Escuela Secundaria Ficticia 100', cct: '32ZZZ0100A', nivel: 'secundaria', localidad: null },
+  escuela: { nombre: 'Escuela Secundaria Ficticia 100', cct: '32ZZZ0100A', nivel: 'secundaria', entidad: '32', localidad: 'Ciudad Ejemplo' },
   ciclo: { nombre: '2026-2027', fechaInicio: '2026-08-31', fechaFin: '2027-07-15', enCurso: true },
   turno: { nombre: 'Matutino', horaInicio: '07:00', horaFin: '13:00', dias: [1, 2, 3, 4, 5] },
   horario: { duracionModulo: 50, modulos: 6, recesos: [{ despuesDe: 3, duracion: 30 }] },

@@ -166,6 +166,19 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
   const altaGrado = () => contGrado.replaceChildren(formularioGrado(ctx, ciclo, grados, null, altaGrado));
   altaGrado();
 
+  const fV = 'f-grupos-varios';
+  const formVarios = alEnviar(formulario(fV, null,
+    selector(fV, { nombre: 'gradoId', etiqueta: 'Grado', requerido: true, valor: grados.length === 1 ? grados[0]!.id : undefined, opciones: grados.map((g) => ({ valor: g.id, texto: g.nombre })) }),
+    selector(fV, { nombre: 'turnoId', etiqueta: 'Turno', requerido: true, valor: turnos.length === 1 ? turnos[0]!.turno.id : undefined, opciones: turnos.map((t) => ({ valor: t.turno.id, texto: t.turno.nombre })) }),
+    campo(fV, { nombre: 'nombres', etiqueta: 'Grupos', requerido: true, maxlength: 400, mayusculas: true, ayuda: 'Separados por comas, por ejemplo: D, E, F.' }),
+    h('div', { class: 'acciones' }, botonEnviar('Agregar grupos')),
+  ), async () => {
+    const f = document.getElementById(fV) as HTMLFormElement;
+    const r = await ctx.s.grados.crearVariosGrupos(ciclo.id, { gradoId: texto(f, 'gradoId'), turnoId: texto(f, 'turnoId'), nombres: texto(f, 'nombres').split(',').map((x) => x.trim().toUpperCase()).filter(Boolean) });
+    await ctx.recargar();
+    return `${r.length} grupo(s) agregados.`;
+  });
+  const panelVarios = desplegable('Agregar varios grupos', false, formVarios);
   const contGrupo = h('div', {});
   const panelGrupo = desplegable('Agregar grupo', editable && grados.length > 0 && turnos.length > 0 && grupos.length === 0, contGrupo);
   const altaGrupo = () => contGrupo.replaceChildren(formularioGrupo(ctx, ciclo, grados, turnos, null, altaGrupo));
@@ -178,18 +191,27 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
         return h('li', { class: 'tarjeta' },
           h('div', { class: 'tarjeta__cabeza' }, h('h3', {}, g.nombre), insignia(plural(suyos.length, 'grupo'), suyos.length ? 'ok' : 'aviso', suyos.length ? '✓' : '!')),
           suyos.length
-            ? h('ul', { class: 'grupos' }, ...suyos.map((gr) => h('li', { class: 'grupo' },
+            ? h('ul', { class: 'grupos' }, ...suyos.map((gr) => h('li', { class: `grupo${gr.activo === false ? ' grupo--inactivo' : ''}` },
                 h('span', { class: 'grupo__nombre' }, `${g.numero}° ${gr.nombre}`),
                 h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? `, ${gr.capacidad} lugares` : '', confirmados.has(gr.id) ? ', horario confirmado' : ''),
-                h('span', { class: 'grupo__acciones' },
+                gr.activo === false ? h('span', {}, insignia('Desactivado', 'neutro', '■')) : h('span', { class: 'grupo__acciones' },
                   h('a', { class: 'boton boton--chico', href: `#/grupo/${gr.id}`, 'aria-label': `Materias y horario de ${g.numero}° ${gr.nombre}` }, 'Materias y horario'),
                 ),
-                editable ? h('span', { class: 'grupo__acciones' },
+                editable && gr.activo === false ? h('span', { class: 'grupo__acciones' },
+                  botonAccion('Reactivar', async () => {
+                    if (await ejecutar(async () => { await ctx.s.grados.cambiarActivoGrupo(gr.id, true); return `Grupo ${g.numero}° ${gr.nombre} reactivado.`; })) await ctx.recargar();
+                  }, 'secundario', `Reactivar grupo ${g.numero}° ${gr.nombre}`),
+                ) : null,
+                editable && gr.activo !== false ? h('span', { class: 'grupo__acciones' },
                   botonAccion('Editar', () => {
                     contGrupo.replaceChildren(formularioGrupo(ctx, ciclo, grados, turnos, gr, altaGrupo));
                     panelGrupo.open = true;
                     contGrupo.querySelector('select')?.focus();
                   }, 'secundario', `Editar grupo ${g.numero}° ${gr.nombre}`),
+                  botonAccion('Desactivar', async () => {
+                    const ok = await confirmar({ titulo: `¿Desactivar el grupo ${g.numero}° ${gr.nombre}?`, mensaje: 'Se conserva, pero ya no recibirá materias, clases ni alumnos. Puedes reactivarlo después.', textoConfirmar: 'Desactivar' });
+                    if (ok && await ejecutar(async () => { await ctx.s.grados.cambiarActivoGrupo(gr.id, false); return `Grupo ${g.numero}° ${gr.nombre} desactivado.`; })) await ctx.recargar();
+                  }, 'secundario', `Desactivar grupo ${g.numero}° ${gr.nombre}`),
                   botonAccion('Eliminar', async () => {
                     const ok = await confirmar({ titulo: `¿Eliminar el grupo ${g.numero}° ${gr.nombre}?`, mensaje: 'Esta acción no se puede deshacer.', textoConfirmar: 'Eliminar', peligro: true });
                     if (ok && await ejecutar(async () => { await ctx.s.grados.eliminarGrupo(gr.id); return `Grupo ${gr.nombre} eliminado.`; })) await ctx.recargar();
@@ -245,6 +267,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
         listaGrados,
         editable ? panelGrado : null,
         editable && grados.length > 0 && turnos.length > 0 ? panelGrupo : null,
+        editable && grados.length > 0 && turnos.length > 0 ? panelVarios : null,
         editable && grados.length > 0 && turnos.length === 0 ? h('p', { class: 'ayuda' }, icono('ℹ'), ' Para agregar grupos, primero registra al menos un turno.') : null,
       ),
     ),

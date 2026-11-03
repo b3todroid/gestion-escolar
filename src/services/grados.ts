@@ -2,6 +2,7 @@ import type { Grado, Grupo } from '../models';
 import { esquemaGrado, esquemaGrupo, validar, type EntradaGrado, type EntradaGrupo } from '../validators/esquemas';
 import { asegurarSinDuplicado } from '../domain/reglas';
 import { ErrorDominio } from '../domain/errores';
+import { normalizarTexto } from '../domain/texto';
 import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 
 const ORDINALES = ['Primer', 'Segundo', 'Tercer', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo', 'Octavo', 'Noveno', 'Décimo', 'Undécimo', 'Duodécimo'];
@@ -81,7 +82,7 @@ export class ServicioGrados {
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
       await this.verificarGrupo(cicloId, datos, undefined);
-      const grupo: Grupo = { ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, ...datos };
+      const grupo: Grupo = { ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, ...datos, activo: true };
       await this.ctx.repos.grupos.insertar(grupo);
       return grupo;
     });
@@ -100,6 +101,45 @@ export class ServicioGrados {
       const grupo: Grupo = { ...actual, ...datos, ...metadatosActualizados(this.ctx, actual) };
       await this.ctx.repos.grupos.actualizar(grupo);
       return grupo;
+    });
+  }
+
+  /** Varios grupos de un grado y turno a la vez. Todo o nada; sin duplicados. */
+  async crearVariosGrupos(cicloId: string, entrada: { gradoId: string; turnoId: string; nombres: string[]; capacidad?: number | null }): Promise<Grupo[]> {
+    if (!entrada.nombres.length) throw new ErrorDominio('VALIDACION', 'Escribe al menos un grupo.', [{ campo: 'nombres', mensaje: 'Escribe al menos un grupo.' }]);
+    const vistos = new Set<string>();
+    for (const n of entrada.nombres) {
+      const k = normalizarTexto(n);
+      if (vistos.has(k)) { const mensaje = `«${n}» está repetido en la lista.`; throw new ErrorDominio('DUPLICADO', mensaje, [{ campo: 'nombres', mensaje }]); }
+      vistos.add(k);
+    }
+    return this.ctx.uow.ejecutar(async () => {
+      const r: Grupo[] = [];
+      for (const nombre of entrada.nombres) {
+        try { r.push(await this.crearGrupo(cicloId, { gradoId: entrada.gradoId, turnoId: entrada.turnoId, nombre, capacidad: entrada.capacidad ?? null })); }
+        catch (e) { if (e instanceof ErrorDominio) throw new ErrorDominio(e.codigo, e.message, [{ campo: 'nombres', mensaje: e.message }]); throw e; }
+      }
+      return r;
+    });
+  }
+
+  /**
+   * Desactivar conserva el grupo y su historial, pero deja de recibir materias,
+   * clases y alumnos. Sólo si no tiene alumnos activos ni materias asignadas.
+   */
+  async cambiarActivoGrupo(id: string, activo: boolean): Promise<Grupo> {
+    return this.ctx.uow.ejecutar(async () => {
+      const actual = await requerir(this.ctx.repos.grupos.obtener(id), 'el grupo');
+      await cicloEditable(this.ctx, actual.cicloEscolarId);
+      if (!activo) {
+        const alumnos = (await this.ctx.repos.alumnos.listarPor('grupoId', id)).filter((a) => a.activo).length;
+        if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${alumnos} alumno(s) activos. Cámbialos de grupo o dalos de baja antes de desactivarlo.`);
+        const materias = await this.ctx.repos.asignaciones.contarPor('grupoId', id);
+        if (materias > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${materias} materia(s) asignada(s). Quítalas antes de desactivarlo.`);
+      }
+      const g: Grupo = { ...actual, activo, ...metadatosActualizados(this.ctx, actual) };
+      await this.ctx.repos.grupos.actualizar(g);
+      return g;
     });
   }
 

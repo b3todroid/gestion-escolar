@@ -599,6 +599,69 @@ main:focus { outline: none; }
 .conteos-respaldo tr.difiere td { font-weight: 700; color: var(--aviso); }
 .pendiente p { margin: 0 0 0.5rem; font-weight: 700; }
 
+/* ----- Fase 1 ampliada: bienvenida, panel principal y edición en el asistente ----- */
+.bienvenida { display: grid; justify-items: center; text-align: center; gap: 0.35rem; margin: 1.5rem 0 1.5rem; }
+.bienvenida__marca { width: 4rem; height: 4rem; border-radius: 16px; box-shadow: 0 0 0 4px var(--lapiz); }
+.bienvenida__titulo { margin: 0.6rem 0 0; font-size: 2.1rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primario); }
+.bienvenida__subtitulo { margin: 0; color: var(--texto-suave); font-size: 1.05rem; max-width: 26rem; }
+.bienvenida__inicio { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+.boton--principal-alto { text-transform: uppercase; letter-spacing: 0.06em; min-height: 64px; }
+.bienvenida__pasos { margin: 0; padding: 1rem 1rem 1rem 2.4rem; border-radius: var(--r-grande); background: var(--superficie); border: 1px solid var(--borde); display: grid; gap: 0.5rem; }
+.bienvenida__pasos li::marker { color: var(--primario); font-weight: 700; }
+
+.tarjeta-escuela {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.5rem 0.9rem;
+  padding: 0.9rem 1rem; border-radius: var(--r-grande); text-decoration: none; color: var(--texto);
+  background: var(--superficie); border: 2px solid var(--borde);
+}
+.tarjeta-escuela:hover { border-color: var(--primario); }
+.tarjeta-escuela__logo { width: 3rem; height: 3rem; border-radius: 10px; object-fit: contain; background: var(--superficie-2); }
+.tarjeta-escuela__logo--vacio { display: grid; place-items: center; font-weight: 700; font-size: 1.4rem; color: var(--primario-texto); background: var(--primario); }
+.tarjeta-escuela__texto { display: grid; min-width: 0; }
+.tarjeta-escuela__nombre { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
+.tarjeta-escuela__accion { grid-column: 1 / -1; justify-self: stretch; text-align: center; padding: 0.6rem; border-radius: var(--r-medio); background: var(--primario); color: var(--primario-texto); font-weight: 700; }
+
+.panel-escuela { margin: 0 0 1rem; border-radius: var(--r-grande); overflow: hidden; border: 1px solid var(--borde); background: var(--superficie); }
+.panel-escuela__cabeza { display: flex; gap: 0.9rem; align-items: center; padding: 1rem; background: #1f4d3a; color: #f4f8f5; }
+.panel-escuela__cabeza h2 { margin: 0; font-size: 1.35rem; }
+.panel-escuela__oficial { margin: 0.15rem 0 0; opacity: 0.85; font-size: 0.95rem; }
+.panel-escuela__logo { width: 4.5rem; height: 4.5rem; border-radius: 12px; object-fit: contain; background: #fff; flex-shrink: 0; }
+.panel-escuela__datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 1px; margin: 0; background: var(--borde); }
+.panel-escuela__dato { background: var(--superficie); padding: 0.7rem 1rem; }
+@media (max-width: 39.99rem) { .panel-escuela__dato:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+.panel-escuela__dato dt { font-size: 0.82rem; color: var(--texto-suave); }
+.panel-escuela__dato dd { margin: 0.1rem 0 0; font-weight: 700; font-size: 1.05rem; overflow-wrap: anywhere; }
+.panel-escuela__jornada { padding: 0.8rem 1rem 0; }
+.panel-escuela__jornada h3 { margin: 0 0 0.25rem; font-size: 0.9rem; color: var(--texto-suave); }
+.panel-escuela__jornada p { margin: 0 0 0.25rem; font-weight: 700; }
+.panel-escuela__accesos { display: grid; gap: 0.5rem; padding: 1rem; }
+@media (min-width: 40rem) { .panel-escuela__accesos { grid-template-columns: repeat(3, 1fr); } }
+
+.modulos { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; }
+.modulos li { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; min-height: var(--toque); padding: 0.3rem 0.75rem; border-radius: var(--r-medio); background: var(--superficie-2); }
+.modulos a { font-weight: 700; padding: 0.4rem 0; }
+.modulos__estado { font-size: 0.82rem; font-weight: 700; color: var(--ok); }
+.modulos__futuro { background: transparent !important; border: 1px dashed var(--borde); color: var(--texto-suave); }
+.modulos__futuro .modulos__estado { color: var(--texto-suave); }
+
+.logo-vista { width: 6rem; height: 6rem; object-fit: contain; border-radius: 12px; border: 1px solid var(--borde); background: #fff; }
+.logo-vista[hidden] { display: none; }
+.logo-campo { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.logo-campo__acciones { display: grid; gap: 0.5rem; min-width: 0; }
+.formulario--anidado { margin-top: 0.25rem; }
+
+.bloque-edicion, .grado-edicion { border: 1px solid var(--borde); border-radius: var(--r-medio); padding: 0.6rem 0.8rem 0.8rem; margin: 0 0 0.6rem; display: grid; gap: 0.6rem; background: var(--superficie-2); }
+.bloque-edicion legend, .grado-edicion legend { font-weight: 700; padding: 0 0.3rem; }
+.bloque-edicion--receso { border-left: 5px solid var(--lapiz); }
+.bloque-edicion--periodo { border-left: 5px solid var(--primario); }
+.bloque-edicion > .boton { justify-self: start; }
+.bloque-edicion--error { border-color: var(--peligro); background: var(--peligro-suave); }
+.grado-edicion__titulo { margin: 0; font-weight: 700; }
+.fichas--editables li { display: inline-flex; align-items: center; gap: 0.25rem; padding-right: 0.2rem; }
+.ficha__quitar { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--peligro); font-size: 1.3rem; cursor: pointer; border-radius: 8px; }
+.resumen__lista { margin: 0.3rem 0 0; padding-left: 1.2rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.grupo--inactivo { opacity: 0.7; border: 1px dashed var(--borde); }
+
 /* ----- Avisos ----- */
 /* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
    El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */

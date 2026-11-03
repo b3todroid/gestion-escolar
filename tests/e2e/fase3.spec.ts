@@ -18,7 +18,9 @@ const test = base.extend<{ errores: string[] }>({
 /** Escuela con 1° A y 1° B (Matutino 07:00–13:00), dos docentes y dos materias. */
 export async function preparar(page: Page): Promise<string> {
   await page.goto('/#/asistente');
-  await page.getByLabel('Nombre de la escuela').fill('Escuela Secundaria Ficticia 90');
+  await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Secundaria Ficticia 90');
+  await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0999A');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByLabel('Nombre del turno').fill('Matutino');
@@ -27,6 +29,7 @@ export async function preparar(page: Page): Promise<string> {
   await page.getByLabel('Al grado').fill('1');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
   const urlCiclo = page.url();
   await page.getByRole('link', { name: 'Registrar materias' }).click();

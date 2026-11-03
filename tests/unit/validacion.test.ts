@@ -17,7 +17,7 @@ function errores(fn: () => unknown): string[] {
 describe('validación de escuela', () => {
   it('recorta textos, normaliza la clave y convierte vacíos en null', () => {
     const r = validar(esquemaEscuela, { nombre: '  Escuela Ejemplo  ', cct: ' 32zzz0000a ', nivel: 'secundaria', localidad: '   ' });
-    expect(r).toEqual({ nombre: 'Escuela Ejemplo', cct: '32ZZZ0000A', nivel: 'secundaria', localidad: null });
+    expect(r).toEqual({ nombre: 'Escuela Ejemplo', cct: '32ZZZ0000A', nivel: 'secundaria', localidad: null, nombreCorto: null, entidad: null, zonaEscolar: null, sector: null, domicilio: null, telefono: null, correo: null, logotipo: null });
   });
 
   it('rechaza nombre corto, nivel inválido y clave con símbolos', () => {

@@ -50,11 +50,16 @@ export function generarBloques(p: PlantillaHorario): BloquePropuesto[] {
   return bloques;
 }
 
-const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+/** A, B, …, Z, AA, AB, … (sin límite de 26). */
+export function letraGrupo(indice: number): string {
+  let n = indice + 1; let r = '';
+  while (n > 0) { const m = (n - 1) % 26; r = String.fromCharCode(65 + m) + r; n = Math.floor((n - 1) / 26); }
+  return r;
+}
 
 /** Nombres de grupo consecutivos: A, B, C… */
 export function nombresGrupos(cantidad: number): string[] {
-  return Array.from(LETRAS.slice(0, Math.max(0, Math.min(cantidad, LETRAS.length))));
+  return Array.from({ length: Math.max(0, cantidad) }, (_, i) => letraGrupo(i));
 }
 
 /** Número de grados habitual por nivel; es sólo una sugerencia editable. */

@@ -4,12 +4,15 @@ import { expect, test } from '@playwright/test';
 
 async function crearEscuela(page: import('@playwright/test').Page) {
   await page.goto('/#/asistente');
-  await page.getByLabel('Nombre de la escuela').fill('Escuela Ficticia Cambios');
+  await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Ficticia Cambios');
+  await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0999A');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByLabel('Nombre del turno').fill('Matutino');
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
 }
 

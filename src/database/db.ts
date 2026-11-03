@@ -16,7 +16,7 @@ import type {
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 4;
+export const VERSION_ESQUEMA = 5;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -86,7 +86,17 @@ export class BaseDatosEscolar extends Dexie {
       ajustes: 'id',
     });
 
-    // Para fases futuras: agregar this.version(5) (con .upgrade() si hay que transformar
+    // Versión 5 — Fase 1 ampliada: datos del plantel (nombre corto, entidad, zona, sector,
+    // domicilio, teléfono, correo, logotipo) y grupos activables. No cambia índices:
+    // la migración sólo COMPLETA los campos nuevos en los registros existentes.
+    this.version(5).stores({}).upgrade(async (tx) => {
+      await tx.table('escuelas').toCollection().modify((e: Record<string, unknown>) => {
+        for (const c of ['nombreCorto', 'entidad', 'zonaEscolar', 'sector', 'domicilio', 'telefono', 'correo', 'logotipo']) if (e[c] === undefined) e[c] = null;
+      });
+      await tx.table('grupos').toCollection().modify((g: Record<string, unknown>) => { if (g['activo'] === undefined) g['activo'] = true; });
+    });
+
+    // Para fases futuras: agregar this.version(6) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

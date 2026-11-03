@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
+import { CLAVES_ENTIDAD, nombreEntidad } from '../domain/catalogos';
 
 // eslint-disable-next-line no-control-regex
 const SIN_CONTROL = /^[^\u0000-\u001f\u007f]*$/;
@@ -68,8 +69,36 @@ export const esquemaEscuela = z.object({
       message: 'La CCT debe tener 10 caracteres: entidad (01 a 32), 3 letras, 4 dígitos y 1 letra. Formato: 00AAA0000A.',
     }),
   nivel: z.enum(NIVELES_EDUCATIVOS, 'Selecciona un nivel educativo.'),
-  localidad: textoOpcional('La localidad', 120),
+  localidad: textoOpcional('El municipio o alcaldía', 120),
+  nombreCorto: textoOpcional('El nombre corto', 60),
+  entidad: z.string().transform((v) => (v === '' ? null : v)).nullable().optional().transform((v) => v ?? null)
+    .refine((v) => v === null || (CLAVES_ENTIDAD as readonly string[]).includes(v), { message: 'Selecciona una entidad federativa.' }),
+  zonaEscolar: textoOpcional('La zona escolar', 20),
+  sector: textoOpcional('El sector', 20),
+  domicilio: textoOpcional('El domicilio', 200),
+  telefono: z.string().transform((v) => v.replace(/[\s().-]/g, '').replace(/^\+?52/, '')).transform((v) => (v === '' ? null : v)).nullable().optional().transform((v) => v ?? null)
+    .refine((v) => v === null || /^\d{10}$/.test(v), { message: 'El teléfono debe tener 10 dígitos (puedes usar espacios o guiones).' }),
+  correo: z.string().trim().toLowerCase().transform((v) => (v === '' ? null : v)).nullable().optional().transform((v) => v ?? null)
+    .refine((v) => v === null || (v.length <= 120 && z.email().safeParse(v).success), { message: 'Escribe un correo válido, por ejemplo direccion@escuela.edu.mx.' }),
+  // Sólo imágenes rasterizadas reducidas (nunca SVG, que puede contener código).
+  logotipo: z.string().nullable().optional().transform((v) => v ?? null)
+    .refine((v) => v === null || (v.length <= 400_000 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)), { message: 'El logotipo debe ser una imagen PNG, JPG o WebP.' }),
 });
+
+/**
+ * Datos del plantel para el asistente y la edición: CCT, entidad y municipio
+ * obligatorios, y la CCT debe iniciar con la clave de la entidad elegida.
+ * Sólo se valida el FORMATO; no se afirma que la escuela exista oficialmente.
+ */
+export const esquemaDatosPlantel = esquemaEscuela
+  .refine((v) => v.cct !== null, { message: 'La CCT es obligatoria.', path: ['cct'] })
+  .refine((v) => v.entidad !== null, { message: 'Selecciona la entidad federativa.', path: ['entidad'] })
+  .refine((v) => v.localidad !== null, { message: 'El municipio o alcaldía es obligatorio.', path: ['localidad'] })
+  .superRefine((v, ctx) => {
+    if (v.cct && v.entidad && v.cct.slice(0, 2) !== v.entidad) {
+      ctx.addIssue({ code: 'custom', path: ['cct'], message: `La CCT inicia con ${v.cct.slice(0, 2)}${nombreEntidad(v.cct.slice(0, 2)) ? ` (${nombreEntidad(v.cct.slice(0, 2))})` : ''}, pero la entidad elegida es ${nombreEntidad(v.entidad)} (${v.entidad}). Revisa la CCT o la entidad.` });
+    }
+  });
 
 export const esquemaCiclo = z
   .object({
@@ -111,7 +140,7 @@ export const esquemaGrado = z.object({
     .number('El número de grado es obligatorio.')
     .int('El grado debe ser un número entero.')
     .min(1, 'El grado mínimo es 1.')
-    .max(12, 'El grado máximo es 12.'),
+    .max(99, 'El grado máximo es 99.'),
   nombre: texto('El nombre del grado', 1, 40),
 });
 
@@ -171,9 +200,9 @@ export const esquemaPlantillaHorario = z
 
 export const esquemaGradosGrupos = z
   .object({
-    gradoDesde: z.number('Indica el primer grado.').int().min(1, 'El grado mínimo es 1.').max(12, 'El grado máximo es 12.'),
-    gradoHasta: z.number('Indica el último grado.').int().min(1, 'El grado mínimo es 1.').max(12, 'El grado máximo es 12.'),
-    gruposPorGrado: z.number('Indica cuántos grupos hay por grado.').int().min(1, 'Al menos 1 grupo.').max(15, 'Máximo 15 grupos por grado.'),
+    gradoDesde: z.number('Indica el primer grado.').int().min(1, 'El grado mínimo es 1.').max(99, 'El grado máximo es 99.'),
+    gradoHasta: z.number('Indica el último grado.').int().min(1, 'El grado mínimo es 1.').max(99, 'El grado máximo es 99.'),
+    gruposPorGrado: z.number('Indica cuántos grupos hay por grado.').int().min(1, 'Al menos 1 grupo.').max(99, 'Máximo 99 grupos por grado.'),
     capacidad: z.number().int('Usa un número entero.').min(1, 'La capacidad mínima es 1.').max(80, 'La capacidad máxima es 80.').nullable().optional().transform((v) => v ?? null),
   })
   .refine((v) => v.gradoDesde <= v.gradoHasta, { message: 'El último grado debe ser mayor o igual que el primero.', path: ['gradoHasta'] });
@@ -183,12 +212,30 @@ export const esquemaCicloAsistente = esquemaCiclo.and(z.object({ enCurso: z.bool
 export type EntradaPlantillaHorario = z.input<typeof esquemaPlantillaHorario>;
 export type EntradaGradosGrupos = z.input<typeof esquemaGradosGrupos>;
 
+/** Periodos y recesos editados uno por uno (en lugar de la generación automática). */
+export const esquemaBloquesPersonalizados = z.array(z.object({
+  tipo: z.enum(['periodo', 'receso']),
+  nombre: texto('El nombre', 1, 40),
+  horaInicio: hora('La hora de inicio'),
+  horaFin: hora('La hora de fin'),
+})).min(1, 'Agrega al menos un periodo.').max(40, 'Máximo 40 bloques.');
+
+/** Grados con sus grupos, editados uno por uno. */
+export const esquemaGradosPersonalizados = z.array(z.object({
+  numero: z.number('Indica el número de grado.').int().min(1, 'El grado mínimo es 1.').max(99, 'El grado máximo es 99.'),
+  nombre: texto('El nombre del grado', 1, 40),
+  grupos: z.array(texto('El nombre del grupo', 1, 20)).min(1, 'Cada grado necesita al menos un grupo.').max(99, 'Máximo 99 grupos por grado.'),
+})).min(1, 'Agrega al menos un grado.').max(99, 'Máximo 99 grados.');
+
+export type BloquePersonalizado = z.input<typeof esquemaBloquesPersonalizados>[number];
+export type GradoPersonalizado = z.input<typeof esquemaGradosPersonalizados>[number];
+
 export interface EntradaAsistente {
   escuela: EntradaEscuela;
   ciclo: EntradaCiclo & { enCurso: boolean };
   turno: EntradaTurno;
-  horario: EntradaPlantillaHorario;
-  grados: EntradaGradosGrupos;
+  horario: EntradaPlantillaHorario & { bloques?: BloquePersonalizado[] | null };
+  grados: EntradaGradosGrupos & { personalizados?: GradoPersonalizado[] | null };
 }
 
 // ===================== Fase 2 =====================

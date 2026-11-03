@@ -2,7 +2,7 @@ import type { Alumno } from '../models';
 import { esquemaAlumno, esquemaAlumnosLote, validar, type EntradaAlumno } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { normalizarTexto } from '../domain/texto';
-import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
+import { type Contexto, asegurarGrupoActivo, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 
 export function nombreAlumno(a: Pick<Alumno, 'nombre' | 'primerApellido' | 'segundoApellido'>): string {
   return [a.primerApellido, a.segundoApellido].filter(Boolean).join(' ') + `, ${a.nombre}`;
@@ -40,6 +40,7 @@ export class ServicioAlumnos {
     return this.ctx.uow.ejecutar(async () => {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(grupoId), 'el grupo');
       await cicloEditable(this.ctx, grupo.cicloEscolarId);
+      asegurarGrupoActivo(grupo);
       await this.verificarDuplicado(grupoId, datos, undefined);
       const a: Alumno = { ...metadatosNuevos(this.ctx), escuelaId: grupo.escuelaId, cicloEscolarId: grupo.cicloEscolarId, grupoId, ...datos, activo: true };
       await this.ctx.repos.alumnos.insertar(a);

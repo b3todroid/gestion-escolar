@@ -5,7 +5,7 @@ import {
 } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { seTraslapan } from '../domain/tiempo';
-import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
+import { type Contexto, asegurarGrupoActivo, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 import { asegurarHorarioEditable, choqueDocente } from './conflictos';
 
 /**
@@ -107,6 +107,7 @@ export class ServicioActividades {
     return this.ctx.uow.ejecutar(async () => {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(grupoId), 'el grupo');
       await cicloEditable(this.ctx, grupo.cicloEscolarId);
+      asegurarGrupoActivo(grupo);
       await asegurarHorarioEditable(this.ctx, grupoId);
       const periodo = await requerir(this.ctx.repos.periodos.obtener(periodoId), 'el periodo');
       const [jornada] = await this.ctx.repos.jornadas.listarPor('turnoId', grupo.turnoId);

@@ -110,6 +110,7 @@ export class ServicioImportacion {
       const grado = grados.find((g) => String(g.numero) === v.grado.replace(/[°º]/g, '').trim());
       let candidatos = grado ? grupos.filter((g) => g.gradoId === grado.id && normalizarTexto(g.nombre) === normalizarTexto(v.grupo)) : [];
       if (v.turno) candidatos = candidatos.filter((g) => normalizarTexto(turnos.find((t) => t.id === g.turnoId)?.nombre ?? '') === normalizarTexto(v.turno));
+      if (candidatos.length === 1 && candidatos[0]!.activo === false) mensajes.push(`El grupo ${v.grado}° ${v.grupo} está desactivado.`);
       if (candidatos.length === 0) mensajes.push(`No existe el grupo ${v.grado}° ${v.grupo}${v.turno ? ` en el turno ${v.turno}` : ''} en este ciclo.`);
       if (candidatos.length > 1) mensajes.push(`Hay varios grupos ${v.grado}° ${v.grupo}; indica el turno.`);
       const grupo = candidatos.length === 1 ? candidatos[0]! : undefined;

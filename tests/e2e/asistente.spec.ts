@@ -4,10 +4,11 @@ import { expect, test } from '@playwright/test';
 
 test('el asistente crea una escuela completa que persiste al cerrar y reabrir el navegador', async ({ page, browser }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Configurar una escuela nueva' }).click();
+  await page.getByRole('link', { name: 'Configurar mi escuela' }).click();
 
   // 1. Escuela (con validación de CCT)
-  await page.getByLabel('Nombre de la escuela').fill('Escuela Primaria Ficticia 30');
+  await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Primaria Ficticia 30');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ030');
   await page.getByLabel('Nivel educativo').selectOption('primaria');
   await page.getByRole('button', { name: 'Siguiente' }).click();
@@ -49,12 +50,13 @@ test('el asistente crea una escuela completa que persiste al cerrar y reabrir el
   await expect(page.getByLabel('Al grado')).toHaveValue('6');
   await page.getByLabel('Grupos por grado').fill('2');
   await page.getByLabel('Grupos por grado').blur();
-  await expect(page.locator('.asistente__vista')).toContainText('Se crearán 6 grados y 12 grupos');
+  await expect(page.locator('.asistente__vista')).toContainText('Se crearán 6 grado(s) y 12 grupo(s)');
   await page.getByRole('button', { name: 'Siguiente' }).click();
 
   // 6. Revisar y guardar
   await expect(page.getByText('CCT 32ZZZ0030A')).toBeVisible();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Ciclo 2026-2027' })).toBeVisible();
   await expect(page.getByText('6° B')).toBeVisible();
   await expect(page.getByText('4 periodos y 1 receso')).toBeVisible();
@@ -66,7 +68,7 @@ test('el asistente crea una escuela completa que persiste al cerrar y reabrir el
   const p2 = await otra.newPage();
   await p2.goto('/');
   await p2.getByRole('link', { name: 'Escuela Primaria Ficticia 30' }).click();
-  await expect(p2.getByText('Activo')).toBeVisible();
+  await expect(p2.locator('.tarjeta .insignia', { hasText: 'Activo' })).toBeVisible();
   await p2.getByRole('link', { name: 'Configurar' }).click();
   await p2.getByRole('link', { name: 'Periodos y recesos' }).click();
   await expect(p2.locator('.bloque')).toHaveCount(5);

@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Fase actual: **Fase 4 (módulo docente) — completada**. Fases 1 a 3 completadas (la 1, auditada).
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. **Fase 1 ampliada** (bienvenida, datos completos del plantel, periodos y grupos editables en el asistente, grupos desactivables, panel principal) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
 
 ## Comandos
@@ -15,8 +15,12 @@ Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs
 Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin-pwa 2 · Vitest 5 · Playwright.
 **Sin frameworks de UI** (React/Vue/Angular…): DOM nativo con `src/components/dom.ts`. Justificar por escrito antes de introducir uno.
 
+## Inicio
+- `#/` → «Mi día» si el dispositivo tiene docente; si no, **bienvenida** (`pages/inicio.ts`): «Gestión escolar», subtítulo y «Configurar mi escuela» (sin escuelas) o «Continuar» por escuela. Nunca mostrar datos ficticios como reales.
+- Tras guardar el asistente se abre el **panel principal** `#/escuela/ID` (resumen, «Editar datos escolares», «Administrar periodos», «Administrar grupos»; módulos futuros como texto «Próximamente», sin botones).
+
 ## Flujo principal
-`#/asistente` (pages/asistente.ts): 6 pasos que crean escuela, ciclo, turno, periodos/recesos generados, grados y grupos en **una** transacción (`services/asistente.ts`, que reutiliza los demás servicios). El borrador vive en localStorage sólo como comodidad. Las pantallas `#/escuela/ID`, `#/ciclo/ID`, `#/turno/ID` permiten ajustar después.
+`#/asistente` (pages/asistente.ts): 6 pasos que crean escuela, ciclo, turno, periodos/recesos generados, grados y grupos en **una** transacción (`services/asistente.ts`, que reutiliza los demás servicios). El borrador vive en localStorage sólo como comodidad. Paso 1 usa `components/plantel.ts` (también en «Editar datos escolares») con `esquemaDatosPlantel` (CCT, entidad y municipio obligatorios; CCT debe iniciar con la clave de la entidad; sólo formato, no existencia). Jornada y grados admiten **modo personalizado** (`horario.bloques`, `grados.personalizados`). Al modificar listas del borrador después de `leerPaso`, usar SIEMPRE la referencia vigente (`d.horario.bloques`, `d.grados.personalizados`): `leerPaso` las reemplaza. Las pantallas `#/escuela/ID`, `#/ciclo/ID`, `#/turno/ID` permiten ajustar después.
 
 ## Fase 2 (rutas)
 `#/escuela/ID/personal` (personal por escuela) · `#/personal/ID` (semana del docente) · `#/ciclo/ID/materias` · `#/grupo/ID` (materias asignadas + horario por día).
@@ -49,6 +53,7 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - Toda operación de escritura va dentro de `ctx.uow.ejecutar(...)` (transacción atómica).
 
 ## Reglas obligatorias
+- Grupos desactivados (`activo: false`): no reciben materias, clases, alumnos ni actividades (`asegurarGrupoActivo`).
 - IDs: `nuevoId()` (UUID). Nunca usar nombres como identificador.
 - Todo registro de configuración lleva `escuelaId` y `cicloEscolarId` cuando aplica. No mezclar escuelas ni ciclos.
 - Los métodos públicos de servicio que devuelven promesa son `async` (los errores de validación llegan como rechazo, nunca como excepción síncrona).
@@ -64,5 +69,5 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - ExcelJS se evaluó y se descartó en la Fase 3 (ver `docs/ARQUITECTURA.md`). No instalar PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
 
 ## Fuera de alcance hasta nuevas fases
-Importación PDF, OCR, Prefectura, respaldos, sincronización multiusuario, autenticación.
+Importación PDF, OCR, Prefectura, reportes por periodo, sincronización multiusuario, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

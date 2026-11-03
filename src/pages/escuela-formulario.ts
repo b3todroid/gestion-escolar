@@ -1,9 +1,9 @@
 import type { ContextoPagina, Vista } from '../app';
 import { h } from '../components/dom';
-import { alEnviar, botonEnviar, campo, formulario, selector, texto } from '../components/formulario';
+import { alEnviar, botonEnviar, formulario } from '../components/formulario';
 import { encabezado, migas } from '../components/piezas';
-import { NIVELES_EDUCATIVOS, type Escuela } from '../models';
-import { NIVEL_ETIQUETA } from './etiquetas';
+import { camposPlantel, leerPlantel } from '../components/plantel';
+import type { Escuela } from '../models';
 import { solicitarPersistencia } from '../utils/almacenamiento';
 
 export async function paginaEscuelaNueva(ctx: ContextoPagina): Promise<Vista> {
@@ -14,17 +14,12 @@ export async function paginaEscuelaEditar(ctx: ContextoPagina, id: string): Prom
   return vista(ctx, await ctx.s.escuelas.obtener(id));
 }
 
+/** Alta rápida (sólo datos del plantel) o edición de los datos escolares. */
 function vista(ctx: ContextoPagina, escuela: Escuela | null): Vista {
-  const titulo = escuela ? 'Editar escuela' : 'Registrar escuela';
+  const titulo = escuela ? 'Editar datos escolares' : 'Registrar escuela';
   const f = 'f-escuela';
   const form = formulario(f, null,
-    campo(f, { nombre: 'nombre', etiqueta: 'Nombre de la escuela', valor: escuela?.nombre, requerido: true, maxlength: 150, autocompletar: 'organization' }),
-    selector(f, {
-      nombre: 'nivel', etiqueta: 'Nivel educativo', requerido: true, valor: escuela?.nivel ?? 'secundaria',
-      opciones: NIVELES_EDUCATIVOS.map((n) => ({ valor: n, texto: NIVEL_ETIQUETA[n] })),
-    }),
-    campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: escuela?.cct, maxlength: 14, mayusculas: true, ayuda: '10 caracteres, por ejemplo 00AAA0000A. Evita registrar la misma escuela dos veces.' }),
-    campo(f, { nombre: 'localidad', etiqueta: 'Localidad o municipio', valor: escuela?.localidad, maxlength: 120 }),
+    ...camposPlantel(f, escuela ?? {}),
     h('div', { class: 'acciones' },
       h('a', { class: 'boton boton--secundario', href: escuela ? `#/escuela/${escuela.id}` : '#/' }, 'Cancelar'),
       botonEnviar(escuela ? 'Guardar cambios' : 'Registrar escuela'),
@@ -32,14 +27,14 @@ function vista(ctx: ContextoPagina, escuela: Escuela | null): Vista {
   );
 
   alEnviar(form, async () => {
-    const entrada = { nombre: texto(form, 'nombre'), nivel: texto(form, 'nivel') as Escuela['nivel'], cct: texto(form, 'cct'), localidad: texto(form, 'localidad') };
+    const entrada = leerPlantel(form);
     if (escuela) {
-      await ctx.s.escuelas.actualizar(escuela.id, entrada);
+      await ctx.s.escuelas.actualizar(escuela.id, entrada, true);
       ctx.ir(`#/escuela/${escuela.id}`);
-      return 'Escuela actualizada.';
+      return 'Datos escolares actualizados.';
     }
-    const nueva = await ctx.s.escuelas.crear(entrada);
-    void solicitarPersistencia(); // tras el primer registro, pedimos no borrar los datos
+    const nueva = await ctx.s.escuelas.crear(entrada, true);
+    void solicitarPersistencia();
     ctx.ir(`#/escuela/${nueva.id}`);
     return `Escuela «${nueva.nombre}» registrada.`;
   });
@@ -47,8 +42,8 @@ function vista(ctx: ContextoPagina, escuela: Escuela | null): Vista {
   return {
     titulo,
     contenido: h('div', { class: 'pagina' },
-      migas([{ texto: 'Inicio', href: '#/' }, ...(escuela ? [{ texto: escuela.nombre, href: `#/escuela/${escuela.id}` }] : []), { texto: titulo }]),
-      encabezado(titulo),
+      migas([{ texto: 'Inicio', href: '#/' }, ...(escuela ? [{ texto: escuela.nombreCorto ?? escuela.nombre, href: `#/escuela/${escuela.id}` }] : []), { texto: titulo }]),
+      encabezado(titulo, escuela ? null : 'Para configurar todo de una vez (ciclo, jornada, grados y grupos), usa «Configurar mi escuela» desde el inicio.'),
       form,
     ),
   };

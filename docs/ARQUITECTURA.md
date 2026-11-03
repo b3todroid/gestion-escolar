@@ -36,6 +36,9 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 | Un solo aviso visible a la vez | Al trabajar rápido, los avisos apilados cubrían la pantalla del teléfono. |
 | Respaldo: verificación fuera de la transacción | Operaciones asíncronas ajenas a IndexedDB (`crypto.subtle`) cierran la transacción de Dexie antes de tiempo; se detectó porque provocaba pérdida de datos en un reemplazo fallido. |
 | Respaldo con huella SHA-256 | Detecta archivos dañados o editados a mano antes de restaurar. |
+| `esquemaDatosPlantel` separado de `esquemaEscuela` | Las reglas completas del plantel aplican en el asistente y la edición sin romper registros y respaldos anteriores, que no tenían esos campos. |
+| Migración v5 sin cambios de índices | Completa campos nuevos con valores explícitos (`null`, `activo: true`) en lugar de dejar `undefined`. |
+| Logotipo reducido con `canvas` en el dispositivo | Evita guardar imágenes grandes o con metadatos; se excluye SVG por poder contener código. |
 | `registerType: 'prompt'` en la PWA | El usuario decide cuándo actualizar; no se recarga a mitad de una captura. |
 
 ## Dependencias (verificadas el 2026-11-02)

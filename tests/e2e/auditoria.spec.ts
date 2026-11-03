@@ -35,7 +35,8 @@ async function contarEnBD(page: Page): Promise<Record<string, number>> {
 
 async function crearConAsistente(page: Page, nombre = 'Escuela Secundaria Ficticia 40', cct = '32ZZZ0040A') {
   await page.goto('/#/asistente');
-  await page.getByLabel('Nombre de la escuela').fill(nombre);
+  await page.getByLabel('Nombre oficial de la escuela').fill(nombre);
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill(cct);
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
@@ -44,18 +45,22 @@ async function crearConAsistente(page: Page, nombre = 'Escuela Secundaria Fictic
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
 }
 
 test.describe('guardado e IndexedDB', () => {
   test('el asistente escribe en IndexedDB y un doble clic en Guardar no duplica nada', async ({ page }) => {
     await page.goto('/#/asistente');
-    await page.getByLabel('Nombre de la escuela').fill('Escuela Ficticia Doble');
+    await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Ficticia Doble');
+    await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0999A');
+    await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByLabel('Nombre del turno').fill('Matutino');
     for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByRole('button', { name: 'Guardar escuela' }).dblclick();
+    await page.getByRole('link', { name: 'Administrar grupos' }).click();
     await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
     // 6 módulos + 1 receso, 3 grados × 2 grupos
     const esperado = { escuelas: 1, ciclosEscolares: 1, turnos: 1, jornadas: 1, periodos: 6, recesos: 1, grados: 3, grupos: 6 };
@@ -138,13 +143,13 @@ test.describe('edición', () => {
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(page.getByRole('heading', { name: 'Ciclo 2026-2027 B' })).toBeVisible();
     await page.getByRole('link', { name: 'Editar datos' }).click();
-    await page.getByLabel('Localidad o municipio').fill('Localidad Nueva');
+    await page.getByLabel('Municipio o alcaldía').fill('Localidad Nueva');
     await page.getByRole('button', { name: 'Guardar cambios' }).click();
-    await expect(page.getByText('Localidad Nueva')).toBeVisible();
+    await expect(page.locator('.datos').getByText('Localidad Nueva')).toBeVisible();
 
     // Todo sigue tras recargar
     await page.reload();
-    await expect(page.getByText('Localidad Nueva')).toBeVisible();
+    await expect(page.locator('.datos').getByText('Localidad Nueva')).toBeVisible();
     await page.getByRole('link', { name: 'Configurar' }).click();
     await expect(page.getByText('1° D')).toBeVisible();
   });
@@ -208,11 +213,13 @@ test.describe('reglas', () => {
 test.describe('navegación sin pérdida de datos', () => {
   test('Atrás, Cambiar y el botón del navegador conservan lo capturado en el asistente', async ({ page }) => {
     await page.goto('/#/asistente');
-    await page.getByLabel('Nombre de la escuela').fill('Escuela Ficticia Navegación');
+    await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Ficticia Navegación');
+    await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0999A');
+    await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByLabel('Nombre del ciclo').fill('2027-2028');
     await page.getByRole('button', { name: 'Atrás' }).click();
-    await expect(page.getByLabel('Nombre de la escuela')).toHaveValue('Escuela Ficticia Navegación');
+    await expect(page.getByLabel('Nombre oficial de la escuela')).toHaveValue('Escuela Ficticia Navegación');
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await expect(page.getByLabel('Nombre del ciclo')).toHaveValue('2027-2028');
     // Salir al inicio y volver
@@ -231,14 +238,14 @@ test.describe('navegación sin pérdida de datos', () => {
     await page.goto('/#/');
     await page.getByRole('button', { name: 'Descartar' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Descartar' }).click();
-    await expect(page.getByRole('link', { name: 'Configurar una escuela nueva' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Configurar mi escuela' })).toBeVisible();
   });
 
   test('una dirección inexistente muestra un mensaje y permite volver', async ({ page }) => {
     await page.goto('/#/no-existe');
     await expect(page.getByRole('heading', { name: 'Página no encontrada' })).toBeVisible();
     await page.getByRole('link', { name: 'Volver al inicio' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Escuelas' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Gestión escolar' })).toBeVisible();
   });
 });
 

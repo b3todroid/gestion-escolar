@@ -15,13 +15,15 @@ const test = base.extend<{ errores: string[] }>({
 
 async function crearEscuela(page: Page) {
   await page.goto('/#/asistente');
-  await page.getByLabel('Nombre de la escuela').fill('Escuela Secundaria Ficticia 130');
+  await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Secundaria Ficticia 130');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0130A');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByLabel('Nombre del turno').fill('Matutino');
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
   await page.getByRole('link', { name: 'Materias y horario de 1° A' }).click();
   await page.getByRole('link', { name: 'Alumnos y asistencia de 1° A' }).click();
@@ -80,9 +82,9 @@ test('reemplazar en el mismo dispositivo descarga antes una copia de los datos a
   await page.goto('/#/escuelas');
   await page.getByRole('link', { name: 'Escuela Secundaria Ficticia 130' }).click();
   await page.getByRole('link', { name: 'Editar datos' }).click();
-  await page.getByLabel('Localidad o municipio').fill('Cambio posterior');
+  await page.getByLabel('Municipio o alcaldía').fill('Cambio posterior');
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
-  await expect(page.getByText('Cambio posterior')).toBeVisible();
+  await expect(page.locator('.datos').getByText('Cambio posterior')).toBeVisible();
 
   await cargar(page, respaldo);
   await expect(page.locator('.respaldo-escuela')).toContainText('Reemplazará los datos actuales');
@@ -93,7 +95,7 @@ test('reemplazar en el mismo dispositivo descarga antes una copia de los datos a
   expect((await copia).suggestedFilename()).toMatch(/^copia-antes-de-restaurar-/);
   await expect(page.locator('.aviso')).toContainText('Restauración completa');
   await page.getByRole('link', { name: 'Escuela Secundaria Ficticia 130' }).click();
-  await expect(page.getByText('Cambio posterior')).toHaveCount(0);
+  await expect(page.locator('.datos').getByText('Cambio posterior')).toHaveCount(0);
 });
 
 test('un archivo alterado se rechaza y no se modifica nada', async ({ page }) => {

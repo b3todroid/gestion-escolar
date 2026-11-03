@@ -25,7 +25,9 @@ async function contar(page: Page, tabla: string): Promise<number> {
 async function preparar(page: Page) {
   await page.clock.install({ time: LUNES_0715 });
   await page.goto('/#/asistente');
-  await page.getByLabel('Nombre de la escuela').fill('Escuela Secundaria Ficticia 110');
+  await page.getByLabel('Nombre oficial de la escuela').fill('Escuela Secundaria Ficticia 110');
+  await page.getByLabel('Clave de centro de trabajo (CCT)').fill('32ZZZ0999A');
+  await page.getByLabel('Municipio o alcaldía').fill('Municipio Ejemplo');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByLabel('Nombre del turno').fill('Matutino');
@@ -35,6 +37,7 @@ async function preparar(page: Page) {
   await page.getByLabel('Grupos por grado').fill('1');
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByRole('button', { name: 'Guardar escuela' }).click();
+  await page.getByRole('link', { name: 'Administrar grupos' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
   const urlCiclo = page.url();
   await page.getByRole('link', { name: 'Registrar materias' }).click();

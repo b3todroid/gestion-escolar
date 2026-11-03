@@ -1,5 +1,5 @@
 import type { Escuela } from '../models';
-import { esquemaEscuela, validar, type EntradaEscuela } from '../validators/esquemas';
+import { esquemaDatosPlantel, esquemaEscuela, validar, type EntradaEscuela } from '../validators/esquemas';
 import { asegurarSinDuplicado } from '../domain/reglas';
 import { ErrorDominio } from '../domain/errores';
 import { type Contexto, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
@@ -16,8 +16,9 @@ export class ServicioEscuelas {
     return requerir(this.ctx.repos.escuelas.obtener(id), 'la escuela');
   }
 
-  async crear(entrada: EntradaEscuela): Promise<Escuela> {
-    const datos = validar(esquemaEscuela, entrada);
+  /** `estricto`: reglas del asistente/edición (CCT, entidad y municipio obligatorios y coherentes). */
+  async crear(entrada: EntradaEscuela, estricto = false): Promise<Escuela> {
+    const datos = validar(estricto ? esquemaDatosPlantel : esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
       const escuela: Escuela = { ...metadatosNuevos(this.ctx), ...datos };
@@ -28,12 +29,12 @@ export class ServicioEscuelas {
 
   /** Valida datos y duplicados sin guardar (lo usa el asistente antes de avanzar). */
   async validarNueva(entrada: EntradaEscuela): Promise<void> {
-    const datos = validar(esquemaEscuela, entrada);
+    const datos = validar(esquemaDatosPlantel, entrada);
     await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
   }
 
-  async actualizar(id: string, entrada: EntradaEscuela): Promise<Escuela> {
-    const datos = validar(esquemaEscuela, entrada);
+  async actualizar(id: string, entrada: EntradaEscuela, estricto = false): Promise<Escuela> {
+    const datos = validar(estricto ? esquemaDatosPlantel : esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtener(id);
       await this.verificarDuplicados(datos.nombre, datos.cct, id);

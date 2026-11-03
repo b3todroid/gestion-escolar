@@ -17,14 +17,14 @@ Escuela 1─* CicloEscolar 1─* Turno 1─1 Jornada 1─* Periodo
 ```
 | Tabla | Campos | Índices |
 |---|---|---|
-| `escuelas` | nombre, cct?, nivel, localidad? | `id`, `cct` |
+| `escuelas` | nombre (oficial), nombreCorto?, cct?, nivel, entidad? (clave INEGI '01'–'32'), localidad? (municipio o alcaldía), zonaEscolar?, sector?, domicilio?, telefono? (10 dígitos), correo?, logotipo? (data URL PNG reducida a 256 px) | `id`, `cct` |
 | `ciclosEscolares` | escuelaId, nombre, fechaInicio, fechaFin (AAAA-MM-DD), estado | `id`, `escuelaId`, `[escuelaId+estado]` |
 | `turnos` | escuelaId, cicloEscolarId, nombre | `id`, `cicloEscolarId`, `escuelaId` |
 | `jornadas` | escuelaId, cicloEscolarId, turnoId, horaInicio, horaFin (HH:MM), dias (1=lun…7=dom) | `id`, `&turnoId` (único), `cicloEscolarId` |
 | `periodos` | escuelaId, cicloEscolarId, jornadaId, nombre, horaInicio, horaFin | `id`, `jornadaId`, `cicloEscolarId` |
 | `recesos` | ídem periodos | `id`, `jornadaId`, `cicloEscolarId` |
 | `grados` | escuelaId, cicloEscolarId, numero, nombre | `id`, `cicloEscolarId`, `[cicloEscolarId+numero]` |
-| `grupos` | escuelaId, cicloEscolarId, gradoId, turnoId, nombre, capacidad? | `id`, `cicloEscolarId`, `gradoId`, `turnoId` |
+| `grupos` | escuelaId, cicloEscolarId, gradoId, turnoId, nombre, capacidad?, activo | `id`, `cicloEscolarId`, `gradoId`, `turnoId` |
 
 Toda entidad dentro de un ciclo guarda `escuelaId` y `cicloEscolarId` (desnormalizados) para consultar y aislar datos por escuela/ciclo, y para futuras reglas de permisos y sincronización.
 
@@ -81,6 +81,7 @@ Decisiones:
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 5 | 2026-11-03 | Sin cambios de índices. `upgrade()` completa en registros existentes: escuelas → campos del plantel en `null`; grupos → `activo: true`. Probada con datos v1 → v5. Los respaldos de esquemas anteriores se aceptan (los campos faltantes toman esos mismos valores). |
 | 4 | 2026-11-03 | Agrega `alumnos`, `pases`, `asistencias`, `salidas`, `reportes`, `ajustes`. Sin cambios en tablas anteriores; migración v1 → v4 probada. |
 | 3 | 2026-11-03 | Agrega `actividades`, `excepciones`, `confirmaciones`, `bitacora`. Sin cambios en tablas anteriores; la prueba de migración v1 → v3 conserva los datos. |
 | 2 | 2026-11-03 | Agrega `personal`, `materias`, `asignaciones`, `sesiones`. Sin cambios en tablas v1; prueba de migración con datos en `tests/unit/fase2.test.ts`. |

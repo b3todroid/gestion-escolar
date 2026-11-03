@@ -11,7 +11,7 @@ import { nuevoEntorno } from './ayudantes';
 
 // Horarios, escuelas y personas ficticias.
 const ENTRADA: EntradaAsistente = {
-  escuela: { nombre: 'Escuela Secundaria Ficticia 80', cct: '32ZZZ0080A', nivel: 'secundaria', localidad: null },
+  escuela: { nombre: 'Escuela Secundaria Ficticia 80', cct: '32ZZZ0080A', nivel: 'secundaria', entidad: '32', localidad: 'Ciudad Ejemplo' },
   ciclo: { nombre: '2026-2027', fechaInicio: '2026-08-31', fechaFin: '2027-07-15', enCurso: true },
   turno: { nombre: 'Matutino', horaInicio: '07:00', horaFin: '13:00', dias: [1, 2, 3, 4, 5] },
   horario: { duracionModulo: 50, modulos: 6, recesos: [{ despuesDe: 3, duracion: 30 }] },

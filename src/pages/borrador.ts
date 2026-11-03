@@ -19,7 +19,7 @@ export function borradorNuevo(): Borrador {
   return {
     paso: 0,
     datos: {
-      escuela: { nombre: '', cct: '', nivel: 'secundaria', localidad: '' },
+      escuela: { nombre: '', nombreCorto: '', cct: '', nivel: 'secundaria', entidad: '', localidad: '', zonaEscolar: '', sector: '', domicilio: '', telefono: '', correo: '', logotipo: null },
       ciclo: { ...sugerenciaCiclo(), enCurso: true },
       turno: { nombre: '', horaInicio: '07:00', horaFin: '13:00', dias: [1, 2, 3, 4, 5] },
       horario: { duracionModulo: 50, modulos: 6, recesos: [{ despuesDe: 3, duracion: 30 }] },

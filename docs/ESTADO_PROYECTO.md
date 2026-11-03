@@ -1,6 +1,19 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Fase:** 4 — Módulo docente (completada) + **Respaldo y restauración** (completado, pendiente de revisión con el usuario)
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 1 ampliada (configuración escolar)** — completada, pendiente de que el usuario la pruebe personalmente. Fases 2–4 y respaldos completados previamente.
+
+## Fase 1 ampliada (2026-11-03)
+**Implementado:** bienvenida; datos completos del plantel (nombre corto, entidad con catálogo de 32, municipio, zona, sector, domicilio, teléfono, correo, logotipo) con CCT coherente con la entidad; edición de periodos uno por uno en el asistente con marca del bloque en conflicto; grados y grupos personalizados (sin límite práctico, AA, AB…); agregar varios grupos y desactivar/reactivar grupos en la administración; panel principal con resumen, accesos y «Próximamente»; esquema v5 con migración.
+
+**Defectos encontrados y corregidos:**
+1. En el asistente, «Agregar receso», «Quitar», «Agregar grado» y «Quitar grado» modificaban una lista ya reemplazada y el cambio se perdía (detectado por la prueba funcional).
+2. El mensaje de traslape quedaba al final de la página, lejos del periodo editado en teléfono; ahora el bloque se marca en su lugar.
+3. Hueco gris en el resumen del panel con cantidad impar de datos.
+4. `CLAUDE.md` decía que los respaldos estaban fuera de alcance (ya existen).
+
+**Verificación (ejecutada):** `npm run typecheck` sin errores; `npm test` **103** pruebas (7 nuevas: plantel, CCT/entidad, teléfono, correo, logotipo, periodos personalizados con traslapes, grados personalizados y duplicados, AA/AB, desactivar grupos, edición; migración v1 → v5); `npm run test:e2e` **36** pruebas (3 nuevas, cubren las 10 pruebas obligatorias), estables en dos ejecuciones; `npm run build` correcto; `npm audit --omit=dev` 0 vulnerabilidades. Las pruebas previas se ajustaron sólo a cambios intencionales de interfaz (etiquetas, panel tras guardar, campos obligatorios).
+
+**Pendientes de esta fase:** el asistente sigue creando un solo turno (más turnos se agregan en la administración); la edición individual de periodos en el asistente no reordena nombres automáticamente; no se valida que la CCT exista en un catálogo oficial (por diseño).
 
 ## Respaldo y restauración (2026-11-03)
 - Descargar respaldo por escuela o de todas (JSON con huella SHA-256); fecha del último respaldo y recordatorio (en Escuelas y en «Mi día») si hay cambios sin respaldar con más de 7 días o nunca.

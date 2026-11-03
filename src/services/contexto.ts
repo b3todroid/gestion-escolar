@@ -33,3 +33,8 @@ export async function cicloEditable(ctx: Contexto, cicloId: string): Promise<Cic
   }
   return ciclo;
 }
+
+/** Un grupo desactivado no recibe materias, clases, alumnos ni actividades. */
+export function asegurarGrupoActivo(grupo: { activo?: boolean; nombre: string }): void {
+  if (grupo.activo === false) throw new ErrorDominio('ESTADO_NO_PERMITIDO', `El grupo ${grupo.nombre} está desactivado. Reactívalo para agregarle información.`);
+}

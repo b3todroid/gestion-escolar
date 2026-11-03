@@ -2,7 +2,7 @@ import type { Asignacion, DiaSemana, Periodo, Sesion } from '../models';
 import { esquemaAsignacion, esquemaSesion, validar, type EntradaAsignacion, type EntradaSesion } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { compararPorInicio } from '../domain/tiempo';
-import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
+import { type Contexto, asegurarGrupoActivo, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 import { asegurarHorarioEditable, choqueDocente } from './conflictos';
 
 export interface AsignacionDetalle extends Asignacion {
@@ -44,6 +44,7 @@ export class ServicioAsignaciones {
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
       const grupo = await requerir(this.ctx.repos.grupos.obtener(datos.grupoId), 'el grupo');
+      asegurarGrupoActivo(grupo);
       const materia = await requerir(this.ctx.repos.materias.obtener(datos.materiaId), 'la materia');
       if (grupo.cicloEscolarId !== cicloId || materia.cicloEscolarId !== cicloId) {
         throw new ErrorDominio('VALIDACION', 'El grupo y la materia deben pertenecer al mismo ciclo escolar.');
@@ -140,6 +141,7 @@ export class ServicioAsignaciones {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(datos.grupoId), 'el grupo');
       await cicloEditable(this.ctx, grupo.cicloEscolarId);
       await asegurarHorarioEditable(this.ctx, grupo.id);
+      asegurarGrupoActivo(grupo);
       const asignacion = await requerir(this.ctx.repos.asignaciones.obtener(datos.asignacionId), 'la asignación');
       if (asignacion.grupoId !== grupo.id) throw new ErrorDominio('VALIDACION', 'Esa materia no está asignada a este grupo.');
       const [jornada] = await this.ctx.repos.jornadas.listarPor('turnoId', grupo.turnoId);

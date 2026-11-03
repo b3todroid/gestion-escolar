@@ -21,10 +21,18 @@ export type EstadoCiclo = (typeof ESTADOS_CICLO)[number];
 export type DiaSemana = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface Escuela extends Metadatos {
-  nombre: string;
-  cct: string | null; // Clave de Centro de Trabajo SEP (opcional, formato oficial)
+  nombre: string; // nombre oficial
+  nombreCorto: string | null;
+  cct: string | null; // Clave de Centro de Trabajo SEP (formato validado; no se afirma que exista)
   nivel: NivelEducativo;
-  localidad: string | null;
+  entidad: string | null; // clave INEGI de dos dígitos ('01'…'32')
+  localidad: string | null; // municipio o alcaldía
+  zonaEscolar: string | null;
+  sector: string | null;
+  domicilio: string | null;
+  telefono: string | null; // 10 dígitos
+  correo: string | null;
+  logotipo: string | null; // imagen reducida como data URL (png/jpeg/webp)
 }
 
 export interface CicloEscolar extends Metadatos {
@@ -84,6 +92,7 @@ export interface Grupo extends Metadatos {
   turnoId: string;
   nombre: string; // "A", "B"…
   capacidad: number | null;
+  activo: boolean; // un grupo desactivado conserva sus datos pero no recibe nuevos registros
 }
 
 /** Datos de entrada (sin metadatos ni claves de ámbito). */
