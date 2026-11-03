@@ -4,6 +4,7 @@
  * Nada se resuelve solo: cada botón es una decisión explícita.
  */
 import type { ContextoPagina, Vista } from '../app';
+import { notificarCambioSincronizacion } from '../sincronizador';
 import { avisar } from '../components/avisos';
 import { confirmar } from '../components/dialogo';
 import { h, icono } from '../components/dom';
@@ -66,6 +67,7 @@ export async function paginaSincronizacion(ctx: ContextoPagina): Promise<Vista> 
           const b = ev.currentTarget as HTMLButtonElement; b.disabled = true; b.textContent = 'Sincronizando…';
           try {
             const r = await ctx.s.sincronizacion.sincronizar(e.escuelaId);
+            notificarCambioSincronizacion();
             if (r.problema) avisar(r.problema, 'info', 8000);
             else avisar(`Listo: ${r.enviados} enviado(s), ${r.recibidos} recibido(s)${r.conflictos + r.rechazados ? `, ${r.conflictos + r.rechazados} por resolver` : ''}.`, r.conflictos + r.rechazados ? 'info' : 'exito');
           } catch (x) {
@@ -85,11 +87,11 @@ export async function paginaSincronizacion(ctx: ContextoPagina): Promise<Vista> 
           h('div', { class: 'acciones' },
             h('button', { type: 'button', class: 'boton boton--secundario boton--chico', onclick: async () => {
               const ok = await confirmar({ titulo: 'Usar la versión del servidor', mensaje: 'Tu cambio en este dispositivo se descarta y se queda lo que tiene el servidor. Esta decisión no se puede deshacer.', textoConfirmar: 'Usar la del servidor' });
-              if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.usarVersionServidor(c.opId); await ctx.s.sincronizacion.sincronizar(e.escuelaId); return 'Se usó la versión del servidor.'; })) await ctx.recargar();
+              if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.usarVersionServidor(c.opId); await ctx.s.sincronizacion.sincronizar(e.escuelaId); notificarCambioSincronizacion(); return 'Se usó la versión del servidor.'; })) await ctx.recargar();
             } }, 'Usar la versión del servidor'),
             c.estado === 'conflicto' && c.servidor?.id === c.registroId ? h('button', { type: 'button', class: 'boton boton--chico', onclick: async () => {
               const ok = await confirmar({ titulo: 'Volver a aplicar mi cambio', mensaje: 'Tu versión reemplazará la que guardó otra persona en el servidor. Revisa antes las diferencias.', textoConfirmar: 'Aplicar mi cambio' });
-              if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.reaplicarMiCambio(c.opId); await ctx.s.sincronizacion.sincronizar(e.escuelaId); return 'Tu cambio se volvió a enviar.'; })) await ctx.recargar();
+              if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.reaplicarMiCambio(c.opId); await ctx.s.sincronizacion.sincronizar(e.escuelaId); notificarCambioSincronizacion(); return 'Tu cambio se volvió a enviar.'; })) await ctx.recargar();
             } }, 'Volver a aplicar mi cambio') : null,
           ),
         ))),
@@ -99,7 +101,7 @@ export async function paginaSincronizacion(ctx: ContextoPagina): Promise<Vista> 
         e.pendientes + e.conflictos + e.rechazados ? h('p', { class: 'mensaje mensaje--error' }, icono('⚠'), ` Hay ${e.pendientes + e.conflictos + e.rechazados} cambio(s) sin enviar que se perderán.`) : null,
         h('button', { type: 'button', class: 'boton boton--peligro', onclick: async () => {
           const ok = await confirmar({ titulo: `Quitar «${e.escuela}» de este dispositivo`, mensaje: 'Se borrarán de este dispositivo sus datos y los cambios sin enviar. En el servidor no se borra nada.', textoConfirmar: 'Quitar del dispositivo', peligro: true });
-          if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.quitar(e.escuelaId); return 'La escuela se quitó de este dispositivo.'; })) await ctx.recargar('h1');
+          if (ok && await ejecutar(async () => { await ctx.s.sincronizacion.quitar(e.escuelaId); notificarCambioSincronizacion(); return 'La escuela se quitó de este dispositivo.'; })) await ctx.recargar('h1');
         } }, 'Quitar del dispositivo'),
       ),
     ));

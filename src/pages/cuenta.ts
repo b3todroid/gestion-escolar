@@ -5,6 +5,7 @@
  * Los permisos los decide el servidor; esta pantalla sólo muestra lo que el servidor permite.
  */
 import type { ContextoPagina, Vista } from '../app';
+import { notificarCambioSincronizacion } from '../sincronizador';
 import { avisar } from '../components/avisos';
 import { confirmar, pedirTexto } from '../components/dialogo';
 import { h, icono, reemplazar } from '../components/dom';
@@ -161,7 +162,21 @@ function formularioSegundoFactorPendiente(ctx: ContextoPagina, yo: Yo): HTMLElem
 
 function botonSalir(ctx: ContextoPagina): HTMLButtonElement {
   return h('button', { type: 'button', class: 'boton boton--secundario', id: 'boton-salir', onclick: async () => {
-    if (await ejecutar(async () => { await ctx.s.cuenta.salir(); return 'Sesión cerrada en este dispositivo.'; })) await ctx.recargar('h1');
+    if (!(await ejecutar(async () => { await ctx.s.cuenta.salir(); return 'Sesión cerrada en este dispositivo.'; }))) return;
+    // Dispositivo compartido: los datos descargados de escuelas sincronizadas siguen aquí. Se pregunta
+    // explícitamente; nunca se borran en silencio ni se borran si hay cambios sin enviar.
+    const estados = await ctx.s.sincronizacion.estados();
+    if (estados.length) {
+      const sinEnviar = estados.reduce((n, e) => n + e.pendientes + e.conflictos + e.rechazados, 0);
+      if (sinEnviar) {
+        await confirmar({ titulo: 'Datos sincronizados en este dispositivo', mensaje: `Hay ${sinEnviar} cambio(s) sin enviar: los datos se conservan en este dispositivo. Vuelve a iniciar sesión y sincroniza antes de quitarlos (por ejemplo, si el dispositivo es compartido).`, textoConfirmar: 'Entendido', soloInformar: true });
+      } else if (await confirmar({ titulo: '¿Este dispositivo es compartido?', mensaje: `Los datos de ${estados.length} escuela(s) sincronizada(s) siguen guardados aquí y cualquiera con acceso al dispositivo podría verlos. Si no es tu dispositivo personal, quítalos (en el servidor no se borra nada).`, textoConfirmar: 'Quitar los datos de este dispositivo', textoCancelar: 'Conservarlos (dispositivo personal)', peligro: true })) {
+        for (const e of estados) await ctx.s.sincronizacion.quitar(e.escuelaId);
+        notificarCambioSincronizacion();
+        avisar('Se quitaron de este dispositivo los datos de las escuelas sincronizadas.', 'exito');
+      }
+    }
+    await ctx.recargar('h1');
   } }, 'Cerrar sesión');
 }
 
@@ -224,7 +239,7 @@ async function panelCuenta(ctx: ContextoPagina, yo: Yo): Promise<(Node | null)[]
               ? h('a', { class: 'boton boton--chico', href: `#/escuela/${m.escuelaId}` }, 'Abrir en este dispositivo')
               : yaVistas.has(m.escuelaId) ? null : (yaVistas.add(m.escuelaId), h('button', { type: 'button', class: 'boton boton--chico', 'data-unirse': m.escuelaId, onclick: async (ev: Event) => {
                   const b = ev.currentTarget as HTMLButtonElement; b.disabled = true; b.textContent = 'Descargando…';
-                  if (await ejecutar(async () => { const r = await ctx.s.sincronizacion.unirse(m.escuelaId, yo.usuario.id); return `Escuela lista en este dispositivo (${r.registros} registros). Puedes trabajar sin conexión.`; })) ctx.ir(`#/escuela/${m.escuelaId}`);
+                  if (await ejecutar(async () => { const r = await ctx.s.sincronizacion.unirse(m.escuelaId, yo.usuario.id); notificarCambioSincronizacion(); return `Escuela lista en este dispositivo (${r.registros} registros). Puedes trabajar sin conexión.`; })) ctx.ir(`#/escuela/${m.escuelaId}`);
                   else { b.disabled = false; b.textContent = 'Usar en este dispositivo'; }
                 } }, 'Usar en este dispositivo')),
           )))

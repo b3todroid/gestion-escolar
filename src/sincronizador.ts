@@ -9,6 +9,14 @@ import type { Servicios } from './services';
 import { registrarError } from './utils/registro';
 
 const CADA_MS = 30_000;
+/** El indicador se recalcula de la cola real cada pocos segundos (lectura local, barata). */
+const PINTAR_CADA_MS = 5_000;
+const EVENTO = 'gestion-escolar:sincronizacion';
+
+/** Las pantallas avisan cuando cambian vínculos o la cola (unirse, quitar, resolver, sincronizar). */
+export function notificarCambioSincronizacion(): void {
+  window.dispatchEvent(new Event(EVENTO));
+}
 const RECIBIR_CADA_MS = 120_000;
 
 export function iniciarSincronizacion(s: Servicios, indicador: HTMLAnchorElement): { ahora(): Promise<void> } {
@@ -55,6 +63,8 @@ export function iniciarSincronizacion(s: Servicios, indicador: HTMLAnchorElement
   window.addEventListener('online', () => void ciclo(true));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void ciclo(); });
   window.addEventListener('hashchange', () => void pintar().catch(registrarError));
+  window.addEventListener(EVENTO, () => void pintar().catch(registrarError));
+  setInterval(() => { if (document.visibilityState === 'visible') void pintar().catch(registrarError); }, PINTAR_CADA_MS);
   setInterval(() => { if (document.visibilityState === 'visible') void ciclo(); }, CADA_MS);
   void ciclo();
   return { ahora: () => ciclo(true) };

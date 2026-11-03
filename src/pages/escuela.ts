@@ -125,8 +125,8 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
       h('li', {}, h('a', { href: '#/respaldos' }, 'Respaldos'), h('span', { class: 'modulos__estado' }, 'Disponible')),
       h('li', {}, h('a', { href: '#/aplicacion' }, 'Aplicación y datos (instalar, sin conexión)'), h('span', { class: 'modulos__estado' }, 'Disponible')),
       ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/prefectura/${fechaLocal(new Date()) >= ciclo.fechaInicio && fechaLocal(new Date()) <= ciclo.fechaFin ? fechaLocal(new Date()) : ciclo.fechaInicio}` }, 'Prefectura (incidencias del personal y coberturas)'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
-      ...['Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
-        h('li', { class: 'modulos__futuro' }, h('span', {}, m), h('span', { class: 'modulos__estado' }, 'Próximamente'))),
+      h('li', {}, h('a', { href: '#/cuenta' }, 'Cuenta del servidor escolar y sincronización'), h('span', { class: 'modulos__estado' }, 'Disponible (requiere servidor escolar)')),
+      h('li', { class: 'modulos__futuro' }, h('span', {}, 'Reportes de asistencia por periodo (por ahora: «Asistencia del ciclo» en cada grupo)'), h('span', { class: 'modulos__estado' }, 'Próximamente')),
     ),
   );
 

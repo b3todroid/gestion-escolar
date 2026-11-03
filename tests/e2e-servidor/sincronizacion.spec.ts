@@ -57,4 +57,16 @@ test('trabajar sin conexión y sincronizar al volver la conexión, con indicador
   const pases = await page.request.get(`/api/escuelas/${s.escuelaId}/tablas/pases`);
   const lista = (await pases.json()) as { sesionId: string; fecha: string }[];
   expect(lista.filter((p) => p.sesionId === s.s1 && p.fecha === s.hoy)).toHaveLength(1);
+
+  // Dispositivo compartido: al cerrar sesión se ofrece quitar los datos descargados (nunca en silencio)
+  await page.goto('/#/cuenta');
+  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('¿Este dispositivo es compartido?');
+  await page.getByRole('dialog').getByRole('button', { name: 'Quitar los datos de este dispositivo' }).click();
+  await expect(page.locator('#sincronizacion')).toBeHidden();
+  const alumnosLocales = await page.evaluate(() => new Promise<number>((ok) => {
+    const r = indexedDB.open('gestion-escolar');
+    r.onsuccess = () => { const db = r.result; const c = db.transaction('alumnos').objectStore('alumnos').count(); c.onsuccess = () => { ok(c.result); db.close(); }; };
+  }));
+  expect(alumnosLocales).toBe(0);
 });

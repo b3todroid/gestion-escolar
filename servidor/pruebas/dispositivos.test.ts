@@ -20,11 +20,17 @@ let A: Semilla;
 /** Cliente del servidor como el del navegador, con un interruptor de conexión. */
 class ClientePrueba implements ClienteServidor {
   sinConexion = false;
-  readonly nav: Navegador;
+  /** Simula que el servidor sí procesa el próximo envío pero la respuesta se pierde en la red. */
+  perderProximaRespuesta = false;
+  nav: Navegador;
   constructor(nav: Navegador) { this.nav = nav; }
   async pedir<T>(metodo: 'GET' | 'POST', ruta: string, cuerpo?: unknown): Promise<T> {
     if (this.sinConexion) throw new ErrorServidor(0, 'SIN_CONEXION', 'Sin conexión.');
     const r = await this.nav.pedir(metodo, ruta, cuerpo);
+    if (this.perderProximaRespuesta && metodo === 'POST' && ruta.endsWith('/sincronizacion')) {
+      this.perderProximaRespuesta = false;
+      throw new ErrorServidor(0, 'SIN_CONEXION', 'Se perdió la respuesta.');
+    }
     if (r.estado >= 200 && r.estado < 300) return r.cuerpo as T;
     throw new ErrorServidor(r.estado, r.cuerpo?.codigo ?? r.cuerpo?.code ?? `HTTP_${r.estado}`, r.cuerpo?.mensaje ?? r.cuerpo?.message ?? 'Error');
   }
@@ -131,6 +137,21 @@ describe('Trabajo sin conexión', () => {
   });
 });
 
+describe('Reintentos', () => {
+  test('si la respuesta del servidor se pierde, el reintento no duplica nada', async () => {
+    const rep = await prefecto.s.asistencia.crearReporte(A.al1, { tipo: 'otro', texto: 'Respuesta perdida (ficticio)' }, { personalId: A.pf, sesionId: null, fecha: A.hoy, hora: '11:00' });
+    prefecto.cliente.perderProximaRespuesta = true;
+    const r1 = await prefecto.s.sincronizacion.sincronizar(A.escuelaId);
+    expect(r1.problema).toMatch(/Sin conexión/);
+    expect((await prefecto.s.sincronizacion.estado(A.escuelaId)).pendientes).toBe(1); // el dispositivo no sabe si llegó: lo conserva
+    expect((await e.bd.query('SELECT count(*)::int AS n FROM escolar.reportes WHERE id = $1', [rep.id])).rows[0].n).toBe(1); // pero sí llegó
+    const r2 = await prefecto.s.sincronizacion.sincronizar(A.escuelaId);
+    expect(r2.problema).toBeNull();
+    expect((await prefecto.s.sincronizacion.estado(A.escuelaId)).pendientes).toBe(0);
+    expect((await e.bd.query('SELECT count(*)::int AS n FROM escolar.reportes WHERE id = $1', [rep.id])).rows[0].n).toBe(1);
+  });
+});
+
 describe('Conflictos: nunca «el último gana»', () => {
   test('dos personas cambian el mismo grupo sin conexión: el segundo queda en CONFLICTO y decide reaplicar', async () => {
     direccion.cliente.sinConexion = true; subdireccion.cliente.sinConexion = true;
@@ -230,6 +251,22 @@ describe('Permisos al sincronizar', () => {
   test('una escuela sincronizada no se restaura desde un respaldo (evita mezclar versiones)', async () => {
     const { contenido } = await prefecto.s.respaldos.exportar([A.escuelaId], { contrasena: null });
     await expect(prefecto.s.respaldos.restaurar(contenido, [A.escuelaId])).rejects.toThrow(/se sincroniza con el servidor/);
+  });
+
+  test('con OTRA cuenta en el dispositivo, la cola no se envía (no se atribuye a otra persona)', async () => {
+    const original = prefecto.cliente.nav;
+    await prefecto.s.asistencia.crearReporte(A.al2, { tipo: 'otro', texto: 'Hecho por Prefectura (ficticio)' }, { personalId: A.pf, sesionId: null, fecha: A.hoy, hora: '10:00' });
+    const pendientes = (await prefecto.s.sincronizacion.estado(A.escuelaId)).pendientes;
+    expect(pendientes).toBeGreaterThan(0);
+    const otra = e.navegador();
+    await entrarConCodigo(e, otra, usuarios.get('docente-uno')!.correo);
+    prefecto.cliente.nav = otra; // otra persona inicia sesión en el mismo dispositivo
+    const r = await prefecto.s.sincronizacion.sincronizar(A.escuelaId);
+    expect(r.problema).toMatch(/otra cuenta/);
+    expect(r.enviados).toBe(0);
+    expect((await prefecto.s.sincronizacion.estado(A.escuelaId)).pendientes).toBe(pendientes);
+    prefecto.cliente.nav = original;
+    expect((await prefecto.s.sincronizacion.sincronizar(A.escuelaId)).enviados).toBe(pendientes);
   });
 
   test('si se revoca el acceso, la sincronización se detiene sin perder la cola; quitar la escuela es explícito', async () => {

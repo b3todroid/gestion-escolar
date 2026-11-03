@@ -113,6 +113,17 @@ export class ServicioSincronizacion {
     const v = await this.almacen.vinculo(escuelaId);
     if (!v) throw new ErrorDominio('NO_ENCONTRADO', 'Esta escuela no está vinculada con el servidor.');
     try {
+      // 0. La cola es de la cuenta que vinculó la escuela: nunca se envía con la sesión de otra persona
+      //    (se le atribuiría a ella y se evaluaría con sus permisos).
+      const yo = await this.cliente.pedir<{ usuario: { id: string } } | null>('GET', '/api/yo');
+      if (!yo) {
+        resumen.problema = 'Inicia sesión para sincronizar. Tus cambios siguen guardados en este dispositivo.';
+        return resumen;
+      }
+      if (yo.usuario.id !== v.usuarioId) {
+        resumen.problema = 'Esta escuela se sincroniza en este dispositivo con otra cuenta. Inicia sesión con esa cuenta para enviar sus cambios; no se envían con la tuya.';
+        return resumen;
+      }
       // 1. Enviar, en el orden en que ocurrieron y sin partir grupos.
       for (;;) {
         const cola = await this.almacen.cola(escuelaId, ['pendiente']);

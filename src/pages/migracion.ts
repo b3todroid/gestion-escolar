@@ -4,6 +4,7 @@
  * servidor (lo verifica el servidor). Los datos locales se conservan hasta el paso 9.
  */
 import type { ContextoPagina, Vista } from '../app';
+import { notificarCambioSincronizacion } from '../sincronizador';
 import { avisar } from '../components/avisos';
 import { confirmar, pedirTexto } from '../components/dialogo';
 import { h, icono, reemplazar } from '../components/dom';
@@ -152,7 +153,7 @@ export async function paginaMigracion(ctx: ContextoPagina): Promise<Vista> {
       paso(9, 'Usar en este dispositivo la versión sincronizada', h('p', {}, 'La escuela local se reemplaza por la del servidor (los mismos registros). A partir de aquí, los cambios se sincronizan.'),
         h('button', { type: 'button', class: 'boton', id: 'boton-usar-servidor', onclick: async () => {
           const ok = await confirmar({ titulo: 'Usar la versión sincronizada', mensaje: 'Se quitará la copia local de la escuela y se descargará la del servidor. Tienes el respaldo del paso 1.', textoConfirmar: 'Usar la versión sincronizada' });
-          if (ok && await ejecutar(async () => { const r = await ctx.s.migracion.usarVersionServidor(escuelaLocal().id, servidor().escuelaId, yo.usuario.id); return `Listo: ${r.registros} registros sincronizados en este dispositivo.`; })) ctx.ir(`#/escuela/${servidor().escuelaId}`);
+          if (ok && await ejecutar(async () => { const r = await ctx.s.migracion.usarVersionServidor(escuelaLocal().id, servidor().escuelaId, yo.usuario.id); notificarCambioSincronizacion(); return `Listo: ${r.registros} registros sincronizados en este dispositivo.`; })) ctx.ir(`#/escuela/${servidor().escuelaId}`);
         } }, 'Usar la versión sincronizada')));
     reemplazar(pasos, p1, zona2);
   };

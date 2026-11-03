@@ -17,7 +17,9 @@
     "test:servidor": "vitest run --config servidor/vitest.config.ts",
     "test:e2e:servidor": "playwright test -c playwright.servidor.config.ts",
     "check": "npm run typecheck && npm run test && npm run build",
-    "servidor:compilar": "vite build -c servidor/vite.config.ts"
+    "servidor:compilar": "vite build -c servidor/vite.config.ts",
+    "test:rendimiento": "playwright test -c playwright.rendimiento.config.ts",
+    "servidor:demo": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/demo.mjs"
   },
   "engines": {
     "node": ">=22.12.0"
