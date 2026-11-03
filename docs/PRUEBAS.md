@@ -75,3 +75,22 @@ Unitarias en `tests/unit/fase4-docente.test.ts` (U) y funcionales en `tests/e2e/
 | 13 | Funcionamiento móvil (320 px, búsqueda, objetivos ≥ 44 px) | E «móvil 320 px…» |
 | 14 | Separación entre escuelas | U «14.» |
 | 15 | Integridad de fases anteriores (migración v7 → v8, respaldo con historial) | U «15.», «15b.» + todas las pruebas anteriores |
+
+## Fase 5 — PWA, offline y respaldos: 11 pruebas obligatorias
+Unitarias en `tests/unit/fase5-respaldos.test.ts` (U); funcionales en `tests/e2e/offline.spec.ts` (O) y `tests/e2e/respaldos.spec.ts` (R).
+
+| # | Prueba | Dónde |
+|---|---|---|
+| 1 | Instalación PWA (manifiesto, iconos PNG 192/512 y maskable, Service Worker activo, apple-touch-icon, pantalla «Aplicación y datos»). La instalación en sí no se puede automatizar en un navegador sin interfaz | O «instalación PWA…» |
+| 2 | Carga offline (perfil en disco, red cortada, `goto('/')` servido por el Service Worker) | O «sin conexión…» |
+| 3 | Guardado offline: consultas de escuelas, grupos, docentes, alumnos y horarios; pase de lista con retardo; salida; regreso; incidencia — verificado en IndexedDB | O «sin conexión…» |
+| 4 | Persistencia tras reiniciar (cierre real del navegador y reapertura **sin conexión**) | O, U «4.» |
+| 5 | Exportación (versión, fecha, escuela, ciclos, conteos, huella; con y sin cifrado) | U «5.», «Cifrado…», R |
+| 6 | Restauración (en dispositivo vacío, reemplazo con copia previa, informe final) | U, R |
+| 7 | Archivo corrupto (ilegible, truncado, incompleto, referencias rotas, alterado) | U «7.», R |
+| 8 | Versión incompatible (esquema o formato más nuevo) | U «8.» |
+| 9 | Conflictos (cambios posteriores al respaldo, misma CCT, contraseña incorrecta) | U «9.», «Cifrado…», R |
+| 10 | Conservación de fases anteriores (todas las pruebas anteriores; volcado completo antes/después) | U, todas |
+| 11 | Actualización sin pérdida (Service Worker y cachés reemplazados → datos intactos; cachés sin datos escolares) | O, U «11.» |
+
+Además: importación interrumpida a mitad (U «Recuperación…»), sal/IV únicos por archivo (U).

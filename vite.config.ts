@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
+import { readFileSync } from 'node:fs';
 import { VitePWA } from 'vite-plugin-pwa';
 
 /**
@@ -30,7 +31,10 @@ function politicaSeguridad(): Plugin {
 // Configuración de compilación y PWA.
 // El Service Worker precachea todos los recursos de la app (local-first):
 // tras la primera carga, la aplicación funciona sin conexión.
+const VERSION_APP = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
+
 export default defineConfig({
+  define: { __VERSION_APP__: JSON.stringify(VERSION_APP) },
   build: {
     target: 'es2022',
     sourcemap: true,

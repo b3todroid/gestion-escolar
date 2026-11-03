@@ -92,6 +92,7 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
           'Los datos se conservan al recargar, cerrar el navegador o perder la conexión. ',
           'Se pierden si borras los datos del navegador o cambias de dispositivo: descarga respaldos con regularidad.'),
         h('a', { class: 'boton boton--secundario', href: '#/respaldos' }, 'Respaldos'),
+        h('a', { class: 'boton boton--secundario', href: '#/aplicacion' }, 'Aplicación y datos'),
         alm.persistente === false
           ? h('button', {
               type: 'button', class: 'boton boton--secundario',

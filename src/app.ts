@@ -2,6 +2,7 @@ import type { Servicios } from './services';
 import { h, vaciar } from './components/dom';
 import { esErrorDominio } from './domain/errores';
 import { confirmar } from './components/dialogo';
+import { registrarError } from './utils/registro';
 
 export interface Vista {
   titulo: string;
@@ -97,7 +98,7 @@ export class Aplicacion {
         ? await coincidencia.r.render(this.contexto(), ...coincidencia.m!.slice(1))
         : vistaError('Página no encontrada', 'La dirección no corresponde a ninguna sección de la aplicación.');
     } catch (e) {
-      if (!esErrorDominio(e)) console.error(e);
+      if (!esErrorDominio(e)) registrarError(e);
       vista = vistaError('No se pudo mostrar la información', esErrorDominio(e) ? e.message : 'Ocurrió un error inesperado al leer los datos locales.');
     }
     if (gen !== this.generacion) return; // llegó una navegación más reciente

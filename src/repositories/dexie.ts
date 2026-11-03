@@ -3,6 +3,7 @@ import type { BaseDatosEscolar } from '../database/db';
 import type { Metadatos } from '../models';
 import { ErrorDominio, esErrorDominio } from '../domain/errores';
 import type { Repositorio, Repositorios, UnidadDeTrabajo } from './tipos';
+import { registrarError } from '../utils/registro';
 
 class RepositorioDexie<T extends Metadatos> implements Repositorio<T> {
   constructor(private readonly tabla: Table<T, string>) {}
@@ -78,7 +79,7 @@ export function traducirErrorAlmacenamiento(e: unknown): ErrorDominio {
   if (nombre === 'ConstraintError') {
     return new ErrorDominio('DUPLICADO', 'Ya existe un registro con esos datos.');
   }
-  console.error(e);
+  registrarError(e);
   return new ErrorDominio('ALMACENAMIENTO', 'No se pudo guardar la información en este dispositivo. Intenta de nuevo.');
 }
 

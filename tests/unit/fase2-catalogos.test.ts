@@ -231,7 +231,7 @@ describe('15–18. Persistencia y separación', () => {
     const j = JSON.parse((await s.respaldos.exportar([escuelaId])).contenido);
     const viejoAlumno = { ...j.datos.alumnos[0], cicloEscolarId: cicloId, grupoId: A.id, activo: true };
     delete viejoAlumno.matricula; delete viejoAlumno.curp; delete viejoAlumno.observaciones;
-    const anterior = { ...j, esquema: 5, huella: null, datos: { ...j.datos, alumnos: [viejoAlumno], inscripciones: [], movimientos: [] } };
+    const anterior = { ...j, versionFormato: 1, conteos: undefined, ciclos: undefined, esquema: 5, huella: null, datos: { ...j.datos, alumnos: [viejoAlumno], inscripciones: [], movimientos: [] } };
     const otro = nuevoEntorno();
     const an = await otro.s.respaldos.analizar(JSON.stringify(anterior));
     expect(an.errores).toEqual([]);

@@ -34,6 +34,8 @@ async function crearEscuela(page: Page) {
 
 async function descargarRespaldo(page: Page): Promise<string> {
   await page.goto('/#/respaldos');
+  await page.getByLabel(/Proteger con contraseña/).uncheck(); // estas pruebas usan el formato sin cifrar
+  await expect(page.getByText('Sin contraseña, cualquiera que obtenga el archivo')).toBeVisible();
   const espera = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Descargar respaldo de Escuela Secundaria Ficticia 130' }).click();
   const d = await espera;
@@ -66,6 +68,9 @@ test('descargar, y restaurar en otro dispositivo (navegador vacío)', async ({ p
   await expect(p2.locator('.conteos-respaldo')).toContainText('Alumnos');
   await p2.getByRole('button', { name: 'Restaurar' }).click();
   await p2.getByRole('dialog').getByRole('button', { name: 'Restaurar' }).click();
+  await expect(p2.locator('#informe-restauracion')).toContainText('Restauración completa');
+  await expect(p2.locator('#informe-restauracion')).toContainText('Alumnos: 2');
+  await p2.getByRole('link', { name: 'Ver escuelas' }).click();
   await expect(p2.getByRole('link', { name: 'Escuela Secundaria Ficticia 130' })).toBeVisible();
   await p2.getByRole('link', { name: 'Escuela Secundaria Ficticia 130' }).click();
   await p2.getByRole('link', { name: 'Configurar' }).click();
@@ -88,12 +93,14 @@ test('reemplazar en el mismo dispositivo descarga antes una copia de los datos a
 
   await cargar(page, respaldo);
   await expect(page.locator('.respaldo-escuela')).toContainText('Reemplazará los datos actuales');
+  await expect(page.locator('.conflicto-posterior')).toContainText('creados o modificados después de la fecha del respaldo');
   await page.getByRole('button', { name: 'Restaurar' }).click();
   await expect(page.getByRole('dialog')).toContainText('se descargará automáticamente una copia');
   const copia = page.waitForEvent('download');
   await page.getByRole('dialog').getByRole('button', { name: 'Reemplazar' }).click();
   expect((await copia).suggestedFilename()).toMatch(/^copia-antes-de-restaurar-/);
   await expect(page.locator('.aviso')).toContainText('Restauración completa');
+  await page.getByRole('link', { name: 'Ver escuelas' }).click();
   await page.getByRole('link', { name: 'Escuela Secundaria Ficticia 130' }).click();
   await expect(page.locator('.datos').getByText('Cambio posterior')).toHaveCount(0);
 });
@@ -107,4 +114,41 @@ test('un archivo alterado se rechaza y no se modifica nada', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Restaurar' })).toHaveCount(0);
   await cargar(page, 'esto no es un respaldo', 'texto.json');
   await expect(page.locator('.importacion')).toContainText('no se pudo leer');
+});
+
+test('respaldo cifrado con contraseña: descargar, rechazar contraseña incorrecta y restaurar', async ({ page, browser }) => {
+  await crearEscuela(page);
+  await page.goto('/#/respaldos');
+  const clave = 'clave-ficticia-segura-1';
+  await page.getByLabel('Contraseña del respaldo').fill('corta');
+  await page.getByRole('button', { name: 'Descargar respaldo de Escuela Secundaria Ficticia 130' }).click();
+  await expect(page.locator('.aviso')).toContainText('al menos 10 caracteres');
+  await page.getByLabel('Contraseña del respaldo').fill(clave);
+  await page.getByLabel('Repite la contraseña').fill(clave);
+  const espera = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Descargar respaldo de Escuela Secundaria Ficticia 130' }).click();
+  const d = await espera;
+  expect(d.suggestedFilename()).toMatch(/^respaldo-gestion-escolar-32ZZZ0130A-\d{4}-\d{2}-\d{2}\.cifrado\.json$/);
+  const cifrado = readFileSync((await d.path())!, 'utf8');
+  expect(cifrado).toContain('gestion-escolar-respaldo-cifrado');
+  expect(cifrado).not.toContain('Ficticia');
+  expect(cifrado).not.toContain(clave);
+
+  const otro = await browser.newContext();
+  const p2 = await otro.newPage();
+  await p2.goto('/#/respaldos');
+  await p2.locator('#archivo-respaldo').setInputFiles({ name: 'cifrado.json', mimeType: 'application/json', buffer: Buffer.from(cifrado) });
+  await expect(p2.getByText('está protegido con contraseña')).toBeVisible();
+  await p2.getByLabel('Contraseña del respaldo').fill('otra-contrasena-mala');
+  await p2.getByRole('button', { name: 'Abrir respaldo' }).click();
+  await expect(p2.locator('#f-contrasena-restaurar')).toContainText('Contraseña incorrecta o archivo dañado');
+  await p2.getByLabel('Contraseña del respaldo').fill(clave);
+  await p2.getByRole('button', { name: 'Abrir respaldo' }).click();
+  await expect(p2.getByRole('heading', { name: 'Revisión de «cifrado.json»' })).toBeVisible();
+  await expect(p2.locator('.importacion')).toContainText('Respaldo cifrado');
+  await expect(p2.locator('.respaldo-escuela')).toContainText('Ciclos escolares: 2026-2027');
+  await p2.getByRole('button', { name: 'Restaurar' }).click();
+  await p2.getByRole('dialog').getByRole('button', { name: 'Restaurar' }).click();
+  await expect(p2.locator('#informe-restauracion')).toContainText('Alumnos: 2');
+  await otro.close();
 });

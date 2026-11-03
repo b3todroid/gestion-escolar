@@ -83,3 +83,11 @@ PDF.js (lectura PDF), Tesseract.js (OCR local), jsPDF o pdf-lib (reportes). Se c
 
 ## Sincronización futura (diseño previsto, no implementado)
 Backend con autenticación institucional, permisos por rol y escuela, repositorio "sincronizado" que escribe local y encola cambios (outbox), resolución de conflictos por `version`/`actualizadoEn`, eliminaciones como marcas (tombstones) en lugar de borrado físico, auditoría y respaldos centralizados.
+
+## Fase 5 — PWA, respaldos cifrados y recuperación
+- **Cifrado de respaldos**: Web Crypto nativa (`crypto.subtle`), sin bibliotecas: AES-GCM 256 (cifrado autenticado) + PBKDF2-SHA-256 con 600 000 iteraciones (recomendación OWASP 2023), sal de 16 bytes e IV de 12 bytes aleatorios por archivo. Al leer se acotan las iteraciones (100 000–5 000 000) para que un archivo manipulado no fuerce parámetros débiles ni trabajo excesivo. Se evaluó y descartó agregar dependencias (libsodium, crypto-js): Web Crypto está en todos los navegadores objetivo y no aumenta el tamaño. `src/utils/cifrado.ts`.
+- **Service Worker** (vite-plugin-pwa / Workbox): precarga sólo recursos estáticos de la compilación (JS, CSS, HTML, iconos, fuentes, plantillas). **No hay caché en tiempo de ejecución**: ningún dato escolar llega a Cache Storage. Actualización con aviso («Hay una nueva versión») y revisión cada hora con conexión; `cleanupOutdatedCaches`. Los datos (IndexedDB) no se tocan al actualizar.
+- **Instalación**: `beforeinstallprompt` sólo donde el navegador lo ofrece; instrucciones por plataforma en `#/aplicacion` (iOS no tiene botón programable).
+- **Almacenamiento persistente**: `navigator.storage.persist()` a petición de la persona; uso y cuota con `estimate()`.
+- **Registro de errores**: `utils/registro.ts` escribe sólo tipo y mensaje (sin objetos con datos personales).
+- Detalle operativo y riesgos: `docs/RECUPERACION.md`.

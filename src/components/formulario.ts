@@ -1,6 +1,7 @@
 import { agregar, h, icono, type Hijo } from './dom';
 import { avisar } from './avisos';
 import { esErrorDominio } from '../domain/errores';
+import { registrarError } from '../utils/registro';
 
 /**
  * Constructores de campos de formulario accesibles: etiqueta visible,
@@ -164,7 +165,7 @@ export function alEnviar(form: HTMLFormElement, accion: () => Promise<string | n
         mostrarErrores(form, e.message, e.campos.length ? e.campos : [{ campo: 'formulario', mensaje: e.message }]);
         avisar(e.message, 'error');
       } else {
-        console.error(e);
+        registrarError(e);
         mostrarErrores(form, 'Ocurrió un error inesperado. Tus datos anteriores no se modificaron.', []);
         avisar('Ocurrió un error inesperado.', 'error');
       }
@@ -183,7 +184,7 @@ export async function ejecutar(accion: () => Promise<string>): Promise<boolean> 
     return true;
   } catch (e) {
     avisar(esErrorDominio(e) ? e.message : 'Ocurrió un error inesperado.', 'error');
-    if (!esErrorDominio(e)) console.error(e);
+    if (!esErrorDominio(e)) registrarError(e);
     return false;
   }
 }

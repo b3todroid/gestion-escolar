@@ -6,6 +6,7 @@ import { leerTabla } from '../domain/importacion/tabla';
 import { ErrorArchivo } from '../domain/importacion/zip';
 import { esErrorDominio } from '../domain/errores';
 import type { Analisis, EstadoFila } from '../services/importacion';
+import { registrarError } from '../utils/registro';
 
 const ESTADO: Record<EstadoFila, [string, 'ok' | 'aviso' | 'neutro', string]> = {
   nueva: ['Se importará', 'ok', '✓'],
@@ -75,7 +76,7 @@ export async function paginaImportar(ctx: ContextoPagina, cicloId: string): Prom
     } catch (e) {
       tabla = null;
       const mensaje = e instanceof ErrorArchivo || esErrorDominio(e) ? e.message : 'No se pudo leer el archivo.';
-      if (!(e instanceof ErrorArchivo) && !esErrorDominio(e)) console.error(e);
+      if (!(e instanceof ErrorArchivo) && !esErrorDominio(e)) registrarError(e);
       resultado.replaceChildren(h('p', { class: 'mensaje mensaje--error', role: 'alert' }, icono('⚠'), ' ', mensaje));
     }
   });

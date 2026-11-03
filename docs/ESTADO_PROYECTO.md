@@ -1,6 +1,15 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 4 — Módulo docente y control de clases** — completada, pendiente de revisión del usuario. No se inicia Prefectura, PDF avanzado ni sincronización.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 5 — PWA, offline, respaldos y robustez** — completada, pendiente de revisión del usuario. No se inicia la Fase 6.
+
+## Fase 5 — PWA, offline, respaldos y robustez (2026-11-03)
+**Auditoría inicial:** pruebas existentes en verde (144 unitarias, 46 funcionales). Ya existían: manifiesto, iconos, Service Worker con precarga, aviso de nueva versión, indicador de conexión, respaldo JSON con huella y restauración transaccional. Riesgos documentados en `docs/RECUPERACION.md` antes de cambiar nada. **Sin cambios de esquema** (sigue v8).
+
+**Implementado:** respaldos cifrados con contraseña por omisión (AES-GCM + PBKDF2), formato 2 del respaldo (ciclos y conteos por tabla, verificados al restaurar), restauración con contraseña, resumen con ciclos, conflicto por cambios posteriores al respaldo, informe final por tabla, copia previa cifrada si el respaldo lo estaba; pantalla «Aplicación y datos» (`#/aplicacion`): estado sin conexión, versión de la app y de datos, buscar actualización, instalar o instrucciones por plataforma, almacenamiento persistente y uso; revisión de actualizaciones cada hora; registro de errores sin datos personales.
+
+**Verificado sin conexión (pruebas automatizadas):** carga, consultas, pase de lista, retardos, salidas, reincorporaciones e incidencias, recarga y reinicio del navegador sin red, y actualización sin pérdida de datos.
+
+**Pendientes / límites:** la instalación real no se puede automatizar (se verifican sus requisitos); iOS no ofrece botón de instalación; el almacenamiento local puede borrarse por el usuario o el navegador (mitigado con respaldos y almacenamiento persistente); no hay sincronización ni autenticación.
 
 ## Fase 4 — Módulo docente y control de clases (2026-11-03, segunda etapa)
 **Auditoría inicial:** las pruebas existentes pasaban (131 unitarias, 43 funcionales) y ya existían «Mi día», pase de lista P/F/R sin guardar al abrir, salidas al baño y reportes. Faltaban: estado FUERA DE JORNADA explícito, escuela y turno en pantalla, siguiente clase, estados de la lista e historial de correcciones, docente y periodo en salidas, resolución explícita del conflicto falta ↔ salida, hora y estado en incidencias, búsqueda en la lista, pasar lista desde el grupo y preparación para PDF. Migración necesaria: v8.

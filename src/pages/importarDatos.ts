@@ -10,6 +10,7 @@ import { esErrorDominio } from '../domain/errores';
 import type { Analisis, EstadoFila } from '../services/importacion';
 import { ETIQUETA_ESTADO_FILA, type AnalisisDatos, type Decision, type EstadoFilaDatos, type FilaAnalizada } from '../services/importacionDatos';
 import { navCatalogos } from './catalogos';
+import { registrarError } from '../utils/registro';
 
 const TIPO: Record<TipoImportacion, { titulo: string; descripcion: string }> = {
   alumnos: { titulo: 'Alumnos', descripcion: 'Nombre, apellidos, grado, grupo y turno; opcionales número de lista, matrícula y CURP.' },
@@ -111,7 +112,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
 
   const fallo = (err: unknown, destino: HTMLElement) => {
     const conocido = err instanceof ErrorArchivo || esErrorDominio(err);
-    if (!conocido) console.error(err);
+    if (!conocido) registrarError(err);
     error(destino, conocido ? (err as Error).message : 'No se pudo leer el archivo. Verifica que sea .xlsx o .csv.');
   };
 
@@ -291,7 +292,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
       avisar(`Se importaron ${r.clases} clase(s).`, 'exito');
     } catch (err) {
       avisar(esErrorDominio(err) ? err.message : 'No se pudo importar. No se guardó nada.', 'error');
-      if (!esErrorDominio(err)) console.error(err);
+      if (!esErrorDominio(err)) registrarError(err);
       if (b.isConnected) { b.disabled = false; b.textContent = original; }
     }
   }
@@ -340,7 +341,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
       avisar(`Importación guardada: ${r.resultado.nuevos} nuevo(s), ${r.resultado.actualizados} actualizado(s).`, 'exito');
     } catch (err) {
       avisar(esErrorDominio(err) ? err.message : 'No se pudo importar. No se guardó nada.', 'error');
-      if (!esErrorDominio(err)) console.error(err);
+      if (!esErrorDominio(err)) registrarError(err);
       if (b.isConnected) { b.disabled = false; b.textContent = original; }
     }
   }

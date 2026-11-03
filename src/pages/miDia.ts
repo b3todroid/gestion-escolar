@@ -132,6 +132,7 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
       h('nav', { class: 'mi-dia__enlaces', 'aria-label': 'Más opciones' },
         h('a', { class: 'boton boton--secundario boton--chico', href: p.ciclo ? `#/personal/${persona.id}/ciclo/${p.ciclo.id}` : `#/personal/${persona.id}` }, 'Mi horario semanal'),
         h('a', { class: 'boton boton--secundario boton--chico', href: '#/escuelas' }, 'Configuración escolar'),
+        h('a', { class: 'boton boton--secundario boton--chico', href: '#/aplicacion' }, 'Aplicación y datos'),
       ),
       h('p', { class: 'ayuda mi-dia__pie' },
         `Este dispositivo está configurado para ${nombre}. No es una cuenta: cualquiera con acceso al dispositivo puede cambiarlo. `,

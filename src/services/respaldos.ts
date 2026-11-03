@@ -5,16 +5,19 @@ import { nuevoId } from '../utils/id';
 import { normalizarTexto } from '../domain/texto';
 import { ESQUEMAS_TABLA, FORMATO_RESPALDO, TABLAS_RESPALDO, esquemaSobre, type TablaRespaldo } from '../validators/respaldo';
 import { type Contexto, metadatosActualizados, metadatosNuevos } from './contexto';
+import { cifrar, descifrar, esCifrado, validarContrasena } from '../utils/cifrado';
 
 export const LIMITE_RESPALDO = 25 * 1024 * 1024; // caracteres
 const DIAS_RECORDATORIO = 7;
 
 export interface Respaldo {
   formato: typeof FORMATO_RESPALDO;
-  versionFormato: 1;
+  versionFormato: 2;
   esquema: number;
   creadoEn: string;
   escuelas: { id: string; nombre: string }[];
+  ciclos: { id: string; escuelaId: string; nombre: string }[];
+  conteos: Record<TablaRespaldo, number>;
   huella: string | null;
   datos: Record<TablaRespaldo, Metadatos[]>;
 }
@@ -25,6 +28,9 @@ export interface EscuelaEnRespaldo {
   accion: 'agregar' | 'reemplazar' | 'bloqueado';
   motivo: string | null;
   conteos: { tabla: TablaRespaldo; actual: number; respaldo: number }[];
+  ciclos: string[];
+  /** Registros de este dispositivo creados o modificados DESPUÉS de la fecha del respaldo (se perderían al reemplazar). */
+  cambiosPosteriores: number;
 }
 
 export interface AnalisisRespaldo {
@@ -34,6 +40,15 @@ export interface AnalisisRespaldo {
   esquema: number | null;
   escuelas: EscuelaEnRespaldo[];
   puedeRestaurar: boolean;
+  cifrado: boolean;
+  registros: number;
+}
+
+export interface InformeRestauracion {
+  agregadas: number;
+  reemplazadas: number;
+  registros: number;
+  porTabla: { tabla: TablaRespaldo; registros: number }[];
 }
 
 export const ETIQUETA_TABLA: Record<TablaRespaldo, string> = {
@@ -127,10 +142,18 @@ export class ServicioRespaldos {
     return todos.filter((r) => (t === 'escuelas' ? r.id : (r as Metadatos & { escuelaId: string }).escuelaId) === escuelaId);
   }
 
+  /** Versión del esquema de datos de esta aplicación. */
+  versionDatos(): number { return this.versionEsquema; }
+
   // ---------- Exportar ----------
 
-  async exportar(escuelaIds: string[]): Promise<{ nombreArchivo: string; contenido: string; registros: number }> {
+  /**
+   * Respaldo JSON versionado. Con `contrasena`, el archivo completo se cifra
+   * (AES-GCM + PBKDF2); la contraseña no se guarda en ningún lugar.
+   */
+  async exportar(escuelaIds: string[], opciones: { contrasena?: string | null; confirmacion?: string } = {}): Promise<{ nombreArchivo: string; contenido: string; registros: number; cifrado: boolean }> {
     if (!escuelaIds.length) throw new ErrorDominio('VALIDACION', 'Selecciona al menos una escuela.');
+    if (opciones.contrasena != null) validarContrasena(opciones.contrasena, opciones.confirmacion);
     const escuelas = [];
     for (const id of escuelaIds) {
       const e = await this.ctx.repos.escuelas.obtener(id);
@@ -147,11 +170,20 @@ export class ServicioRespaldos {
     }
     const creadoEn = this.ctx.reloj();
     const respaldo: Respaldo = {
-      formato: FORMATO_RESPALDO, versionFormato: 1, esquema: this.versionEsquema, creadoEn,
-      escuelas: escuelas.map((e) => ({ id: e.id, nombre: e.nombre })), huella: await sha256(JSON.stringify(datos)), datos,
+      formato: FORMATO_RESPALDO, versionFormato: 2, esquema: this.versionEsquema, creadoEn,
+      escuelas: escuelas.map((e) => ({ id: e.id, nombre: e.nombre })),
+      ciclos: (datos.ciclos as (Metadatos & { escuelaId: string; nombre: string })[]).map((c) => ({ id: c.id, escuelaId: c.escuelaId, nombre: c.nombre })),
+      conteos: Object.fromEntries(TABLAS_RESPALDO.map((t) => [t, datos[t].length])) as Record<TablaRespaldo, number>,
+      huella: await sha256(JSON.stringify(datos)), datos,
     };
     const base = escuelas.length === 1 ? (escuelas[0]!.cct ?? normalizarTexto(escuelas[0]!.nombre).replace(/[^a-z0-9]+/g, '-')) : 'todas';
-    return { nombreArchivo: `respaldo-gestion-escolar-${base}-${creadoEn.slice(0, 10)}.json`, contenido: JSON.stringify(respaldo), registros };
+    const texto = JSON.stringify(respaldo);
+    const cifrado = opciones.contrasena != null;
+    return {
+      nombreArchivo: `respaldo-gestion-escolar-${base}-${creadoEn.slice(0, 10)}${cifrado ? '.cifrado' : ''}.json`,
+      contenido: cifrado ? await cifrar(texto, opciones.contrasena!, creadoEn) : texto,
+      registros, cifrado,
+    };
   }
 
   async registrarRespaldo(escuelaIds: string[]): Promise<void> {
@@ -180,10 +212,24 @@ export class ServicioRespaldos {
   // ---------- Analizar (sin escribir nada) ----------
 
   /** Analiza sin escribir nada: verificación del archivo + comparación con este dispositivo. */
-  async analizar(contenido: string): Promise<AnalisisRespaldo & { _datos?: Record<TablaRespaldo, Metadatos[]> }> {
-    const v = await this.verificarArchivo(contenido);
-    if (!v.datos) return v.analisis;
-    return this.comparar(v.analisis, v.sobre!, v.datos);
+  async analizar(contenido: string, contrasena: string | null = null): Promise<AnalisisRespaldo & { _datos?: Record<TablaRespaldo, Metadatos[]> }> {
+    const v = await this.verificarArchivo(await this.abrir(contenido, contrasena));
+    const cifrado = esCifrado(contenido);
+    if (!v.datos) return { ...v.analisis, cifrado };
+    return { ...(await this.comparar(v.analisis, v.sobre!, v.datos)), cifrado };
+  }
+
+  /** ¿Hay que pedir contraseña para abrir este archivo? */
+  requiereContrasena(contenido: string): boolean {
+    return esCifrado(contenido);
+  }
+
+  /** Descifra si hace falta (fuera de cualquier transacción). */
+  private async abrir(contenido: string, contrasena: string | null): Promise<string> {
+    if (contenido.length > LIMITE_RESPALDO * 1.4) throw new ErrorDominio('VALIDACION', 'El archivo supera 25 MB.');
+    if (!esCifrado(contenido)) return contenido;
+    if (!contrasena) throw new ErrorDominio('VALIDACION', 'Este respaldo está protegido con contraseña. Escríbela para abrirlo.', [{ campo: 'contrasena', mensaje: 'Escribe la contraseña del respaldo.' }]);
+    return descifrar(contenido, contrasena);
   }
 
   /**
@@ -191,13 +237,16 @@ export class ServicioRespaldos {
    * fuera de la transacción porque `crypto.subtle` (asíncrono y ajeno a IndexedDB)
    * haría que la transacción se cerrara antes de tiempo.
    */
-  private async verificarArchivo(contenido: string): Promise<{ analisis: AnalisisRespaldo; sobre?: { escuelas: { id: string; nombre: string }[] }; datos?: Record<TablaRespaldo, Metadatos[]> }> {
-    const vacio = (errores: string[]): AnalisisRespaldo => ({ errores, advertencias: [], creadoEn: null, esquema: null, escuelas: [], puedeRestaurar: false });
+  private async verificarArchivo(contenido: string): Promise<{ analisis: AnalisisRespaldo; sobre?: { escuelas: { id: string; nombre: string }[]; creadoEn: string }; datos?: Record<TablaRespaldo, Metadatos[]> }> {
+    const vacio = (errores: string[]): AnalisisRespaldo => ({ errores, advertencias: [], creadoEn: null, esquema: null, escuelas: [], puedeRestaurar: false, cifrado: false, registros: 0 });
     if (contenido.length > LIMITE_RESPALDO) return { analisis: vacio(['El archivo supera 25 MB.']) };
     let crudo: unknown;
     try { crudo = JSON.parse(contenido); } catch { return { analisis: vacio(['El archivo no es un respaldo válido (no se pudo leer).']) }; }
     const sobre = esquemaSobre.safeParse(crudo);
-    if (!sobre.success) return { analisis: vacio([sobre.error.issues[0]?.message.startsWith('El archivo') ? sobre.error.issues[0].message : 'El archivo no es un respaldo de Gestión Escolar o está incompleto.']) };
+    if (!sobre.success) {
+      const m = sobre.error.issues[0]?.message ?? '';
+      return { analisis: vacio([m.startsWith('El archivo') || m.startsWith('Formato') ? m : 'El archivo no es un respaldo de Gestión Escolar o está incompleto.']) };
+    }
     const s = sobre.data;
     const errores: string[] = [];
     const advertencias: string[] = [];
@@ -205,6 +254,11 @@ export class ServicioRespaldos {
 
     const huella = await sha256(JSON.stringify(s.datos));
     if (s.huella && huella && s.huella !== huella) errores.push('El archivo fue modificado o está dañado: su huella de verificación no coincide.');
+    if (s.conteos) {
+      for (const [t, n] of Object.entries(s.conteos)) {
+        if ((s.datos[t]?.length ?? 0) !== n) { errores.push(`El archivo está incompleto: ${ETIQUETA_TABLA[t as TablaRespaldo] ?? t} debería tener ${n} registro(s) y tiene ${s.datos[t]?.length ?? 0}.`); break; }
+      }
+    }
     if (!s.huella) advertencias.push('El respaldo no tiene huella de verificación; no se puede comprobar que esté íntegro.');
     if (s.huella && !huella) advertencias.push('Este navegador no puede verificar la huella del archivo (requiere HTTPS o localhost).');
 
@@ -239,11 +293,12 @@ export class ServicioRespaldos {
       const rotos = datos[t].filter((r) => { const v = (r as unknown as Record<string, string | null>)[campo]; return v === null ? !nulo : !existentes.has(v!); }).length;
       if (rotos) errores.push(`${ETIQUETA_TABLA[t]}: ${rotos} registro(s) hacen referencia a ${ETIQUETA_TABLA[destino].toLowerCase()} que no están en el respaldo.`);
     }
-    return { analisis: { errores, advertencias, creadoEn: s.creadoEn, esquema: s.esquema, escuelas: [], puedeRestaurar: false }, sobre: s, datos };
+    const registros = TABLAS_RESPALDO.reduce((n, t) => n + datos[t].length, 0);
+    return { analisis: { errores, advertencias, creadoEn: s.creadoEn, esquema: s.esquema, escuelas: [], puedeRestaurar: false, cifrado: false, registros }, sobre: s, datos };
   }
 
   /** Comparación con este dispositivo: SÓLO operaciones de la base de datos. */
-  private async comparar(base: AnalisisRespaldo, s: { escuelas: { id: string; nombre: string }[] }, datos: Record<TablaRespaldo, Metadatos[]>): Promise<AnalisisRespaldo & { _datos: Record<TablaRespaldo, Metadatos[]> }> {
+  private async comparar(base: AnalisisRespaldo, s: { escuelas: { id: string; nombre: string }[]; creadoEn: string }, datos: Record<TablaRespaldo, Metadatos[]>): Promise<AnalisisRespaldo & { _datos: Record<TablaRespaldo, Metadatos[]> }> {
     const errores = [...base.errores];
     const escuelasAqui = await this.ctx.repos.escuelas.listarTodos();
     const resultado: EscuelaEnRespaldo[] = [];
@@ -259,12 +314,15 @@ export class ServicioRespaldos {
         if (choca) { accion = 'bloqueado'; motivo = `En este dispositivo ya existe otra escuela «${choca.nombre}» con ${enRespaldo.cct ? 'la misma CCT' : 'el mismo nombre'}, registrada por separado. No se mezclan: elimínala o restaura en otro dispositivo.`; }
       }
       const conteos = [];
+      let cambiosPosteriores = 0;
       for (const t of TABLAS_RESPALDO) {
         const respaldo = datos[t].filter((r) => (t === 'escuelas' ? r.id : (r as Metadatos & { escuelaId: string }).escuelaId) === e.id).length;
-        const actual = existe ? (await this.registrosDe(e.id, t)).length : 0;
-        if (respaldo || actual) conteos.push({ tabla: t, actual, respaldo });
+        const aqui = existe ? await this.registrosDe(e.id, t) : [];
+        cambiosPosteriores += aqui.filter((r) => r.actualizadoEn > s.creadoEn).length;
+        if (respaldo || aqui.length) conteos.push({ tabla: t, actual: aqui.length, respaldo });
       }
-      resultado.push({ id: e.id, nombre: e.nombre, accion, motivo, conteos });
+      const ciclos = (datos.ciclos as (Metadatos & { escuelaId: string; nombre: string })[]).filter((c) => c.escuelaId === e.id).map((c) => c.nombre).sort();
+      resultado.push({ id: e.id, nombre: e.nombre, accion, motivo, conteos, ciclos, cambiosPosteriores });
     }
     // Identificadores que ya existen en este dispositivo bajo otra escuela
     for (const t of TABLAS_RESPALDO) {
@@ -280,8 +338,8 @@ export class ServicioRespaldos {
 
   // ---------- Restaurar (todo o nada) ----------
 
-  async restaurar(contenido: string, escuelaIds: string[]): Promise<{ agregadas: number; reemplazadas: number; registros: number }> {
-    const v = await this.verificarArchivo(contenido); // fuera de la transacción
+  async restaurar(contenido: string, escuelaIds: string[], contrasena: string | null = null): Promise<InformeRestauracion> {
+    const v = await this.verificarArchivo(await this.abrir(contenido, contrasena)); // fuera de la transacción
     if (!v.datos || v.analisis.errores.length) throw new ErrorDominio('VALIDACION', `No se restauró nada: ${v.analisis.errores[0] ?? 'archivo inválido'}`);
     return this.ctx.uow.ejecutar(async () => {
       const a = await this.comparar(v.analisis, v.sobre!, v.datos!); // se vuelve a comparar dentro de la transacción
@@ -291,6 +349,7 @@ export class ServicioRespaldos {
       const bloqueada = elegidas.find((e) => e.accion === 'bloqueado');
       if (bloqueada) throw new ErrorDominio('ESTADO_NO_PERMITIDO', bloqueada.motivo ?? 'No se puede restaurar esa escuela.');
       let registros = 0;
+      const porTabla = new Map<TablaRespaldo, number>();
       for (const e of elegidas) {
         if (e.accion === 'reemplazar') {
           for (const t of TABLAS_RESPALDO) await this.repo(t).eliminarVarios((await this.registrosDe(e.id, t)).map((r) => r.id));
@@ -299,9 +358,13 @@ export class ServicioRespaldos {
           const lista = a._datos![t].filter((r) => (t === 'escuelas' ? r.id : (r as Metadatos & { escuelaId: string }).escuelaId) === e.id);
           await this.repo(t).insertarVarios(lista);
           registros += lista.length;
+          if (lista.length) porTabla.set(t, (porTabla.get(t) ?? 0) + lista.length);
         }
       }
-      return { agregadas: elegidas.filter((e) => e.accion === 'agregar').length, reemplazadas: elegidas.filter((e) => e.accion === 'reemplazar').length, registros };
+      return {
+        agregadas: elegidas.filter((e) => e.accion === 'agregar').length, reemplazadas: elegidas.filter((e) => e.accion === 'reemplazar').length, registros,
+        porTabla: [...porTabla].map(([tabla, n]) => ({ tabla, registros: n })),
+      };
     });
   }
 }

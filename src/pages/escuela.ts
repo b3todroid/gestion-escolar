@@ -122,6 +122,7 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
     h('ul', { class: 'modulos' },
       ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/importar` }, 'Importar horarios desde Excel'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
       h('li', {}, h('a', { href: '#/respaldos' }, 'Respaldos'), h('span', { class: 'modulos__estado' }, 'Disponible')),
+      h('li', {}, h('a', { href: '#/aplicacion' }, 'Aplicación y datos (instalar, sin conexión)'), h('span', { class: 'modulos__estado' }, 'Disponible')),
       ...['Prefectura', 'Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
         h('li', { class: 'modulos__futuro' }, h('span', {}, m), h('span', { class: 'modulos__estado' }, 'Próximamente'))),
     ),

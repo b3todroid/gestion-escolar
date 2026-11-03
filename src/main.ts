@@ -22,6 +22,7 @@ import { paginaDocentes } from './pages/docentes';
 import { paginaAlumnosCiclo } from './pages/alumnosCiclo';
 import { paginaHorariosCiclo, paginaHorariosInicio } from './pages/horarios';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
+import { paginaAplicacion } from './pages/aplicacion';
 
 const principal = document.getElementById('contenido');
 const conexion = document.getElementById('conexion');
@@ -36,6 +37,7 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/escuelas', paginaInicio)
     .ruta('/perfil', paginaPerfil)
     .ruta('/respaldos', paginaRespaldos)
+    .ruta('/aplicacion', paginaAplicacion)
     .ruta('/lista/:id/:fecha', paginaLista)
     .ruta('/alumnos/:id', paginaAlumnos)
     .ruta('/alumno/:id', paginaAlumno)

@@ -64,10 +64,13 @@ export const FORMATO_RESPALDO = 'gestion-escolar-respaldo';
 /** Sobre del archivo; los registros se validan después, tabla por tabla. */
 export const esquemaSobre = z.object({
   formato: z.literal(FORMATO_RESPALDO, 'El archivo no es un respaldo de Gestión Escolar.'),
-  versionFormato: z.literal(1, 'Formato de respaldo no compatible.'),
+  versionFormato: z.union([z.literal(1), z.literal(2)], 'Formato de respaldo no compatible: actualiza la aplicación.'),
   esquema: z.number().int().min(1),
   creadoEn: marcaTiempo,
   escuelas: z.array(z.object({ id, nombre: texto(150) })).min(1).max(50),
+  // Formato 2: ciclos escolares y conteo de registros por tabla (verificación adicional de integridad).
+  ciclos: z.array(z.object({ id, escuelaId: id, nombre: texto(40) })).max(500).optional(),
+  conteos: z.record(z.string(), z.number().int().min(0)).optional(),
   huella: z.string().regex(/^[0-9a-f]{64}$/).nullable(),
   datos: z.record(z.string(), z.array(z.unknown())),
 });
