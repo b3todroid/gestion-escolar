@@ -1,6 +1,15 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 5 — PWA, offline, respaldos y robustez** — completada, pendiente de revisión del usuario. No se inicia la Fase 6.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 6 — Importación avanzada PDF, OCR y horarios** — completada, pendiente de revisión del usuario. No se inicia Prefectura.
+
+## Fase 6 — Importación avanzada PDF, OCR y horarios (2026-11-03)
+**Auditoría inicial:** pruebas en verde (153 unitarias, 49 funcionales). El centro de importaciones (Fase 2) y la importación de horarios con mapeo (Fase 3) ya existían; PDF sólo tenía un contrato de interfaz.
+
+**Implementado:** lectura de PDF con PDF.js (por páginas, progreso, cancelación, límites); OCR local con Tesseract.js para páginas sin texto (recursos en `ocr/`, sin CDN; descarga bajo demanda y uso sin conexión); reconstrucción de tablas y detección de estructura (lista, horario de grupo, horario de docente) con grupo/docente desde el título; vista previa editable con celdas inciertas marcadas y «Quitar fila»; conversión a GRUPO + DÍA + PERIODO + MATERIA + DOCENTE sin adivinar; validación con la importación de horarios existente; plantillas de reconocimiento por escuela (esquema v9). También sirve para listas de alumnos, docentes, etc. en PDF (como tabla).
+
+**Defectos encontrados y corregidos:** el OCR leía los trazos de la tabla como letras (se descartan por confianza y longitud); la segmentación automática de Tesseract perdía la fila de encabezados (se usa texto disperso); al cancelar se conservaba la plantilla elegida y forzaba la estructura del siguiente archivo; el motor OCR escribía «Estimating resolution» como error en consola (se fija 300 ppp).
+
+**Pendientes / límites:** celdas combinadas, tablas rotadas o varias tablas por página requieren corrección manual; OCR de fotos o manuscritos no es fiable; sólo una página por importación (se elige la página); sin OCR de imágenes sueltas (JPG/PNG): sólo PDF.
 
 ## Fase 5 — PWA, offline, respaldos y robustez (2026-11-03)
 **Auditoría inicial:** pruebas existentes en verde (144 unitarias, 46 funcionales). Ya existían: manifiesto, iconos, Service Worker con precarga, aviso de nueva versión, indicador de conexión, respaldo JSON con huella y restauración transaccional. Riesgos documentados en `docs/RECUPERACION.md` antes de cambiar nada. **Sin cambios de esquema** (sigue v8).

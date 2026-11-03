@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. **Fase 5 — PWA, offline, respaldos y robustez** (sin cambio de esquema) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. **Fase 6 — Importación PDF, OCR y horarios** (esquema v9) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -44,7 +44,8 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - `services/revisionHorarios.ts` (conflictos pendientes y reportes) es **sólo lectura**: nunca corrige horarios por su cuenta. Estado de validación (confirmado / sin confirmar / con conflicto) se deriva, no se guarda.
 - `origen` en sesiones y actividades: `manual` | `importacion` | `null` (anterior a v7). `programar(..., origen)` y `crearDocente(..., origen)`.
 - Actividades con `periodoId` toman la hora del periodo; al cambiar un periodo se actualizan en la misma transacción.
-- PDF: sólo el contrato de `domain/importacion/fuentes.ts`; lo ambiguo queda vacío (nunca se adivina).
+- PDF (Fase 6): `lectores/pdf.ts` (PDF.js, carga diferida, `isEvalSupported:false`) y `lectores/ocr.ts` (Tesseract local en `ocr/`, NUNCA el CDN por omisión: siempre `workerPath/corePath/langPath`). Lógica pura y probada en `domain/importacion/documento.ts`. Lo ambiguo o incierto no se convierte en registro; celdas vacías nunca son SE. Las filas canónicas pasan por `importacion.analizarMapeado` (misma validación que Excel).
+- Plantillas de reconocimiento: `plantillasImportacion` (v9), columnas por encabezado normalizado (no por posición).
 
 ## Fase 4 (módulo docente)
 - `#/` muestra **Mi día** si el dispositivo tiene docente elegido (`#/perfil`, tabla `ajustes`); si no, las escuelas (`#/escuelas`). **No es autenticación**: decirlo así en la interfaz.
@@ -87,8 +88,8 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Esquema de BD: **nunca** modificar una versión publicada; agregar `version(n+1)` con `upgrade()` que conserve datos. Documentar en `docs/MODELO_DATOS.md`.
 - No enviar datos escolares a servicios externos. No secretos en el cliente. Sólo datos ficticios en pruebas.
 - No afirmar que las pruebas pasan sin ejecutarlas.
-- ExcelJS se evaluó y se descartó en la Fase 3 (ver `docs/ARQUITECTURA.md`). No instalar PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
+- ExcelJS se evaluó y se descartó en la Fase 3. PDF.js 6.4.299 y Tesseract.js 7.0.0 evaluados e instalados en la Fase 6 (ver `docs/ARQUITECTURA.md`). No instalar jsPDF/pdf-lib hasta la fase que los use; antes, evaluar y documentar igual.
 
 ## Fuera de alcance hasta nuevas fases
-Importación PDF, OCR, Prefectura, reportes por periodo, sincronización multiusuario, autenticación.
+Prefectura, reportes por periodo, generación de PDF, sincronización multiusuario, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

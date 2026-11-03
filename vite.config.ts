@@ -18,6 +18,36 @@ const CSP = [
   "form-action 'self'",
 ].join('; ');
 
+/**
+ * Recursos del OCR local (Tesseract.js): worker, motor WebAssembly (sólo LSTM)
+ * e idioma español. Se sirven desde la propia aplicación en `ocr/`; nunca desde
+ * un CDN. En desarrollo se sirven desde node_modules; al compilar se copian.
+ */
+const RECURSOS_OCR: Record<string, string> = {
+  'ocr/worker.min.js': 'node_modules/tesseract.js/dist/worker.min.js',
+  'ocr/tesseract-core-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js',
+  'ocr/tesseract-core-simd-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-simd-lstm.wasm.js',
+  'ocr/tesseract-core-relaxedsimd-lstm.wasm.js': 'node_modules/tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js',
+  'ocr/lang/spa.traineddata.gz': 'node_modules/@tesseract.js-data/spa/4.0.0_best_int/spa.traineddata.gz',
+};
+function recursosOcr(): Plugin {
+  return {
+    name: 'recursos-ocr',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const ruta = (req.url ?? '').split('?')[0]!.replace(/^\//, '');
+        const origen = RECURSOS_OCR[ruta];
+        if (!origen) { next(); return; }
+        res.setHeader('Content-Type', ruta.endsWith('.gz') ? 'application/octet-stream' : 'text/javascript');
+        res.end(readFileSync(origen));
+      });
+    },
+    generateBundle() {
+      for (const [destino, origen] of Object.entries(RECURSOS_OCR)) this.emitFile({ type: 'asset', fileName: destino, source: readFileSync(origen) });
+    },
+  };
+}
+
 function politicaSeguridad(): Plugin {
   return {
     name: 'politica-seguridad',
@@ -41,6 +71,7 @@ export default defineConfig({
   },
   plugins: [
     politicaSeguridad(),
+    recursosOcr(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false, // se registra manualmente en src/pwa.ts
@@ -62,7 +93,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2,xlsx}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,webmanifest,woff2,xlsx}'],
+        // El OCR (≈ 6 MB por dispositivo) no se precarga: se descarga la primera vez que se usa
+        // y queda guardado para trabajar sin conexión. Sólo archivos de la biblioteca, nunca datos escolares.
+        globIgnores: ['ocr/**'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        runtimeCaching: [{
+          urlPattern: ({ url, sameOrigin }) => sameOrigin && /\/ocr\/[\w.-]+(\/[\w.-]+)?$/.test(url.pathname),
+          handler: 'CacheFirst',
+          options: { cacheName: 'recursos-ocr', expiration: { maxEntries: 8 } },
+        }],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },

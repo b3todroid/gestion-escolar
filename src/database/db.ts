@@ -12,11 +12,11 @@ import { Dexie, type Table } from 'dexie';
 import { nuevoId } from '../utils/id';
 import type {
   Actividad, Adscripcion, Ajuste, Alumno, Asistencia, Inscripcion, MovimientoInscripcion, PaseLista, RegistroImportacion, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
-  Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia } from '../models';
+  Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia, PlantillaImportacion } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 8;
+export const VERSION_ESQUEMA = 9;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -42,6 +42,7 @@ export class BaseDatosEscolar extends Dexie {
   reportes!: Table<ReporteAlumno, string>;
   ajustes!: Table<Ajuste, string>;
   cambiosAsistencia!: Table<CambioAsistencia, string>;
+  plantillasImportacion!: Table<PlantillaImportacion, string>;
   adscripciones!: Table<Adscripcion, string>;
   inscripciones!: Table<Inscripcion, string>;
   movimientos!: Table<MovimientoInscripcion, string>;
@@ -167,7 +168,10 @@ export class BaseDatosEscolar extends Dexie {
       await tx.table('pases').toCollection().modify((r: Record<string, unknown>) => { if (r['correcciones'] === undefined) r['correcciones'] = 0; });
     });
 
-    // Para fases futuras: agregar this.version(9) (con .upgrade() si hay que transformar
+    // v9 (Fase 6): plantillas de reconocimiento de importación por escuela. Sólo tabla nueva.
+    this.version(9).stores({ plantillasImportacion: 'id, escuelaId' });
+
+    // Para fases futuras: agregar this.version(10) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

@@ -94,3 +94,22 @@ Unitarias en `tests/unit/fase5-respaldos.test.ts` (U); funcionales en `tests/e2e
 | 11 | Actualización sin pérdida (Service Worker y cachés reemplazados → datos intactos; cachés sin datos escolares) | O, U «11.» |
 
 Además: importación interrumpida a mitad (U «Recuperación…»), sal/IV únicos por archivo (U).
+
+## Fase 6 — PDF, OCR y horarios: 10 pruebas obligatorias
+Documentos ficticios generados con `python3 scripts/generar_pdf_prueba.py` → `tests/fixtures/pdf/` (sábana de grupo, sábana de docente con choque y grupo inexistente, lista con celda ambigua y docente desconocido, escaneado sólo imagen, PDF dañado).
+Unitarias en `tests/unit/fase6-documentos.test.ts` (U: PDF.js «legacy» y Tesseract en Node) y funcionales en `tests/e2e/pdf.spec.ts` (E: Chromium, OCR real en WebAssembly).
+
+| # | Prueba | Dónde |
+|---|---|---|
+| 1 | PDF digital | U, E «1, 3 y 5» |
+| 2 | PDF escaneado (detección sin texto, OCR local, ruido descartado, campos inciertos, sin peticiones externas) | U «2.», E «2.» |
+| 3 | Tablas con encabezados | U «7.» (lista), E «7.» |
+| 4 | Horarios por docente | U «4, 6 y 9», E «4, 6, 9 y 8» |
+| 5 | Horarios por grupo | U «1, 3 y 5», E «1, 3 y 5» |
+| 6 | Conflictos (docente simultáneo, grupo inexistente) | U, E |
+| 7 | Campos ambiguos (varias materias, sin separador, grupo ilegible, celdas inciertas) | U «7.», E «7.» y «2.» |
+| 8 | Cancelación (de la importación y del OCR a mitad) | E «4…» y «2.» |
+| 9 | Duplicados (reimportar no crea clases; aviso de archivo repetido) | U, E |
+| 10 | Conservación de datos (migración v8 → v9; importación fallida o descartada no altera nada; todas las pruebas anteriores) | U «10.», E «10.» |
+
+También: PDF dañado / no PDF, tabla sin encabezados, plantillas (guardar, actualizar sin duplicar, aplicar por nombre de encabezado, incluidas en respaldos).

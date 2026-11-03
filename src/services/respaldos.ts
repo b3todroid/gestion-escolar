@@ -58,6 +58,7 @@ export const ETIQUETA_TABLA: Record<TablaRespaldo, string> = {
   alumnos: 'Alumnos', inscripciones: 'Inscripciones', movimientos: 'Historial de inscripciones', adscripciones: 'Turnos y materias del personal',
   importaciones: 'Registro de importaciones', pases: 'Listas de asistencia', asistencias: 'Marcas de asistencia', salidas: 'Salidas del aula', reportes: 'Reportes',
   cambiosAsistencia: 'Correcciones de asistencia',
+  plantillasImportacion: 'Plantillas de importación',
 };
 
 /** Referencias internas que deben existir dentro del mismo respaldo. */

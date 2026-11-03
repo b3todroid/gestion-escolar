@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import {
-  ESTADOS_CICLO, ESTADOS_INCIDENCIA, ORIGENES_HORARIO, TIPOS_REGISTRO_IMPORTACION, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
+  ESTADOS_CICLO, ESTRUCTURAS_PLANTILLA, ESTADOS_INCIDENCIA, ORIGENES_HORARIO, TIPOS_REGISTRO_IMPORTACION, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
 } from '../models';
 
 const id = z.string().min(1).max(64);
@@ -54,6 +54,7 @@ export const ESQUEMAS_TABLA = {
   salidas: z.object({ ...enCiclo, grupoId: id, alumnoId: id, sesionId: id, fecha, salida: hora, regreso: hora.nullable(), personalId: id.nullable().default(null), periodoId: id.nullable().default(null) }),
   reportes: z.object({ ...enCiclo, grupoId: id, alumnoId: id, personalId: id.nullable(), sesionId: id.nullable(), fecha, tipo: z.enum(TIPOS_REPORTE), texto: texto(280), hora: hora.nullable().default(null), estado: z.enum(ESTADOS_INCIDENCIA).default('abierta') }),
   cambiosAsistencia: z.object({ ...enCiclo, paseId: id, grupoId: id, alumnoId: id, marcaAnterior: z.enum(MARCAS_ASISTENCIA), marcaNueva: z.enum(MARCAS_ASISTENCIA), llegadaAnterior: hora.nullable(), llegadaNueva: hora.nullable(), personalId: id.nullable() }),
+  plantillasImportacion: z.object({ ...enEscuela, nombre: texto(80), tipo: z.enum(TIPOS_REGISTRO_IMPORTACION), estructura: z.enum(ESTRUCTURAS_PLANTILLA), columnas: z.array(z.object({ encabezado: texto(120), campo: z.string().max(40).nullable() })).max(60), umbralConfianza: z.number().min(0).max(1) }),
 } as const;
 
 export type TablaRespaldo = keyof typeof ESQUEMAS_TABLA;

@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE, TIPOS_MATERIA } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE, TIPOS_MATERIA, TIPOS_REGISTRO_IMPORTACION, ESTRUCTURAS_PLANTILLA } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 import { CLAVES_ENTIDAD, nombreEntidad } from '../domain/catalogos';
@@ -355,3 +355,13 @@ export const esquemaReporte = z.object({
 
 export type EntradaAlumno = z.input<typeof esquemaAlumno>;
 export type EntradaReporte = z.input<typeof esquemaReporte>;
+
+// ===================== Fase 6 =====================
+export const esquemaPlantillaImportacion = z.object({
+  nombre: texto('El nombre de la plantilla', 3, 80),
+  tipo: z.enum(TIPOS_REGISTRO_IMPORTACION, 'Tipo de importación inválido.'),
+  estructura: z.enum(ESTRUCTURAS_PLANTILLA, 'Estructura inválida.'),
+  columnas: z.array(z.object({ encabezado: z.string().trim().min(1).max(120), campo: z.string().max(40).nullable() })).max(60),
+  umbralConfianza: z.number().min(0.3, 'El umbral mínimo es 30 %.').max(1, 'El umbral máximo es 100 %.'),
+});
+export type EntradaPlantillaImportacion = z.input<typeof esquemaPlantillaImportacion>;

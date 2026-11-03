@@ -168,7 +168,7 @@ test('sin conexión: consultas, pase de lista, retardos, salidas, regreso e inci
       return r;
     });
     expect(urls.length).toBeGreaterThan(5);
-    expect(urls.every((u) => /\.(js|css|html|svg|png|webmanifest|woff2|xlsx)$/.test(u) || u === '/')).toBe(true);
+    expect(urls.every((u) => /\.(m?js|css|html|svg|png|webmanifest|woff2|xlsx)$/.test(u) || u === '/')).toBe(true);
     await navegador.close(); navegador = null;
   } finally {
     await navegador?.close();

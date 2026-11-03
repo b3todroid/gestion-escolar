@@ -396,3 +396,23 @@ export type EstadoIncidencia = (typeof ESTADOS_INCIDENCIA)[number];
 export interface Ajuste extends Metadatos {
   valor: string | null;
 }
+
+// ===================== Fase 6 =====================
+
+export const ESTRUCTURAS_PLANTILLA = ['automatica', 'lista', 'sabana_grupo', 'sabana_docente'] as const;
+
+/**
+ * Plantilla de reconocimiento guardada por escuela: cómo leer un tipo de
+ * documento (estructura y correspondencia de columnas por NOMBRE de encabezado,
+ * no por posición, para no depender de un formato rígido).
+ */
+export interface PlantillaImportacion extends Metadatos {
+  escuelaId: string;
+  nombre: string;
+  tipo: (typeof TIPOS_REGISTRO_IMPORTACION)[number];
+  estructura: (typeof ESTRUCTURAS_PLANTILLA)[number];
+  /** encabezado normalizado → campo (o null = no importar). */
+  columnas: { encabezado: string; campo: string | null }[];
+  /** Umbral de confianza OCR (0–1) para marcar celdas inciertas. */
+  umbralConfianza: number;
+}

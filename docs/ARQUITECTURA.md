@@ -91,3 +91,21 @@ Backend con autenticación institucional, permisos por rol y escuela, repositori
 - **Almacenamiento persistente**: `navigator.storage.persist()` a petición de la persona; uso y cuota con `estimate()`.
 - **Registro de errores**: `utils/registro.ts` escribe sólo tipo y mensaje (sin objetos con datos personales).
 - Detalle operativo y riesgos: `docs/RECUPERACION.md`.
+
+## Fase 6 — PDF.js y Tesseract.js (evaluación previa a instalarlos)
+| | pdfjs-dist | tesseract.js (+ tesseract.js-core, @tesseract.js-data/spa) |
+|---|---|---|
+| Versión elegida | 6.4.299 (2026-10-03; se evitó la 6.5.438 publicada hace 2 días) | 7.0.0 (2025-12) · core 7.0.0 · spa 1.0.0 (`4.0.0_best_int`) |
+| Repositorio / responsable | github.com/mozilla/pdf.js (Mozilla) | github.com/naptha/tesseract.js |
+| Licencia | Apache-2.0 | Apache-2.0 (datos de idioma: paquete MIT, tessdata Apache-2.0) |
+| Mantenimiento | Publicaciones mensuales | Activo (última mayor dic-2025) |
+| Vulnerabilidades (`npm audit --omit=dev`) | 0. Se usa `isEvalSupported: false` y sin scripting (mitiga la clase de fallas tipo CVE-2024-4367, corregida desde 4.2.67) | 0 |
+| Tamaño servido | ~430 KB (módulo, carga diferida) + 1,26 MB (worker) — precargados | worker 111 KB + motor WASM ~3,9 MB (uno de tres según el navegador) + español 2,1 MB — **no** precargados: se guardan en caché `recursos-ocr` la primera vez |
+| Datos externos | Ninguno (no se configuran fuentes ni CMaps remotos) | Ninguno: `workerPath`, `corePath` y `langPath` apuntan a `ocr/` (por omisión usaría un CDN) |
+
+Decisiones:
+- Ambas se cargan con `import()` dinámico: no afectan la carga inicial.
+- El worker de Tesseract se crea desde un archivo del mismo origen (`workerBlobURL: false`); el idioma no se guarda en IndexedDB (`cacheMethod: 'none'`), lo guarda el Service Worker.
+- OCR con `PSM.SPARSE_TEXT` (adecuado para tablas) y `user_defined_dpi=300`; se descartan lecturas con confianza < 20 % o letras sueltas < 60 % (trazos de las líneas de la tabla).
+- La lógica de tablas es pura (`domain/importacion/documento.ts`) y se prueba con PDF reales ficticios en Node (PDF.js «legacy» y Tesseract en Node).
+- Las vulnerabilidades de `npm audit` completo (sin `--omit=dev`) están en herramientas de compilación (cadena de vite-plugin-pwa → ejs/jake/minimatch) y no llegan a la aplicación; la corrección sugerida rebaja vite-plugin-pwa a una versión mayor anterior y no se aplicó.
