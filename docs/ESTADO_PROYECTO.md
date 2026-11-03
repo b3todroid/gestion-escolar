@@ -1,6 +1,9 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 7 — Prefectura y organización escolar** — completada, pendiente de revisión del usuario. No se inicia multiusuario.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8A — Diseño de arquitectura multiusuario y sincronización** — entregado, **pendiente de autorización** para implementar el backend (8B). Sin cambios de código ni de esquema (sigue v10).
+
+## Fase 8A — Diseño multiusuario y sincronización (2026-11-03)
+Sólo diseño: `docs/FASE8A_MULTIUSUARIO.md` (auditoría, comparación Supabase / Firebase / backend propio, autenticación, matriz de permisos, aislamiento, sincronización con cola de comandos y conflictos por tipo de dato, migración en 9 pasos con reversión, privacidad en México, riesgos, costos estimados, plan 8B–8E y decisiones pendientes D1–D10). **No** se crearon recursos externos, no se contrató nada, no se publicó la app ni se migraron datos.
 
 ## Fase 7 — Prefectura y organización escolar (2026-11-03)
 **Auditoría inicial:** pruebas en verde (165 unitarias, 54 funcionales). Existían horarios por hora real, personal con funciones (incluida prefectura), SE confirmadas por periodo e incidencias **de alumnos**; no existían incidencias del personal, coberturas ni banco de actividades. Esquema v10 (sólo tablas nuevas).

@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño multiusuario/sincronización** (`docs/FASE8A_MULTIUSUARIO.md`) — entregado; **no implementar backend (8B) sin autorización**. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
