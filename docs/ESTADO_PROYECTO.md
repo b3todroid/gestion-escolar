@@ -1,6 +1,17 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8A — Diseño de arquitectura multiusuario y sincronización** — entregado, **pendiente de autorización** para implementar el backend (8B). Sin cambios de código ni de esquema (sigue v10).
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8B — Backend y autenticación** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8C sin autorización. Esquema local sin cambios (sigue v10).
+
+## Fase 8B — Backend y autenticación (2026-11-03)
+**Auditoría inicial:** pruebas en verde (176 unitarias, 56 funcionales). Decisiones D1–D12 tomadas (datos en México, cada escuela responsable, SSO + código por correo, correo personal con consentimiento).
+
+**Implementado (detalle en `docs/SERVIDOR.md`):** servidor Node propio en `servidor/` con PostgreSQL y migraciones versionadas con huella (autenticación, espejo de las 30 tablas escolares vacío, membresías y auditoría de sólo agregar); Better Auth 1.7.11 sin contraseñas (código al correo, OIDC para Google/Microsoft), sólo personas invitadas, verificación en dos pasos obligatoria para roles amplios, sesiones revocables al instante, límites de intentos, protección CSRF, token nunca expuesto; API de cuenta, sesiones, invitaciones, revocación, restablecimiento de verificación y auditoría; comandos del operador; pantallas `#/cuenta` y `#/cuenta/escuela/ID`; intermediario `/api` en Vite y exclusión en el Service Worker.
+
+**Desviación del diseño:** Supabase Auth no pudo obtenerse en el entorno (Docker Hub 429; compilación no autorizada) → Better Auth autohospedado (justificación en `docs/SERVIDOR.md`).
+
+**Defectos encontrados y corregidos:** al activar la verificación en dos pasos la biblioteca reemplaza la sesión y la marca quedaba en la sesión anterior; la biblioteca no exigía el segundo factor al entrar con código o SSO (complemento propio); `get-session`/`list-sessions` devolvían el token (rutas cerradas y token eliminado de las respuestas); la vinculación con cuenta institucional fallaba con invitaciones sin verificar; cuerpos de más de 64 KB cortaban la conexión.
+
+**Pendientes / límites:** sin despliegue, SMTP ni registro real en Google/Microsoft; la app no vincula escuelas locales con las del servidor ni sincroniza; RLS y reglas de negocio en el servidor (8C); el límite de intentos usa la IP del intermediario hasta configurar el proxy de producción.
 
 ## Fase 8A — Diseño multiusuario y sincronización (2026-11-03)
 Sólo diseño: `docs/FASE8A_MULTIUSUARIO.md` (auditoría, comparación Supabase / Firebase / backend propio, autenticación, matriz de permisos, aislamiento, sincronización con cola de comandos y conflictos por tipo de dato, migración en 9 pasos con reversión, privacidad en México, riesgos, costos estimados, plan 8B–8E y decisiones pendientes D1–D10). **Decisiones D1–D9 tomadas** (2026-11-03): datos en México, cada escuela responsable, SSO + código por correo, administrador de escuela confirma y autoriza, sin acceso de familias, conservación de 1 ciclo, modo local se mantiene; piloto por definir. Nuevas pendientes: D11 (nube en México) y D12 (personal sin correo institucional). **No** se crearon recursos externos, no se contrató nada, no se publicó la app ni se migraron datos.

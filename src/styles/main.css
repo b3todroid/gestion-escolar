@@ -858,3 +858,8 @@ main:focus { outline: none; }
 .tabla-reporte th, .tabla-reporte td { border: 1px solid var(--borde); padding: 0.3rem 0.4rem; text-align: left; }
 @media (max-width: 30rem) { .periodos-pref__fila { grid-template-columns: 1fr; } }
 @media print { .tabla-reporte { display: table; font-size: 9pt; } .chip-pref { border-width: 1px; } }
+
+/* ----- Fase 8B: cuenta del servidor escolar ----- */
+.campo > .casilla { border-radius: var(--r-medio); align-items: flex-start; }
+.codigos-respaldo { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.3rem; padding-left: 1.2rem; }
+#clave-totp { word-break: break-all; }

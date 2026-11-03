@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño multiusuario/sincronización** (`docs/FASE8A_MULTIUSUARIO.md`) — entregado; **no implementar backend (8B) sin autorización**. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`, sólo local) — completada, pendiente de revisión; **no iniciar 8C ni desplegar sin autorización**. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -64,6 +64,14 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Coberturas: la app sugiere (`candidatos`), nunca asigna sola; `asignar` exige `autorizadoPor` y pasa por `problemas()` (incompatibilidades por hora real). SE no implica autorización.
 - Indicadores de reportes sólo con registros validados. Todo cambio va a `bitacoraPrefectura` (campo `orden` para el historial).
 
+## Fase 8B (servidor, `servidor/`, `docs/SERVIDOR.md`)
+- Node 22 con tipos nativos (imports con `.ts`), PostgreSQL, Better Auth 1.7.11. `npm run servidor`, `npm run servidor:cli -- …`, `npm run test:servidor` y `npm run test:e2e:servidor` (requieren `PRUEBAS_POSTGRES_URL`).
+- Migraciones: **nunca** editar un `.sql` ya aplicado; agregar `NNNN_nuevo.sql` (el ejecutor verifica huellas).
+- Sin contraseñas ni registro abierto: sólo invitados (`acceso.membresias`). Permisos verificados en el servidor en cada petición; no ocultar botones como permiso.
+- Rutas de Better Auth: lista de permitidas en `auth.ts`; nunca exponer el token (`sinTokens` en `http.ts`). POST exige `Origin` de la app.
+- Auditoría `acceso.auditoria` de sólo agregar, sin correos, nombres ni códigos.
+- El cliente (`src/remoto`, `services/cuenta.ts`) **no** toca los datos locales ni importa código de `servidor/`; la API va por el mismo origen `/api` (intermediario de Vite; el SW la excluye).
+
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).
 - Restaurar: verificar archivo (Zod por tabla + referencias internas + huella) **fuera** de la transacción → comparar y escribir **dentro**. Nunca hacer operaciones asíncronas ajenas a IndexedDB (p. ej. `crypto.subtle`, `fetch`) dentro de `uow.ejecutar`: Dexie cierra la transacción antes de tiempo.
@@ -97,5 +105,5 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - ExcelJS se evaluó y se descartó en la Fase 3. PDF.js 6.4.299 y Tesseract.js 7.0.0 evaluados e instalados en la Fase 6 (ver `docs/ARQUITECTURA.md`). No instalar jsPDF/pdf-lib hasta la fase que los use; antes, evaluar y documentar igual.
 
 ## Fuera de alcance hasta nuevas fases
-Generación de PDF propio, sincronización multiusuario, autenticación.
+Generación de PDF propio, sincronización multiusuario (8D), despliegue en la nube, RLS (8C).
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

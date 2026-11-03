@@ -63,8 +63,16 @@ function politicaSeguridad(): Plugin {
 // tras la primera carga, la aplicación funciona sin conexión.
 const VERSION_APP = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
+// Servidor escolar (Fase 8B, opcional): la API se sirve en el MISMO origen (/api) a través
+// de este intermediario, para que la sesión viaje en una cookie HttpOnly y la CSP siga en 'self'.
+// Si el servidor no está en marcha, la aplicación sigue en modo local.
+const SERVIDOR_API = process.env.SERVIDOR_API ?? 'http://127.0.0.1:8787';
+const intermediario = { '/api': { target: SERVIDOR_API, changeOrigin: false } };
+
 export default defineConfig({
   define: { __VERSION_APP__: JSON.stringify(VERSION_APP) },
+  server: { proxy: intermediario },
+  preview: { proxy: intermediario },
   build: {
     target: 'es2022',
     sourcemap: true,
@@ -104,6 +112,8 @@ export default defineConfig({
           options: { cacheName: 'recursos-ocr', expiration: { maxEntries: 8 } },
         }],
         navigateFallback: 'index.html',
+        // Las direcciones del servidor (inicio de sesión institucional, API) nunca las responde el Service Worker.
+        navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
       },
     }),

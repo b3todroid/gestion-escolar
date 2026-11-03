@@ -14,7 +14,9 @@ interface OpcionesCampo {
   valor?: string | number | null;
   requerido?: boolean;
   ayuda?: string;
-  tipo?: 'text' | 'time' | 'date' | 'number';
+  tipo?: 'text' | 'time' | 'date' | 'number' | 'email';
+  /** Teclado sugerido en móviles (p. ej. 'numeric' para códigos). */
+  modoEntrada?: 'numeric' | 'email' | 'text';
   autocompletar?: string;
   max?: number;
   min?: number;
@@ -37,7 +39,7 @@ export function campo(form: string, op: OpcionesCampo): HTMLDivElement {
       id: i.campo, name: op.nombre, type: op.tipo ?? 'text', value: op.valor ?? '',
       required: op.requerido, autocomplete: op.autocompletar ?? 'off',
       min: op.min, max: op.max, maxlength: op.maxlength,
-      inputmode: op.tipo === 'number' ? 'numeric' : undefined,
+      inputmode: op.modoEntrada ?? (op.tipo === 'number' ? 'numeric' : undefined),
       autocapitalize: op.mayusculas ? 'characters' : undefined,
       list: lista ? `${i.campo}-lista` : undefined,
       'aria-describedby': [op.ayuda ? i.ayuda : '', i.error].filter(Boolean).join(' '),

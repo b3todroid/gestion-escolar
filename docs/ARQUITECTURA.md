@@ -109,3 +109,7 @@ Decisiones:
 - OCR con `PSM.SPARSE_TEXT` (adecuado para tablas) y `user_defined_dpi=300`; se descartan lecturas con confianza < 20 % o letras sueltas < 60 % (trazos de las líneas de la tabla).
 - La lógica de tablas es pura (`domain/importacion/documento.ts`) y se prueba con PDF reales ficticios en Node (PDF.js «legacy» y Tesseract en Node).
 - Las vulnerabilidades de `npm audit` completo (sin `--omit=dev`) están en herramientas de compilación (cadena de vite-plugin-pwa → ejs/jake/minimatch) y no llegan a la aplicación; la corrección sugerida rebaja vite-plugin-pwa a una versión mayor anterior y no se aplicó.
+
+
+## Fase 8B — servidor
+`servidor/` (Node, sin marcos HTTP) → Better Auth + API propia → PostgreSQL. El cliente lo usa sólo desde `src/remoto/servidorEscolar.ts` (capa equivalente a `repositories/`) a través de `services/cuenta.ts`, en el mismo origen `/api`. Dependencias nuevas: `better-auth@1.7.11`, `pg@8.23.1` (producción del servidor; no entran al paquete de la app) y `oauth2-mock-server@9.3.0` (sólo pruebas). Justificación y alternativas en `docs/SERVIDOR.md`.

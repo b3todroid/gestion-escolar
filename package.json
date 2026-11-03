@@ -8,10 +8,14 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p servidor && tsc --noEmit -p servidor/pruebas",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "servidor": "node --env-file-if-exists=servidor/.env servidor/src/principal.ts",
+    "servidor:cli": "node --env-file-if-exists=servidor/.env servidor/src/cli.ts",
+    "test:servidor": "vitest run --config servidor/vitest.config.ts",
+    "test:e2e:servidor": "playwright test -c playwright.servidor.config.ts",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "engines": {
@@ -20,15 +24,19 @@
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-next": "^5.3.0",
     "@tesseract.js-data/spa": "1.0.0",
+    "better-auth": "1.7.11",
     "dexie": "^4.4.7",
     "pdfjs-dist": "6.4.299",
+    "pg": "8.23.1",
     "tesseract.js": "7.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.5",
+    "@types/pg": "8.23.1",
     "fake-indexeddb": "^6.2.7",
+    "oauth2-mock-server": "9.3.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",

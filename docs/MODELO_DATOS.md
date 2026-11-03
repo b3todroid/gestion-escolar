@@ -158,3 +158,11 @@ Procedimiento:
 3. Nunca borrar tablas ni datos para "arreglar" el esquema.
 4. Agregar una prueba que abra la versión anterior con datos y verifique la migración.
 5. Registrar el cambio en esta tabla.
+
+
+## Servidor (Fase 8B · PostgreSQL)
+Migraciones en `servidor/migraciones/` (tabla `sistema.migraciones` con huella SHA-256).
+- `0001_autenticacion`: tablas de Better Auth (`user`, `session` con `segundoFactorVerificado`, `account`, `verification`, `twoFactor`, `rateLimit`).
+- `0002_escolar`: esquema `escolar`, espejo de las 30 tablas del respaldo (mismos UUID, campos en snake_case, únicos locales, CCT única, matrícula/CURP únicas por escuela). **Vacío** en 8B.
+- `0003_acceso`: `acceso.membresias` (persona + escuela + rol; invitada/activa/revocada; tipo de correo y consentimiento; permisos delegados para 8C) y `acceso.auditoria` (sólo agregar, por disparador).
+Una prueba verifica que el espejo coincide campo por campo con `validators/respaldo.ts`.

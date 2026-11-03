@@ -131,3 +131,9 @@ Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e
 | 10 | Separación entre escuelas (y turnos) | U «10.», «turnos separados» |
 | 11 | Persistencia | U «11.», E (recarga) |
 | 12 | Integridad de datos anteriores (migración v9 → v10; respaldo con Prefectura; no se elimina personal con historial; conteos intactos) | U «12.», E «3 y 12» + todas las anteriores |
+
+
+## Fase 8B — servidor
+- `npm run test:servidor` (35, PostgreSQL real por archivo, requiere `PRUEBAS_POSTGRES_URL`): migraciones y huellas, espejo = respaldo, auditoría inmutable, configuración, alta del operador, código al correo (invitados, no invitados, hash, intentos, caducidad, límite), rutas cerradas, segundo factor (obligatorio, pendiente, respaldo, no desactivable), invitaciones con consentimiento, aislamiento entre escuelas, CSRF y tamaño, cierre y revocación de sesiones, restablecimiento, SSO con proveedor OIDC simulado, sin secretos en `src/`.
+- `npm run test:e2e:servidor` (2, navegador + servidor real + base temporal): flujo completo administrador/docente y segundo factor pendiente.
+- `tests/e2e/cuenta-local.spec.ts`: modo local sin servidor y compilación sin secretos.

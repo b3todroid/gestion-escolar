@@ -23,6 +23,8 @@ import { ServicioImportacionDatos } from './importacionDatos';
 import { ServicioRevisionHorarios } from './revisionHorarios';
 import { ServicioPlantillasImportacion } from './plantillasImportacion';
 import { ServicioPrefectura } from './prefectura';
+import { ServicioCuenta } from './cuenta';
+import { ClienteServidorHttp, type ClienteServidor } from '../remoto/servidorEscolar';
 
 export interface Servicios {
   escuelas: ServicioEscuelas;
@@ -46,9 +48,11 @@ export interface Servicios {
   plantillas: ServicioPlantillasImportacion;
   prefectura: ServicioPrefectura;
   respaldos: ServicioRespaldos;
+  /** Cuenta en el servidor escolar (Fase 8B). No toca los datos locales. */
+  cuenta: ServicioCuenta;
 }
 
-export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
+export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServidor = new ClienteServidorHttp()): Servicios {
   const base = {
     escuelas: new ServicioEscuelas(ctx),
     ciclos: new ServicioCiclos(ctx),
@@ -74,6 +78,7 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     prefectura: new ServicioPrefectura(ctx),
     importacionDatos: new ServicioImportacionDatos(ctx),
     respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA),
+    cuenta: new ServicioCuenta(servidor),
   };
 }
 

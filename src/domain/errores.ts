@@ -9,7 +9,9 @@ export type CodigoError =
   | 'ESTADO_NO_PERMITIDO'
   | 'CICLO_CERRADO'
   | 'HORARIO_CONFIRMADO'
-  | 'ALMACENAMIENTO';
+  | 'ALMACENAMIENTO'
+  | 'SERVIDOR' // error informado por el servidor escolar (Fase 8B)
+  | 'SIN_SERVIDOR'; // el servidor escolar no está disponible (sin conexión o no configurado)
 
 export interface ErrorCampo {
   campo: string;
