@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Fase actual: **Fase 3 (horarios escolares) — completada**. Fases 1 y 2 completadas (la 1, auditada).
+PWA **local-first** para gestión escolar. Fase actual: **Fase 4 (módulo docente) — completada**. Fases 1 a 3 completadas (la 1, auditada).
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
 
 ## Comandos
@@ -29,6 +29,13 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - Importación (`services/importacion.ts`): analizar → aplicar (todo o nada; no crea entidades, no reemplaza celdas, no toca confirmados). Lector .xlsx/.csv propio sin dependencias (`domain/importacion/`). Plantilla y archivos de prueba: `scripts/generar_plantillas.py` (openpyxl).
 - Rutas nuevas: `#/ciclo/ID/importar`.
 
+## Fase 4 (módulo docente)
+- `#/` muestra **Mi día** si el dispositivo tiene docente elegido (`#/perfil`, tabla `ajustes`); si no, las escuelas (`#/escuelas`). **No es autenticación**: decirlo así en la interfaz.
+- Pase de lista `#/lista/SESION/AAAA-MM-DD`: todos P por omisión; sólo se tocan F y R. **Abrir no escribe nada**; sólo «Guardar lista» crea `pases` + `asistencias` (un pase por clase y fecha).
+- Salidas al baño y reincorporación se guardan al momento (`salidas`). Reglas en `services/asistencia.ts`: F ⇄ salida en la misma clase son incompatibles; una salida abierta por alumno; regreso ≥ salida.
+- Alumnos: `#/alumnos/GRUPO`, `#/alumno/ID`. Datos mínimos (nombre y apellidos). Reportes breves ≤ 280.
+- Los servicios reciben la fecha/hora actual como parámetro (pruebas con `page.clock`).
+
 ## Capas (dependencias sólo hacia abajo)
 `pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
 - Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.
@@ -51,5 +58,5 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - ExcelJS se evaluó y se descartó en la Fase 3 (ver `docs/ARQUITECTURA.md`). No instalar PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
 
 ## Fuera de alcance hasta nuevas fases
-Importación PDF, OCR, alumnos, asistencia, Prefectura, respaldos, sincronización, autenticación.
+Importación PDF, OCR, Prefectura, respaldos, sincronización multiusuario, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

@@ -487,6 +487,106 @@ main:focus { outline: none; }
 .fila-imp__resumen { color: var(--texto-suave); overflow-wrap: anywhere; }
 .fila-imp__mensajes { margin: 0; padding-left: 1.1rem; color: var(--peligro); font-weight: 700; font-size: 0.92rem; }
 
+/* ----- Fase 4: módulo docente ----- */
+.boton--grande { min-height: 60px; font-size: 1.15rem; }
+
+.mi-dia__cabeza { margin: 0.5rem 0 1rem; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 0 1rem; }
+.mi-dia__cabeza h1 { grid-column: 1 / -1; margin: 0.25rem 0 0; }
+.mi-dia__fecha { margin: 0; color: var(--texto-suave); font-weight: 700; }
+.reloj { margin: 0; font-size: 2.4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--primario); }
+
+.ahora {
+  margin: 0 0 1rem; padding: 1.1rem 1rem 1rem; border-radius: var(--r-grande);
+  background: var(--superficie); border: 2px solid var(--borde); display: grid; gap: 0.6rem;
+}
+.ahora h2 { margin: 0; font-size: 0.95rem; color: var(--texto-suave); }
+.ahora--clase { background: var(--primario); border-color: var(--primario); color: var(--primario-texto); }
+.ahora--clase h2 { color: inherit; opacity: 0.85; }
+.ahora--clase .boton { background: var(--lapiz); border-color: var(--lapiz); color: var(--lapiz-texto); }
+.ahora--clase .boton--secundario { background: transparent; border-color: var(--primario-texto); color: var(--primario-texto); }
+.ahora--receso { background: var(--lapiz-suave); border-color: var(--lapiz); }
+.ahora--servicio { background: var(--tinta-suave); border-color: var(--tinta); }
+.ahora--otra { background: var(--violeta-suave); border-color: var(--violeta); }
+.ahora--sin_actividad, .ahora--vacio { border-style: dashed; }
+.ahora__clase { display: grid; gap: 0.1rem; }
+.ahora__grupo { margin: 0; font-size: 2.6rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.ahora__materia { margin: 0; font-size: 1.35rem; font-weight: 700; }
+.ahora__principal { margin: 0; font-size: 1.3rem; font-weight: 700; }
+.ahora__hora { margin: 0; font-variant-numeric: tabular-nums; font-weight: 700; }
+.ahora__hora span { font-weight: 400; opacity: 0.85; }
+
+.etiqueta-tipo { justify-self: start; font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; border: 1px solid currentColor; }
+.ahora--clase .etiqueta-tipo { color: var(--primario-texto); }
+
+.siguiente { margin: 0 0 1rem; padding: 0.9rem 1rem; border-radius: var(--r-grande); border: 1px solid var(--borde); background: var(--superficie); }
+.siguiente h2 { margin: 0 0 0.4rem; font-size: 0.95rem; color: var(--texto-suave); }
+.siguiente > div { display: grid; gap: 0.25rem; }
+.siguiente__texto { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.siguiente__hora { margin: 0; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+
+.agenda { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; }
+.agenda__item { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); align-items: center; gap: 0.4rem 0.6rem; padding: 0.45rem 0.6rem; border-radius: var(--r-medio); }
+.agenda__item > .boton { grid-column: 2; justify-self: start; }
+.agenda__item--actual { background: var(--primario-suave); outline: 2px solid var(--primario); }
+.agenda__hora { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.92rem; }
+.agenda__cuerpo { display: grid; gap: 0.15rem; min-width: 0; }
+.agenda__cuerpo .etiqueta-tipo { font-size: 0.68rem; }
+.mi-dia__enlaces { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0.5rem; }
+.mi-dia__pie { margin-top: 0.5rem; }
+
+/* Pase de lista */
+.pagina--lista { padding-bottom: 2rem; }
+.lista__estado { margin: 0 0 0.5rem; }
+.alumnos { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.5rem; }
+.alumno {
+  display: grid; gap: 0.5rem; padding: 0.7rem 0.75rem; border-radius: var(--r-medio);
+  background: var(--superficie); border: 1px solid var(--borde); border-left: 6px solid var(--ok);
+}
+.alumno--F { border-left-color: var(--peligro); background: var(--peligro-suave); }
+.alumno--R { border-left-color: var(--lapiz); background: var(--lapiz-suave); }
+.alumno--fuera { outline: 2px dashed var(--tinta); outline-offset: -2px; }
+.alumno__cabeza { display: flex; gap: 0.6rem; align-items: baseline; }
+.alumno__num { min-width: 1.6rem; font-variant-numeric: tabular-nums; color: var(--texto-suave); font-weight: 700; }
+.alumno__nombre { font-weight: 700; overflow-wrap: anywhere; }
+.alumno__acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.alumno__retardo { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; }
+.alumno__retardo[hidden] { display: none; }
+.alumno__llegada { min-height: 44px; padding: 0.3rem 0.5rem; font: inherit; border: 2px solid var(--borde); border-radius: 8px; background: var(--superficie); color: var(--texto); }
+.alumno__aviso { margin: 0; font-size: 0.9rem; color: var(--texto-suave); }
+.alumno__fuera { margin: 0; }
+
+.marcas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+.marca {
+  position: relative; display: grid; place-items: center; min-height: 52px; border-radius: var(--r-medio);
+  border: 2px solid var(--borde); background: var(--superficie); font-size: 1.25rem; font-weight: 700; cursor: pointer;
+}
+.marca input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.marca:has(input:focus-visible) { outline: 3px solid var(--foco); outline-offset: 2px; }
+.marca--P:has(input:checked) { background: var(--ok); border-color: var(--ok); color: #fff; }
+.marca--F:has(input:checked) { background: var(--peligro); border-color: var(--peligro); color: #fff; }
+.marca--R:has(input:checked) { background: var(--lapiz); border-color: var(--lapiz); color: var(--lapiz-texto); }
+.marca:has(input:disabled) { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+@media (prefers-color-scheme: dark) { .marca--P:has(input:checked), .marca--F:has(input:checked) { color: #0f2219; } }
+
+.lista__barra {
+  position: sticky; bottom: 0; z-index: 6; display: grid; gap: 0.5rem;
+  margin: 0 -1rem; padding: 0.7rem 1rem; padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+  background: var(--superficie); border-top: 2px solid var(--borde);
+}
+.lista__contador { margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cuenta--P { color: var(--ok); }
+.cuenta--F { color: var(--peligro); }
+.cuenta--R { color: var(--aviso); }
+.cuenta--fuera { color: var(--tinta); }
+
+.lista-resumen .renglon { flex-wrap: wrap; }
+.conteos { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+@media (min-width: 40rem) {
+  .alumno { grid-template-columns: minmax(0, 1fr) 13rem; align-items: center; }
+  .alumno > :not(.marcas) { grid-column: 1; }
+  .alumno > .marcas { grid-column: 2; grid-row: 1 / span 3; }
+}
+
 /* ----- Avisos ----- */
 /* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
    El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */

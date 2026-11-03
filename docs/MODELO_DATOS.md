@@ -60,13 +60,28 @@ Decisiones:
 - La confirmación es una tabla aparte (no un campo del grupo) para no alterar registros de la Fase 1.
 - La bitácora registra las autorizaciones (reabrir, quitar confirmación) con su motivo: base para la auditoría de la versión institucional.
 
+## Entidades de la Fase 4 (versión 4 del esquema)
+| Tabla | Campos | Índices |
+|---|---|---|
+| `alumnos` | escuelaId, cicloEscolarId, grupoId, nombre, primerApellido, segundoApellido?, activo | `id`, `grupoId`, `cicloEscolarId`, `escuelaId` |
+| `pases` | escuelaId, cicloEscolarId, grupoId, sesionId, asignacionId, personalId?, fecha, horaInicio, horaFin (copia), guardadoEn | `id`, `&[sesionId+fecha]` (único), `grupoId`, `personalId`, `cicloEscolarId` |
+| `asistencias` | paseId, grupoId, alumnoId, fecha, marca (P/F/R), horaLlegada? | `id`, `paseId`, `alumnoId`, `grupoId` |
+| `salidas` | grupoId, alumnoId, sesionId, fecha, salida (HH:MM), regreso? | `id`, `alumnoId`, `grupoId`, `sesionId`, `cicloEscolarId` |
+| `reportes` | grupoId, alumnoId, personalId?, sesionId?, fecha, tipo, texto (≤ 280) | `id`, `alumnoId`, `grupoId`, `cicloEscolarId` |
+| `ajustes` | id = clave (p. ej. `perfil-docente`), valor | `id` |
+
+- Alumnos por grupo y ciclo (cambian de grupo cada año). Datos mínimos: sin CURP, fecha de nacimiento ni contacto.
+- El pase guarda copia de la hora y la asignación para que el historial no dependa de cambios posteriores del horario.
+- Un pase sólo existe si se guardó: abrir la lista no crea registros.
+
 ## Entidades previstas (fases posteriores)
-Alumno, Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
+ Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
 ## Versionado y migraciones
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 4 | 2026-11-03 | Agrega `alumnos`, `pases`, `asistencias`, `salidas`, `reportes`, `ajustes`. Sin cambios en tablas anteriores; migración v1 → v4 probada. |
 | 3 | 2026-11-03 | Agrega `actividades`, `excepciones`, `confirmaciones`, `bitacora`. Sin cambios en tablas anteriores; la prueba de migración v1 → v3 conserva los datos. |
 | 2 | 2026-11-03 | Agrega `personal`, `materias`, `asignaciones`, `sesiones`. Sin cambios en tablas v1; prueba de migración con datos en `tests/unit/fase2.test.ts`. |
 

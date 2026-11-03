@@ -185,6 +185,7 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
     contenido: h('div', { class: 'pagina' },
       migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombre, href: `#/escuela/${escuela.id}` }, { texto: `Ciclo ${ciclo.nombre}`, href: `#/ciclo/${ciclo.id}` }, { texto: `Grupo ${nombreGrupo}` }]),
       encabezado(`Grupo ${nombreGrupo}`, `Turno ${turno.nombre}, de ${jornada.horaInicio} a ${jornada.horaFin}.${grupo.capacidad ? ` ${grupo.capacidad} lugares.` : ''}`),
+      h('a', { class: 'boton boton--secundario', href: `#/alumnos/${grupoId}` }, `Alumnos y asistencia de ${nombreGrupo}`),
       seccion('materias-grupo', `Materias (${totalHoras} horas por semana)`,
         listaAsignaciones,
         editable && libres.length ? panel : null,

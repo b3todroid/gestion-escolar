@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 
@@ -258,3 +258,32 @@ export const esquemaDescripcion = texto('La descripción', 3, 120);
 
 export type EntradaActividadDocente = z.input<typeof esquemaActividadDocente>;
 export type EntradaExcepcion = z.input<typeof esquemaExcepcion>;
+
+// ===================== Fase 4 =====================
+
+export const esquemaAlumno = z.object({
+  nombre: texto('El nombre', 2, 60),
+  primerApellido: texto('El primer apellido', 2, 60),
+  segundoApellido: textoOpcional('El segundo apellido', 60),
+});
+
+/**
+ * Varios alumnos, uno por renglón, con el formato «Apellidos, Nombre(s)».
+ * El primer apellido es la primera palabra antes de la coma; el resto, el segundo.
+ */
+export const esquemaAlumnosLote = z
+  .string()
+  .transform((t) => t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))
+  .pipe(z.array(z.string()).min(1, 'Escribe al menos un alumno.').max(60, 'Máximo 60 alumnos a la vez.'));
+
+export const esquemaMarcas = z.record(z.uuid(), z.enum(MARCAS_ASISTENCIA));
+export const esquemaFecha = z.iso.date('Fecha inválida (AAAA-MM-DD).');
+export const esquemaHora = hora('La hora');
+
+export const esquemaReporte = z.object({
+  tipo: z.enum(TIPOS_REPORTE, 'Selecciona el tipo de reporte.'),
+  texto: texto('El reporte', 3, 280),
+});
+
+export type EntradaAlumno = z.input<typeof esquemaAlumno>;
+export type EntradaReporte = z.input<typeof esquemaReporte>;

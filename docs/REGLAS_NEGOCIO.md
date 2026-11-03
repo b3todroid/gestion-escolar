@@ -1,4 +1,4 @@
-# Reglas de negocio (Fases 1, 2 y 3)
+# Reglas de negocio (Fases 1 a 4)
 
 Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`; aplicación en `src/services/*`. Pruebas en `tests/unit/`.
 
@@ -116,3 +116,32 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Antes de guardar se muestran los ajustes (materias que se asignarán, horas que aumentarán).
 - **Todo o nada**: si hay cualquier error o conflicto no se guarda nada; al aplicar se vuelve a validar dentro de la transacción.
 - Límites: 5 MB, 3 000 filas, 20 MB descomprimido; sólo la primera hoja; .xls (97-2003) no compatible.
+
+# Fase 4
+
+## Perfil del dispositivo
+- «Este dispositivo es de…» es una preferencia local; no autentica ni restringe. Si la persona se da de baja, el perfil deja de aplicarse.
+
+## Mi día
+- Actividad actual: el bloque de hoy que contiene la hora actual (si hay clases simultáneas por caso especial, se prioriza la clase).
+- Siguiente: el próximo bloque registrado de hoy (no «sin actividad»); si no hay, el primero de los días siguientes.
+- Listas pendientes: clases de hoy ya iniciadas sin pase guardado.
+
+## Pase de lista
+- Todos los alumnos activos aparecen como **P** por omisión; se marcan sólo F y R.
+- **Abrir la lista no guarda nada.** Al guardar se crea un pase por clase y fecha con la marca de cada alumno activo.
+- Sólo en el día de la semana de la clase, dentro del ciclo y no en fechas futuras; el ciclo cerrado no admite registros.
+- R puede llevar hora de llegada, que no puede ser antes del inicio de la clase.
+- Corregir una lista guardada pide confirmación y actualiza las marcas (no duplica).
+- Salir de la pantalla con marcas sin guardar pide confirmación.
+
+## Salidas del aula
+- Se registran al momento con la hora; la reincorporación también.
+- **Un alumno con falta en la clase no puede salir**, y a quien salió en la clase (aunque ya regresó) no se le puede poner falta.
+- Un alumno no puede tener dos salidas abiertas; la reincorporación no puede ser antes de la salida ni repetirse.
+- No se da de baja a un alumno mientras está fuera del aula. Una salida registrada por error se puede anular (con confirmación).
+
+## Alumnos y reportes
+- Alta individual o por lote («Apellidos, Nombre(s)»), todo o nada; sin duplicados (normalizado) en el grupo; orden por apellidos.
+- Baja conserva historial; sólo se elimina sin registros. No se elimina un grupo con alumnos ni una materia con listas registradas.
+- Reporte breve: tipo (conducta, académico, reconocimiento, otro) y texto de 3 a 280 caracteres; no a alumnos dados de baja.

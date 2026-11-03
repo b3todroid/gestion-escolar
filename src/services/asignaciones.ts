@@ -101,6 +101,8 @@ export class ServicioAsignaciones {
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       const sesiones = await this.ctx.repos.sesiones.listarPor('asignacionId', id);
       if (sesiones.length > 0) await asegurarHorarioEditable(this.ctx, actual.grupoId);
+      const pases = (await this.ctx.repos.pases.listarPor('grupoId', actual.grupoId)).filter((p) => p.asignacionId === id).length;
+      if (pases > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Esta materia ya tiene ${pases} lista(s) de asistencia registradas; quitarla borraría su historial.`);
       await this.ctx.repos.sesiones.eliminarVarios(sesiones.map((s) => s.id));
       await this.ctx.repos.asignaciones.eliminar(id);
     });

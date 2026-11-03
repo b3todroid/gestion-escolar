@@ -1,6 +1,18 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Fase:** 3 — Horarios escolares · **Estado:** completada (pendiente de revisión con el usuario)
+**Última actualización:** 2026-11-03 · **Fase:** 4 — Módulo docente · **Estado:** completada (pendiente de revisión con el usuario)
+
+## Hecho en Fase 4
+- Esquema v4 (sólo tablas nuevas): alumnos, pases, asistencias, salidas, reportes, ajustes.
+- «Mi día»: fecha y hora en vivo, actividad actual, grupo, materia, siguiente actividad, pasar lista con un toque, pendientes, agenda y grupos.
+- Pase de lista P/F/R optimizado para teléfono, con barra fija de guardado y conteo en vivo.
+- Salidas al baño, reincorporación, reportes breves, resumen e historial por alumno.
+- Reglas contra estados contradictorios en el servicio (no sólo en la interfaz).
+
+### Verificación Fase 4 (ejecutada el 2026-11-03)
+- `npm test`: 10 archivos, **89 pruebas** (12 nuevas: lote de alumnos, pase sin escribir al abrir, F/R con resto presente, corrección sin duplicar, fechas inválidas, F ⇄ salida, salidas dobles, reincorporación inválida, baja con alumno fuera, reportes, resumen, panel, persistencia).
+- `npm run test:e2e`: **30 pruebas** (4 nuevas, con reloj simulado en hora de la Ciudad de México), estables en ejecuciones repetidas.
+- Durante la fase sólo fallaron pruebas mal escritas (nombres, selectores ambiguos y una expectativa sobre la siguiente actividad); no se detectaron defectos de la aplicación en el módulo nuevo. Se hizo más robusta la auditoría de IndexedDB ante tablas nuevas.
 
 ## Hecho en Fase 3
 - Esquema v3 (sólo tablas nuevas): actividades, casos especiales, confirmaciones, bitácora.
@@ -83,6 +95,11 @@ Batería permanente nueva: `tests/e2e/auditoria.spec.ts` (10 pruebas) y `tests/e
 Las 3 fallas iniciales de la batería nueva eran errores de las pruebas, no de la app (selector ambiguo; un receso alargado que la app rechazó correctamente por traslape; texto de insignia con símbolo).
 
 ## Pendiente / siguientes pasos
+- Fase 4, pendientes conocidos:
+  - No hay alerta automática si un alumno lleva mucho tiempo fuera del aula (se muestra el tiempo).
+  - No hay límite de alumnos fuera a la vez (política de cada escuela).
+  - Sin reportes de asistencia por periodo (semana/mes) ni exportación.
+  - El perfil de docente no es seguridad: con la versión institucional se requerirán cuentas reales.
 - Fase 3, pendientes conocidos:
   - Exportar/imprimir horarios (PDF o Excel) — requiere decidir biblioteca de generación.
   - La importación no crea asignaciones con docente distinto al ya registrado ni reemplaza celdas (por diseño); para cambios masivos hay que limpiar primero.

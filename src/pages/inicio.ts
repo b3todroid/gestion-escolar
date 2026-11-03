@@ -54,6 +54,10 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
       pendiente,
       borrador ? null : h('a', { class: 'boton boton--ancho', href: '#/asistente' }, icono('+'), ' Configurar una escuela nueva'),
       seccion('lista-escuelas', `Escuelas registradas (${escuelas.length})`, lista),
+      seccion('modo-docente', 'Modo docente',
+        h('p', {}, 'Si este dispositivo es de un docente, al abrir la aplicación verá su clase actual y podrá pasar lista con un toque.'),
+        h('a', { class: 'boton boton--secundario', href: '#/perfil' }, 'Elegir docente de este dispositivo'),
+      ),
       seccion('almacenamiento', 'Datos en este dispositivo',
         h('p', {}, estadoPersistencia),
         alm.usadoBytes !== null && alm.cuotaBytes !== null

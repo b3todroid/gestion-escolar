@@ -10,7 +10,7 @@
  */
 import { Dexie, type Table } from 'dexie';
 import type {
-  Actividad, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
+  Actividad, Ajuste, Alumno, Asistencia, PaseLista, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
   Receso, RegistroBitacora, Sesion, Turno,
 } from '../models';
 
@@ -33,6 +33,12 @@ export class BaseDatosEscolar extends Dexie {
   excepciones!: Table<Excepcion, string>;
   confirmaciones!: Table<ConfirmacionHorario, string>;
   bitacora!: Table<RegistroBitacora, string>;
+  alumnos!: Table<Alumno, string>;
+  pases!: Table<PaseLista, string>;
+  asistencias!: Table<Asistencia, string>;
+  salidas!: Table<SalidaAula, string>;
+  reportes!: Table<ReporteAlumno, string>;
+  ajustes!: Table<Ajuste, string>;
 
   constructor(nombre: string = NOMBRE_BD) {
     super(nombre);
@@ -67,7 +73,18 @@ export class BaseDatosEscolar extends Dexie {
       bitacora: 'id, cicloEscolarId, entidadId',
     });
 
-    // Para fases futuras: agregar this.version(4) (con .upgrade() si hay que transformar
+    // Versión 4 — Fase 4: alumnos, pase de lista, salidas del aula, reportes y ajustes.
+    // Sólo agrega tablas. Un pase por clase y fecha: índice único [sesionId+fecha].
+    this.version(4).stores({
+      alumnos: 'id, grupoId, cicloEscolarId, escuelaId',
+      pases: 'id, &[sesionId+fecha], grupoId, personalId, cicloEscolarId',
+      asistencias: 'id, paseId, alumnoId, grupoId',
+      salidas: 'id, alumnoId, grupoId, sesionId, cicloEscolarId',
+      reportes: 'id, alumnoId, grupoId, cicloEscolarId',
+      ajustes: 'id',
+    });
+
+    // Para fases futuras: agregar this.version(5) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

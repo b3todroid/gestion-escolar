@@ -2,6 +2,10 @@ import './styles/main.css';
 import { Aplicacion } from './app';
 import { crearServicios } from './services';
 import { paginaInicio } from './pages/inicio';
+import { paginaRaiz } from './pages/miDia';
+import { paginaPerfil } from './pages/perfil';
+import { paginaLista } from './pages/lista';
+import { paginaAlumnos, paginaAlumno } from './pages/alumnos';
 import { paginaEscuelaEditar, paginaEscuelaNueva } from './pages/escuela-formulario';
 import { paginaEscuela } from './pages/escuela';
 import { paginaCiclo } from './pages/ciclo';
@@ -23,7 +27,12 @@ if (typeof indexedDB === 'undefined') {
   principal.textContent = 'Este navegador no permite guardar datos locales (IndexedDB). Usa un navegador actualizado y evita el modo privado.';
 } else {
   new Aplicacion(crearServicios(), principal)
-    .ruta('/', paginaInicio)
+    .ruta('/', paginaRaiz)
+    .ruta('/escuelas', paginaInicio)
+    .ruta('/perfil', paginaPerfil)
+    .ruta('/lista/:id/:fecha', paginaLista)
+    .ruta('/alumnos/:id', paginaAlumnos)
+    .ruta('/alumno/:id', paginaAlumno)
     .ruta('/asistente', paginaAsistente)
     .ruta('/escuela/nueva', paginaEscuelaNueva)
     .ruta('/escuela/:id', paginaEscuela)

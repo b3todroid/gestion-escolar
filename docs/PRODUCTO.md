@@ -31,12 +31,20 @@ Una persona responsable de la configuración (dirección, subdirección o coordi
 - Confirmación de horarios de grupo: bloqueados hasta reabrirlos con motivo registrado.
 - Importación desde Excel (.xlsx) o CSV con revisión previa: errores y conflictos por fila; nada se guarda si hay alguno.
 
+## Fase 4 — Módulo docente (entregada)
+- **Mi día** al abrir la app: fecha y hora, actividad actual (grupo y materia), siguiente actividad, acceso directo a pasar lista, listas pendientes del día, agenda y grupos asignados.
+- El docente elige su nombre en el dispositivo una vez (preferencia local, no cuenta).
+- Pase de lista P/F/R: todos presentes por omisión, se tocan sólo faltas y retardos (con hora de llegada). Nada se guarda hasta «Guardar lista». Corrección posterior con confirmación.
+- Salidas al baño y reincorporación con hora; tiempo fuera visible.
+- Alumnos por grupo (alta individual o por lote, baja que conserva historial), resumen de faltas/retardos/salidas/reportes y ficha con historial.
+- Reportes breves (conducta, académico, reconocimiento, otro).
+
 ## Fases futuras (no implementadas)
 | Fase | Contenido previsto |
 |---|---|
 | 2 | ✓ Personal, docentes, materias, asignaciones y horarios |
 | 3 | ✓ Horarios escolares e importación de horarios desde Excel/CSV. Pendiente para otra fase: PDF (PDF.js) y OCR (Tesseract.js) |
-| 4 | Alumnos, asistencia, incidencias, salidas del aula, coberturas, Prefectura |
+| 4 | ✓ Módulo docente: alumnos, asistencia, salidas del aula, reportes breves. Pendiente: Prefectura, coberturas |
 | 5 | Reportes PDF (jsPDF o pdf-lib), respaldo y restauración |
 | 6 | Versión institucional: backend, autenticación, permisos, sincronización, auditoría |
 

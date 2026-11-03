@@ -99,10 +99,10 @@ test('servicio confirmado, otra actividad, caso especial y horario confirmado co
   await page.locator('#f-actividad-horaInicio').fill('08:40');
   await page.locator('#f-actividad-horaFin').fill('09:30');
   await page.getByRole('button', { name: 'Registrar actividad' }).click();
-  await expect(page.getByText('SERVICIO por confirmar')).toBeVisible();
+  await expect(page.locator('.insignia', { hasText: 'SERVICIO por confirmar' })).toBeVisible();
   await expect(page.locator('.semana-docente__dia', { hasText: 'Lunes' })).toContainText('SERVICIO (POR CONFIRMAR)');
   await page.getByRole('button', { name: 'Confirmar Guardia en patio' }).click();
-  await expect(page.getByText('SERVICIO confirmado')).toBeVisible();
+  await expect(page.locator('.insignia', { hasText: 'SERVICIO confirmado' })).toBeVisible();
   await expect(page.locator('.totales div', { hasText: 'Servicio confirmado' })).toContainText('50 min');
   // Un hueco no es servicio
   await expect(page.locator('.semana-docente__dia', { hasText: 'Martes' })).toContainText('SIN ACTIVIDAD REGISTRADA');

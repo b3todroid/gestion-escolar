@@ -37,7 +37,7 @@ async function periodos(grupoId: string) {
 }
 
 describe('migración del esquema', () => {
-  it('abre una base de la versión 1 con datos y los conserva al pasar a la versión actual (3)', async () => {
+  it('abre una base de la versión 1 con datos y los conserva al pasar a la versión actual (4)', async () => {
     const nombre = `migracion-${Date.now()}`;
     const v1 = new Dexie(nombre);
     v1.version(1).stores({
@@ -51,7 +51,7 @@ describe('migración del esquema', () => {
 
     const v2 = new BaseDatosEscolar(nombre);
     await v2.open();
-    expect(v2.verno).toBe(3);
+    expect(v2.verno).toBe(4);
     expect(await v2.escuelas.get(escuela.id)).toEqual(escuela);
     expect(await v2.personal.count()).toBe(0);
     expect(await v2.actividades.count()).toBe(0);

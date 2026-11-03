@@ -109,6 +109,8 @@ export class ServicioGrados {
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       const asignadas = await this.ctx.repos.asignaciones.contarPor('grupoId', id);
       if (asignadas > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${asignadas} materia(s) asignada(s). Quítalas primero.`);
+      const alumnos = await this.ctx.repos.alumnos.contarPor('grupoId', id);
+      if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${alumnos} alumno(s) registrados. No se puede eliminar.`);
       await this.ctx.repos.grupos.eliminar(id);
     });
   }

@@ -35,7 +35,7 @@ export class Aplicacion {
   constructor(private readonly s: Servicios, private readonly principal: HTMLElement) {}
 
   ruta(patron: string, render: Render): this {
-    this.rutas.push({ patron: new RegExp(`^${patron.replaceAll(':id', ID)}$`), render });
+    this.rutas.push({ patron: new RegExp(`^${patron.replaceAll(':id', ID).replaceAll(':fecha', '(\\d{4}-\\d{2}-\\d{2})')}$`), render });
     return this;
   }
 

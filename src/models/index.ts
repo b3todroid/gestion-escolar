@@ -196,3 +196,83 @@ export interface RegistroBitacora extends Metadatos {
   motivo: string | null;
   detalle: string | null;
 }
+
+// ===================== Fase 4 =====================
+
+/**
+ * Alumno de un grupo en un ciclo. Datos mínimos a propósito:
+ * no se guardan CURP, fecha de nacimiento ni datos de contacto.
+ */
+export interface Alumno extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  activo: boolean;
+}
+
+export const MARCAS_ASISTENCIA = ['P', 'F', 'R'] as const;
+export type MarcaAsistencia = (typeof MARCAS_ASISTENCIA)[number];
+
+/**
+ * Pase de lista de una clase (sesión del horario) en una fecha.
+ * Sólo existe cuando el docente lo GUARDA; abrir la lista no lo crea.
+ */
+export interface PaseLista extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+  sesionId: string;
+  asignacionId: string;
+  personalId: string | null;
+  fecha: string; // AAAA-MM-DD
+  horaInicio: string; // copia del periodo al momento de guardar
+  horaFin: string;
+  guardadoEn: string;
+}
+
+export interface Asistencia extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  paseId: string;
+  grupoId: string;
+  alumnoId: string;
+  fecha: string;
+  marca: MarcaAsistencia;
+  horaLlegada: string | null; // sólo para R (HH:MM)
+}
+
+/** Salida del aula (baño) y su reincorporación. */
+export interface SalidaAula extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+  alumnoId: string;
+  sesionId: string;
+  fecha: string;
+  salida: string; // HH:MM
+  regreso: string | null; // HH:MM; null = sigue fuera
+}
+
+export const TIPOS_REPORTE = ['conducta', 'academico', 'reconocimiento', 'otro'] as const;
+export type TipoReporte = (typeof TIPOS_REPORTE)[number];
+
+/** Reporte breve de un alumno (máx. 280 caracteres). */
+export interface ReporteAlumno extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+  alumnoId: string;
+  personalId: string | null;
+  sesionId: string | null;
+  fecha: string;
+  tipo: TipoReporte;
+  texto: string;
+}
+
+/** Ajustes del dispositivo (p. ej. quién lo usa como docente). No es autenticación. */
+export interface Ajuste extends Metadatos {
+  valor: string | null;
+}
