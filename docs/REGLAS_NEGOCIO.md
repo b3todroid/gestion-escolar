@@ -1,4 +1,4 @@
-# Reglas de negocio (Fases 1 y 2)
+# Reglas de negocio (Fases 1, 2 y 3)
 
 Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`; aplicación en `src/services/*`. Pruebas en `tests/unit/`.
 
@@ -83,3 +83,36 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - No se cambia de turno un grupo con clases programadas.
 - Si cambian las horas de un periodo, se verifica que ningún docente quede en dos grupos a la vez.
 - No se elimina un ciclo con materias, ni una escuela con personal registrado.
+
+# Fase 3
+
+## Tipos de bloque
+- CLASE (sesión programada), SERVICIO (registrado; «por confirmar» hasta confirmarlo), RECESO (del turno, si no hay otra actividad encima), OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA.
+- **Un espacio vacío nunca significa servicio**: dentro de la jornada del docente se muestra como «sin actividad registrada» y se contabiliza aparte.
+- En el docente, el rango del día es la jornada de los turnos donde da clases ese día.
+
+## Choques
+- Un docente no puede tener, **en el mismo ciclo**, dos bloques que se traslapen en hora real (clase–clase, clase–actividad, actividad–actividad).
+- Excepción: dos o más **clases** simultáneas se permiten sólo si un **caso especial** (día + franja + motivo) cubre la franja. Nunca para servicio u otras actividades.
+- No se quita un caso especial mientras haya clases simultáneas que dependan de él.
+- Un grupo no puede tener dos cosas en el mismo periodo: clase u «otra actividad», no ambas.
+- Cuando hay varios choques, se informa el más temprano.
+
+## Horas de servicio
+- Se registran explícitamente (día, inicio, fin, descripción). Se confirman con «Confirmar».
+- Confirmadas: no se editan ni eliminan; primero hay que quitar la confirmación con motivo (≥ 5 caracteres), que queda en la bitácora.
+
+## Horarios confirmados
+- Requiere al menos una clase. Al confirmar se listan las materias con horas pendientes.
+- Bloquea: programar o quitar clases, otras actividades del grupo, cambiar docente u horas de una asignación con clases, quitar la asignación, cambiar horas de periodos con clases del grupo, y la importación.
+- Reabrir exige motivo y queda registrado.
+
+## Importación de horarios (Excel/CSV)
+- Una fila por clase: Grado, Grupo, Turno (opcional si no hay ambigüedad), Día, Inicio (hora de inicio del periodo), Materia (nombre o abreviatura), Docente (número de empleado o nombre; vacío = pendiente).
+- No crea grupos, materias ni docentes (un dato se captura una vez).
+- Errores por fila: datos faltantes, día u hora inválidos, grupo/materia/docente inexistente, día no laborable, periodo inexistente.
+- Conflictos por fila: dos clases del mismo grupo en el mismo periodo dentro del archivo; docente simultáneo (en el archivo o contra la app); celda ya ocupada por otra clase u actividad; materia ya asignada con otro docente; horario confirmado.
+- Filas idénticas a lo ya registrado se omiten (no se duplican).
+- Antes de guardar se muestran los ajustes (materias que se asignarán, horas que aumentarán).
+- **Todo o nada**: si hay cualquier error o conflicto no se guarda nada; al aplicar se vuelve a validar dentro de la transacción.
+- Límites: 5 MB, 3 000 filas, 20 MB descomprimido; sólo la primera hoja; .xls (97-2003) no compatible.

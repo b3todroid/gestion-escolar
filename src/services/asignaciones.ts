@@ -3,7 +3,7 @@ import { esquemaAsignacion, esquemaSesion, validar, type EntradaAsignacion, type
 import { ErrorDominio } from '../domain/errores';
 import { compararPorInicio } from '../domain/tiempo';
 import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
-import { choqueDocente } from './conflictos';
+import { asegurarHorarioEditable, choqueDocente } from './conflictos';
 
 export interface AsignacionDetalle extends Asignacion {
   materia: string;
@@ -72,11 +72,14 @@ export class ServicioAsignaciones {
         const mensaje = `Ya hay ${sesiones.length} horas en el horario. Quita algunas antes de bajar a ${datos.horasSemana}.`;
         throw new ErrorDominio('VALIDACION', mensaje, [{ campo: 'horasSemana', mensaje }]);
       }
+      if (sesiones.length > 0 && (datos.personalId !== actual.personalId || datos.horasSemana !== actual.horasSemana)) {
+        await asegurarHorarioEditable(this.ctx, actual.grupoId);
+      }
       if (datos.personalId && datos.personalId !== actual.personalId) {
         const propias = new Set(sesiones.map((s) => s.id));
         for (const s of sesiones) {
           const periodo = await requerir(this.ctx.repos.periodos.obtener(s.periodoId), 'el periodo');
-          const choque = await choqueDocente(this.ctx, datos.personalId, s.dia, periodo, propias);
+          const choque = await choqueDocente(this.ctx, actual.cicloEscolarId, datos.personalId, s.dia, periodo, { excluirSesiones: propias });
           if (choque) throw new ErrorDominio('TRASLAPE', choque, [{ campo: 'personalId', mensaje: choque }]);
         }
       }
@@ -97,6 +100,7 @@ export class ServicioAsignaciones {
       const actual = await requerir(this.ctx.repos.asignaciones.obtener(id), 'la asignación');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       const sesiones = await this.ctx.repos.sesiones.listarPor('asignacionId', id);
+      if (sesiones.length > 0) await asegurarHorarioEditable(this.ctx, actual.grupoId);
       await this.ctx.repos.sesiones.eliminarVarios(sesiones.map((s) => s.id));
       await this.ctx.repos.asignaciones.eliminar(id);
     });
@@ -133,6 +137,7 @@ export class ServicioAsignaciones {
     return this.ctx.uow.ejecutar(async () => {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(datos.grupoId), 'el grupo');
       await cicloEditable(this.ctx, grupo.cicloEscolarId);
+      await asegurarHorarioEditable(this.ctx, grupo.id);
       const asignacion = await requerir(this.ctx.repos.asignaciones.obtener(datos.asignacionId), 'la asignación');
       if (asignacion.grupoId !== grupo.id) throw new ErrorDominio('VALIDACION', 'Esa materia no está asignada a este grupo.');
       const [jornada] = await this.ctx.repos.jornadas.listarPor('turnoId', grupo.turnoId);
@@ -140,6 +145,8 @@ export class ServicioAsignaciones {
       if (!jornada || periodo.jornadaId !== jornada.id) throw new ErrorDominio('VALIDACION', 'El periodo no pertenece al turno del grupo.');
       if (!jornada.dias.includes(datos.dia as DiaSemana)) throw new ErrorDominio('VALIDACION', 'Ese día no es laborable en el turno del grupo.');
 
+      const actividadEnCelda = (await this.ctx.repos.actividades.listarPor('grupoId', grupo.id)).find((a) => a.dia === datos.dia && a.periodoId === periodo.id);
+      if (actividadEnCelda) throw new ErrorDominio('TRASLAPE', `En ese periodo el grupo tiene otra actividad («${actividadEnCelda.descripcion}»). Quítala primero.`);
       const delGrupo = await this.ctx.repos.sesiones.listarPor('grupoId', grupo.id);
       const anterior = delGrupo.find((s) => s.dia === datos.dia && s.periodoId === periodo.id) ?? null;
       const programadas = delGrupo.filter((s) => s.asignacionId === asignacion.id && s.id !== anterior?.id).length;
@@ -148,7 +155,7 @@ export class ServicioAsignaciones {
         throw new ErrorDominio('VALIDACION', `«${materia?.nombre ?? 'La materia'}» ya tiene sus ${asignacion.horasSemana} horas semanales en el horario.`);
       }
       if (asignacion.personalId) {
-        const choque = await choqueDocente(this.ctx, asignacion.personalId, datos.dia, periodo, new Set(anterior ? [anterior.id] : []));
+        const choque = await choqueDocente(this.ctx, grupo.cicloEscolarId, asignacion.personalId, datos.dia, periodo, { excluirSesiones: new Set(anterior ? [anterior.id] : []) });
         if (choque) throw new ErrorDominio('TRASLAPE', choque);
       }
       if (anterior) await this.ctx.repos.sesiones.eliminar(anterior.id);
@@ -173,7 +180,7 @@ export class ServicioAsignaciones {
       const esActual = actual?.asignacionId === a.id;
       let motivo: string | null = null;
       if (!esActual && a.sesionesProgramadas >= a.horasSemana) motivo = `Ya tiene sus ${a.horasSemana} horas en el horario.`;
-      else if (a.personalId && !esActual) motivo = await choqueDocente(this.ctx, a.personalId, dia, periodo, new Set(actual ? [actual.id] : []));
+      else if (a.personalId && !esActual) motivo = await choqueDocente(this.ctx, a.cicloEscolarId, a.personalId, dia, periodo, { excluirSesiones: new Set(actual ? [actual.id] : []) });
       r.push({ asignacion: a, actual: esActual, motivo });
     }
     return { actual, opciones: r };
@@ -183,6 +190,7 @@ export class ServicioAsignaciones {
     return this.ctx.uow.ejecutar(async () => {
       const s = await requerir(this.ctx.repos.sesiones.obtener(id), 'la clase');
       await cicloEditable(this.ctx, s.cicloEscolarId);
+      await asegurarHorarioEditable(this.ctx, s.grupoId);
       await this.ctx.repos.sesiones.eliminar(id);
     });
   }

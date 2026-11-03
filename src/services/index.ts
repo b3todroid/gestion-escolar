@@ -11,6 +11,10 @@ import { ServicioAsistente } from './asistente';
 import { ServicioPersonal } from './personal';
 import { ServicioMaterias } from './materias';
 import { ServicioAsignaciones } from './asignaciones';
+import { ServicioActividades } from './actividades';
+import { ServicioConfirmacion } from './confirmacion';
+import { ServicioVistas } from './vistas';
+import { ServicioImportacion } from './importacion';
 
 export interface Servicios {
   escuelas: ServicioEscuelas;
@@ -22,6 +26,10 @@ export interface Servicios {
   personal: ServicioPersonal;
   materias: ServicioMaterias;
   asignaciones: ServicioAsignaciones;
+  actividades: ServicioActividades;
+  confirmacion: ServicioConfirmacion;
+  vistas: ServicioVistas;
+  importacion: ServicioImportacion;
 }
 
 export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
@@ -38,6 +46,10 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     personal: new ServicioPersonal(ctx),
     materias: new ServicioMaterias(ctx),
     asignaciones: new ServicioAsignaciones(ctx),
+    actividades: new ServicioActividades(ctx),
+    confirmacion: new ServicioConfirmacion(ctx),
+    vistas: new ServicioVistas(ctx),
+    importacion: new ServicioImportacion(ctx),
   };
 }
 

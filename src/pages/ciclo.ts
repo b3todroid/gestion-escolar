@@ -116,6 +116,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
   const grados = await ctx.s.grados.listarGrados(id);
   const grupos = await ctx.s.grados.listarGrupos(id);
   const materias = await ctx.s.materias.listar(id);
+  const confirmados = await ctx.s.confirmacion.confirmados(id);
   const resumenes = await Promise.all(turnos.map((t) => ctx.s.horario.resumen(t.jornada.id)));
   const editable = ciclo.estado !== 'cerrado';
   const nombreTurno = new Map(turnos.map((t) => [t.turno.id, t.turno.nombre]));
@@ -179,7 +180,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
           suyos.length
             ? h('ul', { class: 'grupos' }, ...suyos.map((gr) => h('li', { class: 'grupo' },
                 h('span', { class: 'grupo__nombre' }, `${g.numero}° ${gr.nombre}`),
-                h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? `, ${gr.capacidad} lugares` : ''),
+                h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? `, ${gr.capacidad} lugares` : '', confirmados.has(gr.id) ? ', horario confirmado' : ''),
                 h('span', { class: 'grupo__acciones' },
                   h('a', { class: 'boton boton--chico', href: `#/grupo/${gr.id}`, 'aria-label': `Materias y horario de ${g.numero}° ${gr.nombre}` }, 'Materias y horario'),
                 ),
@@ -234,6 +235,11 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
       seccion('materias', 'Materias',
         h('p', {}, materias.length ? `${materias.length} materia(s): ${materias.slice(0, 6).map((m) => m.nombre).join(', ')}${materias.length > 6 ? '…' : '.'}` : 'Captura las materias del ciclo una vez; después se asignan a cada grupo.'),
         h('a', { class: 'boton boton--chico', href: `#/ciclo/${ciclo.id}/materias` }, materias.length ? 'Ver materias' : 'Registrar materias'),
+      ),
+      seccion('horarios', 'Horarios',
+        h('p', {}, grupos.length ? `${confirmados.size} de ${grupos.length} horario(s) de grupo confirmados.` : 'Primero registra grados y grupos.'),
+        h('p', { class: 'ayuda' }, 'Cada grupo se edita en «Materias y horario». También puedes importar los horarios desde Excel.'),
+        editable ? h('a', { class: 'boton boton--chico boton--secundario', href: `#/ciclo/${ciclo.id}/importar` }, 'Importar horarios desde Excel') : null,
       ),
       seccion('grados', 'Grados y grupos',
         listaGrados,

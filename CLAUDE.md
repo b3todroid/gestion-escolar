@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Fase actual: **Fase 2 (personal, materias, asignaciones y horario semanal) — completada**. Fase 1 (configuración escolar) completada y auditada.
+PWA **local-first** para gestión escolar. Fase actual: **Fase 3 (horarios escolares) — completada**. Fases 1 y 2 completadas (la 1, auditada).
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
 
 ## Comandos
@@ -22,6 +22,13 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 `#/escuela/ID/personal` (personal por escuela) · `#/personal/ID` (semana del docente) · `#/ciclo/ID/materias` · `#/grupo/ID` (materias asignadas + horario por día).
 Regla central: un docente no puede tener dos clases que se traslapen en **hora real** (aunque sean de turnos con periodos distintos): `services/conflictos.ts`.
 
+## Fase 3 (horarios)
+- Tipos de bloque explícitos: CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA (`domain/horarioVista.ts`, `components/horarioSemanal.ts`). **Un hueco nunca es servicio.**
+- Choques de docente (`services/conflictos.ts`): por hora real, filtrados por ciclo, contra clases y actividades; simultaneidad sólo con caso especial (`excepciones`).
+- Horarios confirmados (`confirmaciones`): todo cambio pasa por `asegurarHorarioEditable`; reabrir exige motivo (queda en `bitacora`).
+- Importación (`services/importacion.ts`): analizar → aplicar (todo o nada; no crea entidades, no reemplaza celdas, no toca confirmados). Lector .xlsx/.csv propio sin dependencias (`domain/importacion/`). Plantilla y archivos de prueba: `scripts/generar_plantillas.py` (openpyxl).
+- Rutas nuevas: `#/ciclo/ID/importar`.
+
 ## Capas (dependencias sólo hacia abajo)
 `pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
 - Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.
@@ -41,8 +48,8 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - Esquema de BD: **nunca** modificar una versión publicada; agregar `version(n+1)` con `upgrade()` que conserve datos. Documentar en `docs/MODELO_DATOS.md`.
 - No enviar datos escolares a servicios externos. No secretos en el cliente. Sólo datos ficticios en pruebas.
 - No afirmar que las pruebas pasan sin ejecutarlas.
-- No instalar ExcelJS, PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
+- ExcelJS se evaluó y se descartó en la Fase 3 (ver `docs/ARQUITECTURA.md`). No instalar PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
 
 ## Fuera de alcance hasta nuevas fases
-Importación PDF/Excel, OCR, alumnos, asistencia, Prefectura, respaldos, sincronización, autenticación.
+Importación PDF, OCR, alumnos, asistencia, Prefectura, respaldos, sincronización, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

@@ -11,6 +11,7 @@ import { paginaPersonal } from './pages/personal';
 import { paginaMaterias } from './pages/materias';
 import { paginaGrupo } from './pages/grupo';
 import { paginaDocente } from './pages/docente';
+import { paginaImportar } from './pages/importar';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 
 const principal = document.getElementById('contenido');
@@ -32,6 +33,7 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/escuela/:id/personal', paginaPersonal)
     .ruta('/personal/:id', paginaDocente)
     .ruta('/ciclo/:id/materias', paginaMaterias)
+    .ruta('/ciclo/:id/importar', paginaImportar)
     .ruta('/grupo/:id', paginaGrupo)
     .iniciar();
 }

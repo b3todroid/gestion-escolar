@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 
@@ -233,3 +233,28 @@ export type EntradaPersonal = z.input<typeof esquemaPersonal>;
 export type EntradaMateria = z.input<typeof esquemaMateria>;
 export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
 export type EntradaSesion = z.input<typeof esquemaSesion>;
+
+// ===================== Fase 3 =====================
+
+const diaSemana = z.number('Selecciona un día.').int().min(1, 'Selecciona un día.').max(7, 'Selecciona un día.');
+
+export const esquemaActividadDocente = conRangoHoras(z.object({
+  tipo: z.enum(TIPOS_ACTIVIDAD, 'Selecciona el tipo de actividad.'),
+  dia: diaSemana,
+  horaInicio: hora('La hora de inicio'),
+  horaFin: hora('La hora de fin'),
+  descripcion: texto('La descripción', 3, 120),
+}));
+
+export const esquemaExcepcion = conRangoHoras(z.object({
+  dia: diaSemana,
+  horaInicio: hora('La hora de inicio'),
+  horaFin: hora('La hora de fin'),
+  motivo: texto('El motivo', 5, 200),
+}));
+
+export const esquemaMotivo = texto('El motivo', 5, 200);
+export const esquemaDescripcion = texto('La descripción', 3, 120);
+
+export type EntradaActividadDocente = z.input<typeof esquemaActividadDocente>;
+export type EntradaExcepcion = z.input<typeof esquemaExcepcion>;

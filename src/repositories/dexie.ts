@@ -47,6 +47,10 @@ export function crearRepositoriosDexie(db: BaseDatosEscolar): Repositorios {
     materias: new RepositorioDexie(db.materias),
     asignaciones: new RepositorioDexie(db.asignaciones),
     sesiones: new RepositorioDexie(db.sesiones),
+    actividades: new RepositorioDexie(db.actividades),
+    excepciones: new RepositorioDexie(db.excepciones),
+    confirmaciones: new RepositorioDexie(db.confirmaciones),
+    bitacora: new RepositorioDexie(db.bitacora),
   };
 }
 

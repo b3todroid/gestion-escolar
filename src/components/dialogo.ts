@@ -88,3 +88,41 @@ export function elegir(op: { titulo: string; descripcion?: string; opciones: Opc
     (dialogo.querySelector<HTMLButtonElement>('.opcion:not([disabled])') ?? cancelar).focus();
   });
 }
+
+/**
+ * Pide un texto (motivo o descripción) en un diálogo propio (sustituye a prompt()).
+ * Devuelve el texto o null si se cancela.
+ */
+export function pedirTexto(op: { titulo: string; mensaje?: string; etiqueta: string; textoConfirmar: string; minimo?: number; peligro?: boolean }): Promise<string | null> {
+  return new Promise((resolver) => {
+    const minimo = op.minimo ?? 3;
+    const campo = h('textarea', { id: 'pedir-texto', rows: 3, maxlength: 200, 'aria-describedby': 'pedir-texto-error' });
+    const error = h('p', { class: 'error-campo', id: 'pedir-texto-error', hidden: true });
+    const aceptar = h('button', { type: 'submit', class: `boton${op.peligro ? ' boton--peligro boton--lleno' : ''}` }, op.textoConfirmar);
+    const cancelar = h('button', { type: 'button', class: 'boton boton--secundario' }, 'Cancelar');
+    const form = h('form', { method: 'dialog', class: 'formulario' },
+      h('div', { class: 'campo' }, h('label', { for: 'pedir-texto' }, op.etiqueta), campo, error),
+      h('div', { class: 'acciones' }, cancelar, aceptar),
+    );
+    const dialogo = h('dialog', { class: 'dialogo', 'aria-labelledby': 'pedir-titulo' },
+      h('h2', { id: 'pedir-titulo' }, op.titulo), op.mensaje ? h('p', {}, op.mensaje) : null, form);
+    const cerrar = (r: string | null) => { dialogo.close(); dialogo.remove(); resolver(r); };
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const v = campo.value.trim();
+      if (v.length < minimo) {
+        error.hidden = false;
+        error.textContent = `⚠ Escribe al menos ${minimo} caracteres.`;
+        campo.setAttribute('aria-invalid', 'true');
+        campo.focus();
+        return;
+      }
+      cerrar(v);
+    });
+    cancelar.addEventListener('click', () => cerrar(null));
+    dialogo.addEventListener('cancel', (e) => { e.preventDefault(); cerrar(null); });
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
+    campo.focus();
+  });
+}

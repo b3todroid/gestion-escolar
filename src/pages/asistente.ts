@@ -80,6 +80,9 @@ export async function paginaAsistente(ctx: ContextoPagina): Promise<Vista> {
     const form = formulario(`f-${clave}`, null, ...campos);
     form.setAttribute('data-autoguardado', ''); // el borrador conserva lo capturado
     agregar(form, navegacion(form));
+    // Se actualiza mientras se escribe: si la vista previa cambiara al salir del campo,
+    // el botón «Siguiente» se movería bajo el dedo y el toque se perdería.
+    form.addEventListener('input', () => leerPaso(form));
     form.addEventListener('change', () => leerPaso(form));
     return alEnviar(form, async () => {
       leerPaso(form);
@@ -162,7 +165,7 @@ export async function paginaAsistente(ctx: ContextoPagina): Promise<Vista> {
     form.addEventListener('change', (ev) => {
       // Cambiar el número de módulos cambia las opciones de los recesos.
       // Se actualizan en su lugar: volver a dibujar movería el foco del usuario.
-      if ((ev.target as HTMLElement).getAttribute('name') === 'modulos') {
+      if ((ev.target as HTMLElement).getAttribute('name') === 'modulos' && ev.type === 'change') {
         const n = Number(d.horario.modulos);
         form.querySelectorAll<HTMLSelectElement>('select[name$=".despuesDe"]').forEach((sel) => {
           const actual = sel.value;
@@ -172,6 +175,7 @@ export async function paginaAsistente(ctx: ContextoPagina): Promise<Vista> {
       }
       actualizarVista();
     });
+    form.addEventListener('input', actualizarVista);
     actualizarVista();
     return form;
   };
@@ -202,7 +206,7 @@ export async function paginaAsistente(ctx: ContextoPagina): Promise<Vista> {
       h('p', { class: 'ayuda' }, 'Si algún grado tiene distinto número de grupos, ajústalo después de guardar.'),
       vista,
     );
-    form.addEventListener('change', actualizarVista);
+    form.addEventListener('input', actualizarVista);
     actualizarVista();
     return form;
   };

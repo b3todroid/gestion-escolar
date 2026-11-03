@@ -8,6 +8,7 @@ export type CodigoError =
   | 'TIENE_DEPENDENCIAS'
   | 'ESTADO_NO_PERMITIDO'
   | 'CICLO_CERRADO'
+  | 'HORARIO_CONFIRMADO'
   | 'ALMACENAMIENTO';
 
 export interface ErrorCampo {

@@ -1,6 +1,28 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Fase:** 2 — Personal, materias, asignaciones y horario semanal · **Estado:** completada (pendiente de revisión con el usuario)
+**Última actualización:** 2026-11-03 · **Fase:** 3 — Horarios escolares · **Estado:** completada (pendiente de revisión con el usuario)
+
+## Hecho en Fase 3
+- Esquema v3 (sólo tablas nuevas): actividades, casos especiales, confirmaciones, bitácora.
+- Vistas semanales por grupo y por docente con los cinco tipos de bloque y leyenda.
+- Horas de servicio y otras actividades del docente, con confirmación; «otra actividad» en periodos de grupo.
+- Casos especiales para clases simultáneas autorizadas.
+- Confirmación de horarios de grupo con reapertura autorizada (motivo en bitácora).
+- Importación desde Excel/CSV con revisión previa por fila y aplicación todo o nada.
+
+### Defectos encontrados y corregidos durante la Fase 3
+1. **Choques entre ciclos** (venía de la Fase 2): las clases de un ciclo cerrado bloqueaban al docente en el ciclo nuevo. Ahora se filtra por ciclo.
+2. **Toques perdidos en el asistente**: la vista previa cambiaba de tamaño al salir del campo y movía «Siguiente» bajo el dedo. Ahora se actualiza mientras se escribe.
+3. **Estilos de la Fase 3 no aplicados** por un ancla de inserción inexistente (detectado por las pruebas en teléfono: la página se desbordaba y el diálogo quedaba fuera de pantalla).
+4. **Texto encimado con el botón** en el editor por día a 320 px.
+5. **Enlace al docente** estaba sobre el nombre de la materia; ahora está sobre el nombre del docente.
+6. **Mensaje de choque no determinista** cuando había varios: ahora se informa el más temprano.
+7. El formulario de actividades se cerraba tras cada alta (incoherente con el resto); ahora sigue abierto.
+
+### Verificación Fase 3 (ejecutada el 2026-11-03)
+- `npm run typecheck`: sin errores. `npm test`: 9 archivos, **77 pruebas** (13 nuevas: lector de Excel con archivos reales, tipos de bloque, casos especiales, servicio, confirmaciones, importación con conflictos intencionales, regresión entre ciclos).
+- `npm run test:e2e`: **26 pruebas** (4 nuevas), estables en ejecuciones repetidas; incluye cierre y reapertura real del navegador con perfil en disco.
+- `npm run build`: correcto. `npm audit --omit=dev`: 0 vulnerabilidades.
 
 ## Hecho en Fase 2
 - Esquema v2 (sólo tablas nuevas) con prueba de migración desde v1 con datos.
@@ -61,6 +83,11 @@ Batería permanente nueva: `tests/e2e/auditoria.spec.ts` (10 pruebas) y `tests/e
 Las 3 fallas iniciales de la batería nueva eran errores de las pruebas, no de la app (selector ambiguo; un receso alargado que la app rechazó correctamente por traslape; texto de insignia con símbolo).
 
 ## Pendiente / siguientes pasos
+- Fase 3, pendientes conocidos:
+  - Exportar/imprimir horarios (PDF o Excel) — requiere decidir biblioteca de generación.
+  - La importación no crea asignaciones con docente distinto al ya registrado ni reemplaza celdas (por diseño); para cambios masivos hay que limpiar primero.
+  - La tabla semanal del grupo en teléfono se desplaza a lo ancho dentro de su recuadro; para editar en teléfono se usa «Editar por día».
+  - Sin carga horaria máxima por docente.
 - Fase 2, pendientes conocidos:
   - El horario se arma día por día; falta una vista semanal completa (tabla) para pantallas grandes e impresión.
   - No hay «copiar el horario de un día a otro» ni asignar una materia a varios grupos a la vez.

@@ -137,3 +137,62 @@ export interface Sesion extends Metadatos {
   dia: DiaSemana;
   periodoId: string;
 }
+
+// ===================== Fase 3 =====================
+
+/**
+ * Actividad que no es clase:
+ * - de docente (personalId): «servicio» u «otra»; horario libre dentro del día.
+ *   Una hora de servicio sólo cuenta como tal cuando está CONFIRMADA:
+ *   un espacio vacío nunca se interpreta como servicio.
+ * - de grupo (grupoId + periodoId): «otra» (p. ej. honores, ceremonia) en un periodo.
+ */
+export const TIPOS_ACTIVIDAD = ['servicio', 'otra'] as const;
+export type TipoActividad = (typeof TIPOS_ACTIVIDAD)[number];
+
+export interface Actividad extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  tipo: TipoActividad;
+  personalId: string | null;
+  grupoId: string | null;
+  periodoId: string | null;
+  dia: DiaSemana;
+  horaInicio: string;
+  horaFin: string;
+  descripcion: string;
+  confirmada: boolean;
+  confirmadaEn: string | null;
+}
+
+/**
+ * Caso especial configurado explícitamente: permite que un docente atienda
+ * grupos simultáneos en un día y franja (p. ej. taller con dos grupos juntos).
+ */
+export interface Excepcion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  personalId: string;
+  dia: DiaSemana;
+  horaInicio: string;
+  horaFin: string;
+  motivo: string;
+}
+
+/** Horario de grupo confirmado: queda bloqueado hasta que alguien lo reabra con motivo. */
+export interface ConfirmacionHorario extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+}
+
+/** Registro de acciones que requieren autorización (base para auditoría futura). */
+export interface RegistroBitacora extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  entidad: 'horario_grupo' | 'actividad';
+  entidadId: string;
+  accion: 'confirmar' | 'reabrir' | 'importar';
+  motivo: string | null;
+  detalle: string | null;
+}

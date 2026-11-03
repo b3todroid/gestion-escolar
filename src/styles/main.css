@@ -26,6 +26,10 @@
   --aviso: #7a5300;
   --aviso-suave: #fff4cc;
   --foco: #f2b705;
+  --tinta: #1d4f91;          /* servicio */
+  --tinta-suave: #e3ecf8;
+  --violeta: #57348f;        /* otra actividad */
+  --violeta-suave: #efe8f8;
   --r-grande: 16px;
   --r-medio: 10px;
   --toque: 48px;
@@ -55,6 +59,10 @@
     --ok-suave: #1d3a2b;
     --aviso: #f5c842;
     --aviso-suave: #3b3416;
+    --tinta: #a9c8f2;
+    --tinta-suave: #1c2f48;
+    --violeta: #cdb6f2;
+    --violeta-suave: #2f2445;
   }
 }
 
@@ -381,7 +389,7 @@ main:focus { outline: none; }
 /* Celdas del horario de un día */
 .celdas { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
 .celda {
-  display: grid; grid-template-columns: 3.6rem 1fr auto; align-items: center; gap: 0.6rem;
+  display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); align-items: center; gap: 0.4rem 0.6rem;
   padding: 0.5rem 0.6rem 0.5rem 0.75rem; border-radius: var(--r-medio);
   background: var(--primario-suave); border-left: 5px solid var(--primario);
 }
@@ -413,6 +421,73 @@ main:focus { outline: none; }
 .semana__dia h3 { margin-bottom: 0.35rem; }
 
 
+/* ----- Fase 3: tipos de bloque (texto + símbolo + estilo; nunca sólo color) ----- */
+.bloque-h {
+  display: grid; gap: 0.1rem; padding: 0.4rem 0.55rem; border-radius: 8px; min-width: 0;
+  border: 2px solid transparent; font-size: 0.9rem; line-height: 1.3;
+}
+.bloque-h__tipo { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; }
+.bloque-h__titulo { font-weight: 700; overflow-wrap: anywhere; }
+.bloque-h__titulo a, .bloque-h__detalle a { color: inherit; }
+.bloque-h a { display: inline-block; min-height: 24px; }
+.bloque-h__hora { font-variant-numeric: tabular-nums; font-weight: 700; }
+.bloque-h__dur, .bloque-h__detalle { font-weight: 400; opacity: 0.85; }
+.bloque-h--clase { background: var(--primario); color: var(--primario-texto); }
+.bloque-h--servicio { background: var(--tinta-suave); color: var(--tinta); border-color: var(--tinta); }
+.bloque-h--porconfirmar { border-style: dashed; }
+.bloque-h--receso { background: var(--lapiz); color: var(--lapiz-texto); }
+.bloque-h--otra { background: var(--violeta-suave); color: var(--violeta); border-color: var(--violeta); }
+.bloque-h--sin_actividad { background: transparent; color: var(--texto-suave); border: 2px dashed var(--borde); }
+.bloque-h--simultanea { outline: 3px dotted var(--lapiz); outline-offset: 1px; }
+
+.leyenda { list-style: none; padding: 0; margin: 0.75rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.leyenda .bloque-h { padding: 0.25rem 0.5rem; }
+
+.tabla-semana { overflow-x: auto; max-width: 100%; border-radius: var(--r-medio); border: 1px solid var(--borde); margin-top: 0.5rem; }
+.tabla-semana:focus-visible { outline: 3px solid var(--foco); }
+.tabla-semana table { border-collapse: separate; border-spacing: 3px; min-width: 40rem; width: 100%; table-layout: fixed; }
+.tabla-semana th { font-size: 0.85rem; text-align: left; padding: 0.3rem; }
+.tabla-semana thead th:first-child, .tabla-semana__hora { width: 3.6rem; }
+.tabla-semana__hora { font-variant-numeric: tabular-nums; color: var(--texto-suave); vertical-align: top; }
+.tabla-semana td { vertical-align: top; padding: 0; }
+.tabla-semana td .bloque-h { height: 100%; }
+.seccion { min-width: 0; }
+
+.semana-docente { display: grid; gap: 0.9rem; }
+.semana-docente__lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; }
+.semana-docente__dia h3 { margin-bottom: 0.35rem; }
+@media (min-width: 60rem) {
+  main:has(.semana-docente) { max-width: 70rem; }
+  .semana-docente { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+}
+
+.totales--5 { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+
+.celda--otra { background: var(--violeta-suave); border-left-color: var(--violeta); }
+.celda--sin_actividad { background: transparent; border: 2px dashed var(--borde); border-left-width: 5px; }
+.celda__tipo { font-size: 0.72rem; font-weight: 700; color: var(--texto-suave); }
+.celda > .boton { grid-column: 2; justify-self: start; }
+@media (min-width: 30rem) {
+  .celda { grid-template-columns: 3.6rem minmax(0, 1fr) auto; }
+  .celda > .boton { grid-column: auto; }
+}
+
+.confirmado { padding: 0.75rem 1rem; border-radius: var(--r-medio); background: var(--ok-suave); border: 2px solid var(--ok); margin-bottom: 0.75rem; }
+.confirmado p { margin: 0 0 0.4rem; }
+
+/* Importación */
+.archivo { min-height: var(--toque); padding: 0.5rem; border: 2px dashed var(--borde); border-radius: var(--r-medio); background: var(--superficie); font: inherit; max-width: 100%; }
+.resumen-importacion { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.filas-importacion { list-style: none; padding: 0; margin: 0.75rem 0; display: grid; gap: 0.4rem; max-height: 60vh; overflow-y: auto; }
+.fila-imp { display: grid; gap: 0.2rem; padding: 0.55rem 0.75rem; border-radius: var(--r-medio); background: var(--superficie-2); border-left: 5px solid var(--ok); }
+.fila-imp--error, .fila-imp--conflicto { background: var(--peligro-suave); border-left-color: var(--peligro); }
+.fila-imp--existente { border-left-color: var(--borde); }
+.fila-imp__cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.fila-imp__num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.fila-imp__resumen { color: var(--texto-suave); overflow-wrap: anywhere; }
+.fila-imp__mensajes { margin: 0; padding-left: 1.1rem; color: var(--peligro); font-weight: 700; font-size: 0.92rem; }
+
+/* ----- Avisos ----- */
 /* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
    El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */
 .avisos {

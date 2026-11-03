@@ -51,8 +51,22 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 
 `npm audit --omit=dev`: **0 vulnerabilidades**. `npm audit` completo reporta 10 avisos low/moderate en la cadena de compilación `vite-plugin-pwa → workbox-build` (glob, minimatch, ejs, deepmerge). Se ejecutan sólo al compilar, no llegan al navegador. No se aplicó `audit fix --force` (forzaría versiones incompatibles). Revisar en cada actualización.
 
+## ExcelJS: evaluada y descartada (Fase 3, 2026-11-03)
+| Criterio | ExcelJS 4.4.0 |
+|---|---|
+| Mantenimiento | Última versión estable oct. 2023; sólo un prerelease en dic. 2024. |
+| Vulnerabilidades | 9 moderadas en dependencias de producción (uuid, archiver, minimatch…). |
+| Tamaño | 928 KB minificado (≈ 4 veces la app). |
+| Necesidad | Sólo leer la primera hoja de una tabla simple. |
+
+**Decisión:** lector propio y acotado en `src/domain/importacion/` (ZIP con `DecompressionStream` nativo + extracción de celdas sin evaluar XML externo). Límites contra bombas de descompresión. Se prueba con archivos reales generados por openpyxl (independiente). Si en el futuro se necesita **generar** Excel con formato, reevaluar ExcelJS u otra opción.
+
+| Paquete añadido | Versión | Licencia | Uso |
+|---|---|---|---|
+| @types/node | 22.x | MIT | Sólo pruebas (leer archivos de prueba). |
+
 ## Bibliotecas de fases futuras (NO instaladas)
-ExcelJS (Excel), PDF.js (lectura PDF), Tesseract.js (OCR local), jsPDF o pdf-lib (reportes). Se cargarán con `import()` dinámico para no penalizar la carga inicial. Antes de instalar: repositorio oficial, compatibilidad, mantenimiento, licencia, vulnerabilidades, tamaño; documentar aquí.
+PDF.js (lectura PDF), Tesseract.js (OCR local), jsPDF o pdf-lib (reportes). Se cargarán con `import()` dinámico para no penalizar la carga inicial. Antes de instalar: repositorio oficial, compatibilidad, mantenimiento, licencia, vulnerabilidades, tamaño; documentar aquí.
 
 ## Seguridad
 - Zod en todas las entradas; caracteres de control rechazados; longitudes máximas.

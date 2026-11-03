@@ -3,7 +3,7 @@ import { esquemaBloque, validar, type EntradaBloque } from '../validators/esquem
 import { validarBloqueEnJornada, type BloqueHorario } from '../domain/reglas';
 import { compararPorInicio, duracionMinutos } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
-import { choqueDocente } from './conflictos';
+import { asegurarHorarioEditable, choqueDocente } from './conflictos';
 import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 
 export type TipoBloque = 'periodo' | 'receso';
@@ -73,9 +73,10 @@ export class ServicioHorario {
         // Con el nuevo horario, ningún docente de este periodo puede quedar en dos grupos a la vez.
         const sesiones = await this.ctx.repos.sesiones.listarPor('periodoId', id);
         const propias = new Set(sesiones.map((s) => s.id));
+        for (const grupoId of new Set(sesiones.map((s) => s.grupoId))) await asegurarHorarioEditable(this.ctx, grupoId);
         for (const s of sesiones) {
           if (!s.personalId) continue;
-          const choque = await choqueDocente(this.ctx, s.personalId, s.dia, bloque, propias);
+          const choque = await choqueDocente(this.ctx, jornada.cicloEscolarId, s.personalId, s.dia, bloque, { excluirSesiones: propias });
           if (choque) throw new ErrorDominio('TRASLAPE', `Con ese horario, ${choque.charAt(0).toLowerCase()}${choque.slice(1)}`, [{ campo: 'horaInicio', mensaje: choque }]);
         }
       }

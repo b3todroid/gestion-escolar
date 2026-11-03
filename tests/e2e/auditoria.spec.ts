@@ -58,7 +58,7 @@ test.describe('guardado e IndexedDB', () => {
     await page.getByRole('button', { name: 'Guardar escuela' }).dblclick();
     await expect(page.getByRole('heading', { level: 1, name: /^Ciclo / })).toBeVisible();
     // 6 módulos + 1 receso, 3 grados × 2 grupos
-    expect(await contarEnBD(page)).toEqual({ escuelas: 1, ciclosEscolares: 1, turnos: 1, jornadas: 1, periodos: 6, recesos: 1, grados: 3, grupos: 6, personal: 0, materias: 0, asignaciones: 0, sesiones: 0 });
+    expect(await contarEnBD(page)).toEqual({ escuelas: 1, ciclosEscolares: 1, turnos: 1, jornadas: 1, periodos: 6, recesos: 1, grados: 3, grupos: 6, personal: 0, materias: 0, asignaciones: 0, sesiones: 0, actividades: 0, excepciones: 0, confirmaciones: 0, bitacora: 0 });
     await page.reload();
     expect(await contarEnBD(page)).toMatchObject({ escuelas: 1, grupos: 6 });
     await expect(page.locator('.grupo')).toHaveCount(6);

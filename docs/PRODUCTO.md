@@ -23,11 +23,19 @@ Una persona responsable de la configuración (dirección, subdirección o coordi
 - Horario semanal de cada grupo por día; al elegir la materia de cada hora se ve de antemano cuáles no se pueden y por qué.
 - Semana de cada docente con todos sus grupos.
 
+## Fase 3 — Horarios escolares (entregada)
+- Horario semanal por grupo (tabla) y por docente (columnas por día), con cinco tipos visibles: **CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD y SIN ACTIVIDAD REGISTRADA**.
+- Horas de servicio y otras actividades del docente; el servicio se confirma explícitamente. Un espacio vacío nunca cuenta como servicio.
+- «Otra actividad» en periodos de grupo (honores, ceremonias…).
+- Casos especiales autorizados (con motivo) para que un docente atienda grupos simultáneos.
+- Confirmación de horarios de grupo: bloqueados hasta reabrirlos con motivo registrado.
+- Importación desde Excel (.xlsx) o CSV con revisión previa: errores y conflictos por fila; nada se guarda si hay alguno.
+
 ## Fases futuras (no implementadas)
 | Fase | Contenido previsto |
 |---|---|
 | 2 | ✓ Personal, docentes, materias, asignaciones y horarios |
-| 3 | Importación Excel (ExcelJS) y PDF (PDF.js), OCR (Tesseract.js) |
+| 3 | ✓ Horarios escolares e importación de horarios desde Excel/CSV. Pendiente para otra fase: PDF (PDF.js) y OCR (Tesseract.js) |
 | 4 | Alumnos, asistencia, incidencias, salidas del aula, coberturas, Prefectura |
 | 5 | Reportes PDF (jsPDF o pdf-lib), respaldo y restauración |
 | 6 | Versión institucional: backend, autenticación, permisos, sincronización, auditoría |

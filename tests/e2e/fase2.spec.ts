@@ -72,7 +72,7 @@ test('asigna materias y arma el horario sin choques de docentes; todo persiste',
 
   // Otro día conserva su propio horario
   await page.locator('.dias__opcion', { hasText: 'Mar' }).click();
-  await expect(page.locator('[data-periodo]').first()).toContainText('Libre');
+  await expect(page.locator('[data-periodo]').first()).toContainText('SIN ACTIVIDAD REGISTRADA');
 
   // Choque de docente en 1° B a la misma hora
   await page.goto(urlCiclo);
@@ -92,15 +92,15 @@ test('asigna materias y arma el horario sin choques de docentes; todo persiste',
   await page.getByRole('link', { name: 'Escuela Secundaria Ficticia 70' }).click();
   await page.getByRole('link', { name: 'Ver personal' }).click();
   await page.getByRole('link', { name: 'Docente Ficticio Uno' }).click();
-  await expect(page.getByText('2 clases por semana')).toBeVisible();
-  await expect(page.locator('.semana__dia', { hasText: 'Lunes' })).toContainText('1° A');
-  await expect(page.locator('.semana__dia', { hasText: 'Lunes' })).toContainText('1° B');
+  await expect(page.locator('.totales div', { hasText: '● Clase' })).toContainText('1 h 40 min');
+  await expect(page.locator('.semana-docente__dia', { hasText: 'Lunes' })).toContainText('1° A');
+  await expect(page.locator('.semana-docente__dia', { hasText: 'Lunes' })).toContainText('1° B');
 
   // Dejar libre
   await page.getByRole('link', { name: '1° A' }).click();
   await page.getByRole('button', { name: 'Cambiar Lunes 07:00' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Dejar libre' }).click();
-  await expect(page.locator('[data-periodo]').first()).toContainText('Libre');
+  await expect(page.locator('[data-periodo]').first()).toContainText('SIN ACTIVIDAD REGISTRADA');
 });
 
 test('reglas de baja, eliminación y cambio de docente', async ({ page }) => {

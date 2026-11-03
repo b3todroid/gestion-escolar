@@ -48,6 +48,18 @@ Decisiones:
 - `Sesion` guarda `grupoId` y `personalId` desnormalizados para consultar rápido los choques del docente; al cambiar el docente de una asignación se actualizan sus sesiones en la misma transacción.
 - **Datos personales mínimos**: no se guardan CURP, RFC, teléfonos ni domicilios.
 
+## Entidades de la Fase 3 (versión 3 del esquema)
+| Tabla | Campos | Índices |
+|---|---|---|
+| `actividades` | escuelaId, cicloEscolarId, tipo (servicio/otra), personalId?, grupoId?, periodoId?, dia, horaInicio, horaFin, descripcion, confirmada, confirmadaEn? | `id`, `cicloEscolarId`, `personalId`, `grupoId` |
+| `excepciones` | escuelaId, cicloEscolarId, personalId, dia, horaInicio, horaFin, motivo | `id`, `cicloEscolarId`, `personalId` |
+| `confirmaciones` | escuelaId, cicloEscolarId, grupoId | `id`, `&grupoId` (único), `cicloEscolarId` |
+| `bitacora` | escuelaId, cicloEscolarId, entidad, entidadId, accion (confirmar/reabrir/importar), motivo?, detalle? | `id`, `cicloEscolarId`, `entidadId` |
+
+- Una actividad es **del docente** (personalId, horario libre) o **del grupo** (grupoId + periodoId, sólo «otra»).
+- La confirmación es una tabla aparte (no un campo del grupo) para no alterar registros de la Fase 1.
+- La bitácora registra las autorizaciones (reabrir, quitar confirmación) con su motivo: base para la auditoría de la versión institucional.
+
 ## Entidades previstas (fases posteriores)
 Alumno, Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
@@ -55,6 +67,7 @@ Alumno, Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 3 | 2026-11-03 | Agrega `actividades`, `excepciones`, `confirmaciones`, `bitacora`. Sin cambios en tablas anteriores; la prueba de migración v1 → v3 conserva los datos. |
 | 2 | 2026-11-03 | Agrega `personal`, `materias`, `asignaciones`, `sesiones`. Sin cambios en tablas v1; prueba de migración con datos en `tests/unit/fase2.test.ts`. |
 
 Procedimiento:
