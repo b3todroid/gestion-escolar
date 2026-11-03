@@ -5,6 +5,9 @@
 | `npm test` | Vitest: unitarias e integración con IndexedDB en memoria (fake-indexeddb). |
 | `npm run test:e2e` | Playwright sobre la versión compilada (con Service Worker), perfil de teléfono (Pixel 7). Falla si hay errores en la consola. |
 | `npm run check` | typecheck + test + build. |
+| `npm run test:servidor` / `npm run test:e2e:servidor` | Servidor con PostgreSQL real (requieren `PRUEBAS_POSTGRES_URL`). |
+| `npm run test:rendimiento` | Fase 9: mediciones reales con una escuela ficticia de volumen (no corre con `test:e2e`). |
+| `npm run test:ux` | Fase 9: 13 pantallas × 3 tamaños, sin desplazamiento horizontal y objetivos ≥ 44 px; capturas en `test-results/ux/`. |
 
 Todas las pruebas usan **datos ficticios** (escuelas, personas y archivos de `tests/fixtures/`).
 
@@ -145,9 +148,19 @@ Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e
 - `npm run test:e2e:servidor` usa el servidor **compilado** (`dist-servidor/`).
 
 ## Fase 8D — sincronización
-- `servidor/pruebas/dispositivos.test.ts` (12): dispositivos simulados (fake-indexeddb + sesión real + misma app) contra el servidor: sin conexión, cola, conflictos de versión y de clave natural, rechazos, idempotencia, bajas, revocación, bloqueo de restauración.
+- `servidor/pruebas/dispositivos.test.ts` (14): dispositivos simulados (fake-indexeddb + sesión real + misma app) contra el servidor: sin conexión, cola, conflictos de versión y de clave natural, rechazos, idempotencia, bajas, revocación, bloqueo de restauración.
 - `tests/e2e-servidor/sincronizacion.spec.ts`: navegador real, sin conexión → indicador → reconexión → sincronizado.
 
 ## Fase 8E — migración
 - `servidor/pruebas/migracion.test.ts` (9): preparar, ensayo sin escritura, huella, autorización, migrar, validar, revertir, cambio de dispositivo y bloqueo de reversión tras cambios.
 - `tests/e2e-servidor/migracion.spec.ts`: piloto institucional ficticio de punta a punta en el navegador (9 pasos).
+
+## Fase 9 — auditoría, volumen e interfaz
+Resultado de la última ejecución completa: ver `docs/AUDITORIA_FASE_9.md` §7. Totales: 182 unitarias, 59 funcionales, 109 del servidor, 4 con servidor real, 1 de rendimiento y 1 de interfaz.
+- `tests/e2e/flujo-integral.spec.ts`: CONFIGURAR → … → CONSULTAR REPORTE y DOCENTE AUSENTE → … → REPORTE, en una sola corrida con datos ficticios.
+- `servidor/pruebas/dispositivos.test.ts`: la cola no se envía con OTRA cuenta en el dispositivo (S1); respuesta perdida → el reintento no duplica.
+- `tests/e2e-servidor/sincronizacion.spec.ts`: cerrar sesión en un dispositivo compartido ofrece quitar los datos (S2).
+- `tests/unit/fase9-respaldos-grandes.test.ts`: compresión gzip, límites y datos dañados; restaurar comprimido y comprimido + cifrado; exportar 200 000 registros (H2); matrícula y CURP únicas con los índices v12.
+- `tests/rendimiento/` (`datos.ts` genera la escuela ficticia de volumen: 3 turnos, 30 grupos, 100 trabajadores, 1 500 alumnos, 3 semanas de asistencia).
+- `tests/ux/interfaz.spec.ts`.
+- `tests/e2e/docente.spec.ts`: el recordatorio de respaldo de «Mi día» aparece aunque se calcule después de pintar.

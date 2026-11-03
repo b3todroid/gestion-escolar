@@ -142,6 +142,8 @@ Versión 7: sin cambios de índices; agrega `origen` (null en registros existent
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 12 | 2026-11-03 | (Fase 9 · rendimiento) Índices `matricula` y `curp` en `alumnos`. Sólo índices; sin `upgrade` ni cambios de datos. La unicidad por escuela la sigue verificando el servicio (el índice no es único porque ambas pueden ser `null` y la unicidad es por escuela). Probada v11 → v12 por las pruebas de migración que abren versiones anteriores. |
+| 11 | 2026-11-03 | (Fase 8D) `pendientes` y `vinculos`. Ver «Local v11». |
 | 10 | 2026-11-03 | Agrega `incidenciasPersonal`, `coberturas`, `bancoActividades`, `bitacoraPrefectura` (sólo tablas nuevas). Probada v9 → v10. |
 | 9 | 2026-11-03 | Agrega `plantillasImportacion` (sólo tabla nueva; sin `upgrade`). Probada v8 → v9 con datos. |
 | 8 | 2026-11-03 | Agrega `cambiosAsistencia`. `upgrade()`: salidas → `personalId` y `periodoId` desde su clase; reportes → `hora: null`, `estado: 'abierta'`; pases → `correcciones: 0`. Probada v7 → v8; los respaldos anteriores se restauran con esos mismos valores. |

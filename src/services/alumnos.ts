@@ -298,12 +298,14 @@ export class ServicioAlumnos {
   /** Matrícula y CURP únicas en la escuela (son identificadores fuertes). */
   private async verificarIdentidad(escuelaId: string, d: { matricula: string | null; curp: string | null }, idActual?: string) {
     if (!d.matricula && !d.curp) return;
-    const lista = await this.ctx.repos.alumnos.listarPor('escuelaId', escuelaId);
-    if (d.matricula && lista.some((a) => a.id !== idActual && a.matricula === d.matricula)) {
+    // Consultas por índice (v12): sólo se leen las coincidencias, no toda la escuela.
+    const otros = async (campo: 'matricula' | 'curp', valor: string) =>
+      (await this.ctx.repos.alumnos.listarPor(campo, valor)).filter((a) => a.escuelaId === escuelaId && a.id !== idActual);
+    if (d.matricula && (await otros('matricula', d.matricula)).length > 0) {
       const mensaje = 'Otra persona ya tiene esa matrícula en la escuela.';
       throw new ErrorDominio('DUPLICADO', mensaje, [{ campo: 'matricula', mensaje }]);
     }
-    if (d.curp && lista.some((a) => a.id !== idActual && a.curp === d.curp)) {
+    if (d.curp && (await otros('curp', d.curp)).length > 0) {
       const mensaje = 'Otra persona ya tiene esa CURP en la escuela.';
       throw new ErrorDominio('DUPLICADO', mensaje, [{ campo: 'curp', mensaje }]);
     }
@@ -312,9 +314,10 @@ export class ServicioAlumnos {
   /** En un mismo grupo no puede haber dos alumnos vigentes con el mismo nombre completo. */
   private async verificarNombreEnGrupo(grupoId: string, d: { nombre: string; primerApellido: string; segundoApellido: string | null }, alumnoIdActual?: string) {
     const clave = claveNombre(d);
-    for (const i of (await this.ctx.repos.inscripciones.listarPor('grupoId', grupoId)).filter((x) => x.estado === 'inscrito' && x.alumnoId !== alumnoIdActual)) {
-      const otro = await this.ctx.repos.alumnos.obtener(i.alumnoId);
-      if (otro && claveNombre(otro) === clave) {
+    const ids = (await this.ctx.repos.inscripciones.listarPor('grupoId', grupoId)).filter((x) => x.estado === 'inscrito' && x.alumnoId !== alumnoIdActual).map((x) => x.alumnoId);
+    // Una sola lectura para todo el grupo (antes, una por compañero: lento al importar en volumen).
+    for (const otro of await this.ctx.repos.alumnos.obtenerVarios(ids)) {
+      if (claveNombre(otro) === clave) {
         const mensaje = `Ya existe ${d.nombre} ${d.primerApellido} en este grupo.`;
         throw new ErrorDominio('DUPLICADO', mensaje, [{ campo: 'nombre', mensaje }]);
       }

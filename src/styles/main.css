@@ -773,6 +773,7 @@ main:focus { outline: none; }
 .renglon--conflicto { border-left: 5px solid var(--peligro); }
 .tarjetas--compactas { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
 .filtros .campo .boton { margin-top: 0.4rem; width: 100%; }
+.filtros .campo .acciones .boton { flex: 1 1 auto; margin-top: 0; width: auto; } /* Prefectura: Día anterior · Hoy · Día siguiente en fila (Fase 9) */
 .datos-impresion { display: none; }
 .solo-movil { display: block; }
 .solo-escritorio { display: none; }

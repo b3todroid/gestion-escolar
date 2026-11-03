@@ -17,7 +17,8 @@ import {
   type ConfiguracionServidor, type FichaServidor, type Miembro, type Yo,
 } from '../services/cuenta';
 
-const AVISO_FASE = 'Función en prueba: iniciar sesión todavía NO envía ni sincroniza tus datos escolares. Todo sigue guardado sólo en este dispositivo.';
+// Fase 9: el texto anterior («todavía NO envía ni sincroniza») dejó de ser cierto en la Fase 8D.
+const AVISO_FASE = 'Iniciar sesión, por sí solo, NO envía tus datos escolares. Una escuela se sincroniza con el servidor sólo si eliges «Usar en este dispositivo» o la migras. Las demás escuelas siguen guardadas sólo en este dispositivo.';
 
 const fechaHora = (iso: string | null) => (iso ? new Date(iso).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
 
@@ -46,7 +47,7 @@ export async function paginaCuenta(ctx: ContextoPagina): Promise<Vista> {
     titulo: 'Cuenta del servidor escolar',
     contenido: h('div', { class: 'pagina' },
       migas([{ texto: 'Inicio', href: '#/' }, { texto: 'Aplicación y datos', href: '#/aplicacion' }, { texto: 'Cuenta' }]),
-      encabezado('Cuenta del servidor escolar', 'Acceso con invitación para trabajar con varias personas (en preparación).'),
+      encabezado('Cuenta del servidor escolar', 'Acceso con invitación para trabajar con varias personas.'),
       avisoFase(),
       errorInstitucional ? h('p', { class: 'mensaje mensaje--error', role: 'alert' }, icono('⚠'), ' ', errorInstitucional) : null,
       ...contenido,

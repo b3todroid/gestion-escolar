@@ -17,7 +17,7 @@ import type {
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 11;
+export const VERSION_ESQUEMA = 12;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -195,7 +195,12 @@ export class BaseDatosEscolar extends Dexie {
       vinculos: 'escuelaId',
     });
 
-    // Para fases futuras: agregar this.version(12) (con .upgrade() si hay que transformar
+    // v12 (Fase 9 · rendimiento): índices de matrícula y CURP en alumnos. Sólo índices; no
+    // transforma datos. Evita leer todos los alumnos de la escuela en cada alta (importar 1500
+    // alumnos tardaba 95 s por ese costo cuadrático).
+    this.version(12).stores({ alumnos: 'id, escuelaId, matricula, curp' });
+
+    // Para fases futuras: agregar this.version(13) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

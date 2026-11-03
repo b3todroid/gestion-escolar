@@ -90,6 +90,11 @@ export class RepositorioPg<T extends Metadatos> implements Repositorio<T> {
     const { rows } = await consultar(clienteActual(), `SELECT * FROM ${this.tabla} WHERE id = $1`, [id]);
     return rows[0] ? this.aEntidad(rows[0]) : undefined;
   }
+  async obtenerVarios(ids: string[]) {
+    if (!ids.length) return [];
+    const { rows } = await consultar(clienteActual(), `SELECT * FROM ${this.tabla} WHERE id = ANY($1::uuid[])`, [ids]);
+    return rows.map((r) => this.aEntidad(r));
+  }
   async listarTodos() {
     const { rows } = await consultar(clienteActual(), `SELECT * FROM ${this.tabla}`);
     return rows.map((r) => this.aEntidad(r));

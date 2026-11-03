@@ -66,6 +66,8 @@ async function preparar(page: Page) {
   await page.goto('/#/perfil');
   await page.getByRole('button', { name: 'Soy yo' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Hola, Docente' })).toBeVisible();
+  // Fase 9: el recordatorio de respaldo se calcula después de pintar, pero aparece.
+  await expect(page.locator('#aviso-respaldo')).toContainText('no tienen respaldo reciente');
 }
 
 

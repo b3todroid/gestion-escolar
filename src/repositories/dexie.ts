@@ -45,6 +45,9 @@ class RepositorioDexie<T extends Metadatos> implements Repositorio<T> {
   obtener(id: string) {
     return this.tabla.get(id);
   }
+  async obtenerVarios(ids: string[]) {
+    return (await this.tabla.bulkGet(ids)).filter((x): x is T => !!x);
+  }
   listarTodos() {
     return this.tabla.toArray();
   }
@@ -63,7 +66,16 @@ class RepositorioDexie<T extends Metadatos> implements Repositorio<T> {
   }
   async insertarVarios(entidades: T[]) {
     if (entidades.length) await this.tabla.bulkAdd(entidades);
-    for (const e of entidades) await this.registrar('guardar', e, null);
+    if (!this.rastreo) return;
+    // Se consulta el vínculo una vez por escuela, no por registro (restaurar ~165 000 registros
+    // tardaba 44 s sólo por esa consulta repetida). Sólo se encolan los de escuelas vinculadas.
+    const vinculada = new Map<string, boolean>();
+    for (const e of entidades) {
+      const id = escuelaDe(this.rastreo.nombre, e as unknown as Record<string, unknown>);
+      if (!id) continue;
+      if (!vinculada.has(id)) vinculada.set(id, !!(await this.rastreo.db.vinculos.get(id)));
+      if (vinculada.get(id)) await this.registrar('guardar', e, null);
+    }
   }
   async actualizar(entidad: T) {
     const previo = this.rastreo ? await this.tabla.get(entidad.id) : undefined;
@@ -163,7 +175,7 @@ export function crearAlmacenSincronizacionDexie(db: BaseDatosEscolar): AlmacenSi
         if (!c) return;
         // Se resuelve el GRUPO completo (p. ej. una lista y sus marcas) y los cambios posteriores de esos registros.
         const delGrupo = (await db.pendientes.where('escuelaId').equals(c.escuelaId).toArray()).filter((x) => x.grupo === c.grupo);
-        const desde = Math.min(...delGrupo.map((x) => x.orden!));
+        const desde = delGrupo.reduce((m, x) => Math.min(m, x.orden!), Infinity);
         const afectados = new Set(delGrupo.map((x) => `${x.tabla}:${x.registroId}`));
         for (const x of await db.pendientes.where('escuelaId').equals(c.escuelaId).toArray()) {
           if (x.orden! >= desde && afectados.has(`${x.tabla}:${x.registroId}`)) await db.pendientes.delete(x.orden!);

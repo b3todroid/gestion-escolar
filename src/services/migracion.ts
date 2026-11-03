@@ -55,7 +55,7 @@ export class ServicioMigracion {
     if (!local.cct || !cctServidor || local.cct.toUpperCase() !== cctServidor.toUpperCase()) {
       throw new ErrorDominio('VALIDACION', `La CCT de la escuela del dispositivo (${local.cct ?? 'sin CCT'}) no coincide con la del servidor (${cctServidor ?? 'sin CCT'}): no se mezclan escuelas.`);
     }
-    const { contenido } = await this.respaldos.exportar([escuelaLocalId], { contrasena: null });
+    const { contenido } = await this.respaldos.exportar([escuelaLocalId], { contrasena: null, sinComprimir: true });
     const analisis = await this.respaldos.analizar(contenido);
     if (analisis.errores.length) throw new ErrorDominio('VALIDACION', `Los datos del dispositivo no pasaron la validación: ${analisis.errores[0]}`);
     if (analisis.esquema !== this.respaldos.versionDatos()) throw new ErrorDominio('VALIDACION', 'La versión de los datos no es la actual: actualiza la aplicación antes de migrar.');

@@ -73,6 +73,8 @@ Requiere PostgreSQL 14 o posterior y un usuario con `CREATEDB` y `CREATEROLE`.
 | 7 | Ensayo de migración con una copia del respaldo real en un servidor de prueba aislado | Administrador + desarrollo | Pendiente (requiere autorización) |
 | 8 | Capacitación breve: docentes (Mi día, lista, salidas), Prefectura (panel del día, coberturas), Dirección (confirmaciones, delegación) | Escuela | Pendiente |
 | 9 | Dispositivos con bloqueo de pantalla y almacenamiento persistente concedido | Escuela | Pendiente |
+| 10 | Probar en los teléfonos y tabletas reales de la escuela (gama baja), con red intermitente, antes de la semana 1. Referencia: tiempos medidos en `docs/AUDITORIA_FASE_9.md` §5 | Desarrollo + escuela | Pendiente |
+| 11 | Respaldo de prueba de una escuela completa y restauración en otro dispositivo (verifica tamaño y tiempo reales) | Administrador | Pendiente |
 
 ## 3. Desarrollo del piloto (propuesta)
 1. **Semana 0:** respaldo cifrado, ensayo de migración, migración con autorización y alta de cuentas.

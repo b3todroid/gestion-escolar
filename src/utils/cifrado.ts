@@ -76,6 +76,10 @@ export async function cifrar(texto: string, contrasena: string, creadoEn: string
 
 /** ¿El contenido es un respaldo cifrado? (no lanza) */
 export function esCifrado(contenido: string): boolean {
+  // Sólo el inicio: un respaldo grande no se analiza dos veces (el sobre siempre empieza con «formato»).
+  const inicio = contenido.slice(0, 120).replace(/\s/g, '');
+  if (inicio.startsWith(`{"formato":"${FORMATO_CIFRADO}"`)) return true;
+  if (contenido.length > 1_000_000) return false;
   try { return (JSON.parse(contenido) as { formato?: unknown }).formato === FORMATO_CIFRADO; } catch { return false; }
 }
 

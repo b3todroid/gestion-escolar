@@ -19,6 +19,7 @@
     "check": "npm run typecheck && npm run test && npm run build",
     "servidor:compilar": "vite build -c servidor/vite.config.ts",
     "test:rendimiento": "playwright test -c playwright.rendimiento.config.ts",
+    "test:ux": "playwright test -c playwright.ux.config.ts",
     "servidor:demo": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/demo.mjs"
   },
   "engines": {

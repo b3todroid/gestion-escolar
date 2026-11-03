@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`) completada. **Fase 8C — permisos y aislamiento** (`docs/PERMISOS.md`) completada. **Fase 8D — sincronización sin conexión** (`docs/SINCRONIZACION.md`, esquema local v11) completada. **Fase 8E — migración y piloto ficticio** (`docs/MIGRACION.md`, sólo local) — completada, pendiente de revisión; **no desplegar ni migrar datos reales sin autorización**. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`) completada. **Fase 8C — permisos y aislamiento** (`docs/PERMISOS.md`) completada. **Fase 8D — sincronización sin conexión** (`docs/SINCRONIZACION.md`, esquema local v11) completada. **Fase 8E — migración y piloto ficticio** (`docs/MIGRACION.md`, sólo local) — completada. **Fase 9 — auditoría y estabilización** (`docs/AUDITORIA_FASE_9.md`, `docs/SEGURIDAD.md`, `docs/PLAN_PILOTO.md`; esquema local v12) — sin CRÍTICOS/ALTOS abiertos en el código, pendiente de revisión. **No hay servidor desplegado: no hay multiusuario institucional operativo.** **No desplegar ni migrar datos reales sin autorización**. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -89,6 +89,13 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - `#/migracion` (9 pasos) + `servidor/src/migracion.ts`. Sólo administrador con 2FA; misma CCT; escuela del servidor vacía; ensayo antes; autorización registrada; todo o nada; huella canónica (`validators/migracion.ts`) igual al releer.
 - Reversión sólo sin cambios posteriores. Nunca migrar datos reales sin autorización expresa; pruebas sólo con datos ficticios.
 - `app.migracion = 'si'` sólo dentro de la transacción de migración del servidor (rol dueño); nunca en la API.
+
+## Fase 9 (auditoría, volumen)
+- Pruebas: `npm run test:rendimiento` (escuela ficticia de volumen, `tests/rendimiento/datos.ts`) y `npm run test:ux` (13 pantallas × 3 tamaños). No inventar tiempos: registrar los medidos.
+- Nunca `push(...arreglo)` / `Math.min(...arreglo)` con listas que crecen con los datos (desbordan la pila con ~120 000).
+- Respaldos > 8 MB se comprimen (`utils/compresion.ts`); abrir = descifrar → descomprimir → validar, fuera de `uow`.
+- Lecturas masivas por id: `repos.X.obtenerVarios(ids)`; buscar por matrícula/CURP con `listarPor` (índices v12), nunca recorrer la escuela entera en cada alta.
+- Al cerrar sesión se ofrece quitar escuelas sincronizadas; la cola sólo se envía con la cuenta que vinculó la escuela.
 
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).

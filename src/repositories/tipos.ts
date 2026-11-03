@@ -8,6 +8,8 @@ import type {
 
 export interface Repositorio<T extends Metadatos> {
   obtener(id: string): Promise<T | undefined>;
+  /** Varios por id en una sola consulta (los que no existen se omiten). */
+  obtenerVarios(ids: string[]): Promise<T[]>;
   listarTodos(): Promise<T[]>;
   /** Registros cuyo campo indexado `campo` es igual a `valor`. */
   listarPor<K extends keyof T & string>(campo: K, valor: T[K]): Promise<T[]>;

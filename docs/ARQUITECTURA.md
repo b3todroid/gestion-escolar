@@ -77,12 +77,12 @@ PDF.js (lectura PDF), Tesseract.js (OCR local), jsPDF o pdf-lib (reportes). Se c
 - Zod en todas las entradas; caracteres de control rechazados; longitudes máximas.
 - Salida siempre como texto (`textContent`); prohibido `innerHTML` con datos.
 - CSP: `default-src 'self'`, sin scripts/estilos en línea ni orígenes externos.
-- Sin red: ningún dato sale del dispositivo. Sin credenciales en el código.
+- Modo sólo dispositivo: ningún dato sale del dispositivo. Con servidor escolar (8B–8E), sólo las escuelas vinculadas expresamente se envían al servidor propio de la escuela (mismo origen `/api`). Sin credenciales en el código.
 - Eliminaciones con diálogo de confirmación; las que dejarían huérfanos se bloquean.
-- **Limitación honesta**: IndexedDB no ofrece autenticación ni control de acceso. Cualquiera con acceso al navegador ve los datos. Los permisos reales llegarán con el backend.
+- **Limitación honesta**: IndexedDB no ofrece autenticación ni control de acceso. Cualquiera con acceso al navegador ve los datos locales. Los permisos reales están en el servidor (8C), que **no está desplegado**. Detalle y riesgos: `docs/SEGURIDAD.md`.
 
-## Sincronización futura (diseño previsto, no implementado)
-Backend con autenticación institucional, permisos por rol y escuela, repositorio "sincronizado" que escribe local y encola cambios (outbox), resolución de conflictos por `version`/`actualizadoEn`, eliminaciones como marcas (tombstones) en lugar de borrado físico, auditoría y respaldos centralizados.
+## Sincronización
+Implementada en la Fase 8D (`docs/SINCRONIZACION.md`): cola local en la misma transacción, versión base obligatoria y conflictos explícitos. Probada sólo con un servidor local; sin despliegue no hay sincronización real entre dispositivos de una escuela.
 
 ## Fase 5 — PWA, respaldos cifrados y recuperación
 - **Cifrado de respaldos**: Web Crypto nativa (`crypto.subtle`), sin bibliotecas: AES-GCM 256 (cifrado autenticado) + PBKDF2-SHA-256 con 600 000 iteraciones (recomendación OWASP 2023), sal de 16 bytes e IV de 12 bytes aleatorios por archivo. Al leer se acotan las iteraciones (100 000–5 000 000) para que un archivo manipulado no fuerce parámetros débiles ni trabajo excesivo. Se evaluó y descartó agregar dependencias (libsodium, crypto-js): Web Crypto está en todos los navegadores objetivo y no aumenta el tamaño. `src/utils/cifrado.ts`.
@@ -116,3 +116,10 @@ Decisiones:
 
 ## Fase 8C — permisos
 El servidor se compila con Vite (`servidor/vite.config.ts`) para **reutilizar** `src/services`, `src/domain`, `src/validators` y `src/models`. `servidor/src/repositoriosPg.ts` implementa `Repositorios`/`UnidadDeTrabajo` sobre PostgreSQL: cada servicio usa la transacción de la petición y cada unidad de trabajo es un punto de guardado. Las peticiones de datos escolares corren con el rol `gestion_app` bajo RLS (`docs/PERMISOS.md`). La capa de presentación no cambia: la app sigue local.
+
+## Fase 9 — volumen y estabilización
+- **Respaldos grandes** (`utils/compresion.ts`): de más de 8 MB se comprimen con gzip (`CompressionStream`, sin dependencias) en un sobre JSON con base64. Se detectan por prefijo y se descomprimen por flujo con límite (400 MB). Orden al abrir: descifrar → descomprimir → validar, todo **fuera** de `uow`. La migración envía el paquete sin comprimir (el servidor valida JSON).
+- **Sin `push(...arreglo)` ni `Math.min(...arreglo)` con listas que crecen con los datos**: más de ~120 000 elementos desbordan la pila de V8.
+- **Esquema local v12**: índices `matricula` y `curp` en `alumnos`. `Repositorio.obtenerVarios(ids)` (Dexie `bulkGet`; PostgreSQL `id = ANY($1::uuid[])`) para leer muchos por id en una consulta.
+- `insertarVarios` consulta el vínculo de sincronización una vez por escuela, no por registro.
+- «Mi día» pinta primero y calcula el recordatorio de respaldo después (recorre todos los registros de la escuela).

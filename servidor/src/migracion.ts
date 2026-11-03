@@ -43,7 +43,7 @@ export class Migracion {
     const paquete = p.data;
     const errores: string[] = []; const advertencias: string[] = [];
     const { datos, errores: invalidos } = normalizarDatos(paquete.datos);
-    errores.push(...invalidos);
+    for (const e of invalidos) errores.push(e);
     const conteos = conteosDe(datos);
     for (const t of TABLAS_RESPALDO) if ((paquete.conteos[t] ?? 0) !== conteos[t]) errores.push(`Conteo distinto en ${t}: el paquete declara ${paquete.conteos[t] ?? 0} y trae ${conteos[t]} registros válidos.`);
     if (!errores.length && (await huellaDatos(datos)) !== paquete.huella) errores.push('La huella del paquete no coincide: los datos se alteraron en el camino. Vuelve a prepararlo.');

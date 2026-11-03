@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { generarVolumen } from './datos';
 
 // Fase 9 — mediciones REALES (no estimadas) con datos ficticios de volumen.
@@ -12,6 +13,8 @@ async function medir<T>(medicion: string, fn: () => Promise<T>, detalle?: string
   const t0 = Date.now();
   const r = await fn();
   resultados.push({ medicion, ms: Date.now() - t0, detalle });
+  mkdirSync('test-results', { recursive: true });
+  writeFileSync('test-results/rendimiento.json', JSON.stringify({ fecha: new Date().toISOString(), resultados }, null, 2)); // parcial, por si algo falla
   return r;
 }
 
@@ -22,20 +25,21 @@ test('rendimiento con 1 escuela, 3 turnos, 30 grupos, 100 trabajadores, 1,500 al
   test.setTimeout(30 * 60_000);
   await page.clock.install({ time: new Date(`${HOY}T07:15:00-06:00`) });
   const v = await medir('Generar datos ficticios (Node, fuera de la app)', async () => generarVolumen(HOY));
-  const tamano = `${(v.contenido.length / 1024 / 1024).toFixed(1)} MB; asistencias ${v.conteos.asistencias}, pases ${v.conteos.pases}, sesiones ${v.conteos.sesiones}`;
+  const tamano = `${(v.contenido.length / 1024 / 1024).toFixed(1)} MB sin comprimir, ${(gzipSync(v.contenido).length / 1024 / 1024).toFixed(1)} MB comprimido; asistencias ${v.conteos.asistencias}, pases ${v.conteos.pases}, sesiones ${v.conteos.sesiones}`;
 
   // Restauración (validación completa + escritura en IndexedDB)
   await page.goto('/#/respaldos');
   await medir('Leer y validar el respaldo (Zod, referencias, huella)', async () => {
     mkdirSync('test-results', { recursive: true });
-    writeFileSync('test-results/volumen.json', v.contenido);
+    // Como lo genera la app para escuelas grandes: sobre JSON con los datos en gzip + base64.
+    writeFileSync('test-results/volumen.json', JSON.stringify({ formato: 'gestion-escolar-respaldo-comprimido', versionFormato: 1, compresion: 'gzip', datos: gzipSync(v.contenido).toString('base64') }));
     await page.locator('#archivo-respaldo').setInputFiles('test-results/volumen.json');
-    await expect(page.locator('.respaldo-escuela')).toContainText('Se agregará', { timeout: 20 * 60_000 });
+    await expect(page.locator('.respaldo-escuela')).toContainText('Se agregará', { timeout: 10 * 60_000 });
   }, tamano);
   await page.getByRole('button', { name: 'Restaurar' }).click();
   await medir('Escribir el respaldo en IndexedDB (restaurar)', async () => {
     await page.getByRole('dialog').getByRole('button', { name: 'Restaurar' }).click();
-    await expect(page.locator('#informe-restauracion')).toContainText('Restauración completa', { timeout: 20 * 60_000 });
+    await expect(page.locator('#informe-restauracion')).toContainText('Restauración completa', { timeout: 10 * 60_000 });
   });
 
   const ir = async (nombre: string, ruta: string, listo: (p: Page) => Promise<void>) => medir(nombre, async () => { await page.goto(ruta); await listo(page); });
@@ -45,7 +49,7 @@ test('rendimiento con 1 escuela, 3 turnos, 30 grupos, 100 trabajadores, 1,500 al
     await page.locator('#buscar-alumno').fill('MV-11234');
     await expect(page.locator('#lista-alumnos-titulo ~ div .renglon:visible')).toHaveCount(1);
   });
-  await ir('Grupo: horario semanal', `/#/grupo/${v.grupoMuestra}`, async (p) => { await expect(p.locator('[data-periodo]').first()).toBeVisible(); });
+  await ir('Grupo: horario semanal', `/#/grupo/${v.grupoMuestra}`, async (p) => { await expect(p.getByRole('table', { name: /Horario semanal de/ })).toBeVisible(); });
   await ir('Grupo: asistencia del ciclo (50 alumnos, 3 semanas)', `/#/alumnos/${v.grupoMuestra}`, async (p) => { await expect(p.locator('.lista-resumen li')).toHaveCount(50); });
   await ir('Abrir pase de lista', `/#/lista/${v.sesionHoy}/${HOY}`, async (p) => { await expect(p.getByRole('button', { name: 'Guardar lista' })).toBeVisible(); });
   await medir('Guardar pase de lista (50 alumnos)', async () => {

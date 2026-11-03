@@ -8,6 +8,7 @@ import { nombreCompleto } from '../services/personal';
 import { nombreAlumno } from '../services/alumnos';
 import { ETIQUETA_ESTADO_ACTUAL } from '../domain/actividadActual';
 import { horaLocal } from '../utils/fechas';
+import { registrarError } from '../utils/registro';
 
 function fechaLarga(d: Date): string {
   const t = d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -68,7 +69,17 @@ function tarjetaSiguiente(p: Panel) {
 export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promise<Vista> {
   const ahora = new Date();
   const p = await ctx.s.panel.panel(persona, ahora);
-  const respaldo = await ctx.s.respaldos.estado(persona.escuelaId, ahora);
+  // El aviso de respaldo se calcula DESPUÉS de pintar: revisa todos los registros de la escuela
+  // y con volumen (≈165 000) tardaba 2.5 s en mostrar la clase actual (Fase 9).
+  const avisoRespaldo = h('div', { class: 'pendiente', role: 'status', id: 'aviso-respaldo' });
+  avisoRespaldo.hidden = true;
+  void ctx.s.respaldos.estado(persona.escuelaId, ahora).then((respaldo) => {
+    if (!respaldo.recordar) return;
+    avisoRespaldo.replaceChildren(
+      h('p', {}, icono('!'), ' Las listas y reportes de este dispositivo no tienen respaldo reciente.'),
+      h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo'));
+    avisoRespaldo.hidden = false;
+  }).catch(registrarError);
   const reloj = h('p', { class: 'reloj', 'aria-label': 'Hora actual' }, horaLocal(ahora));
   const firma = `${p.actual?.segmento.horaInicio ?? ''}|${p.siguiente?.segmento.horaInicio ?? ''}`;
 
@@ -107,9 +118,7 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
         h('ul', { class: 'renglones' }, ...fuera.map((x) => h('li', { class: 'renglon' },
           h('span', { class: 'renglon__texto' }, x.nombre, h('span', { class: 'renglon__sub' }, ` ${x.grupo}, desde las ${x.salida}`)),
           h('a', { class: 'boton boton--chico', href: `#/lista/${x.sesionId}/${x.fecha}` }, 'Registrar regreso'))))) : null,
-      respaldo.recordar ? h('div', { class: 'pendiente', role: 'status' },
-        h('p', {}, icono('!'), ' Las listas y reportes de este dispositivo no tienen respaldo reciente.'),
-        h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo')) : null,
+      avisoRespaldo,
       !p.ciclo ? h('p', { class: 'mensaje' }, icono('ℹ'), ' Tu escuela no tiene un ciclo escolar activo. Pide a la dirección que lo active.') : null,
       p.ciclo ? tarjetaAhora(p) : null,
       p.ciclo ? tarjetaSiguiente(p) : null,

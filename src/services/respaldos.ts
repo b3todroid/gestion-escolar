@@ -3,11 +3,16 @@ import type { Repositorio } from '../repositories/tipos';
 import { ErrorDominio } from '../domain/errores';
 import { nuevoId } from '../utils/id';
 import { normalizarTexto } from '../domain/texto';
+import { comprimir, descomprimir, esComprimido } from '../utils/compresion';
 import { ESQUEMAS_TABLA, FORMATO_RESPALDO, TABLAS_RESPALDO, esquemaSobre, type TablaRespaldo } from '../validators/respaldo';
 import { type Contexto, metadatosActualizados, metadatosNuevos } from './contexto';
 import { cifrar, descifrar, esCifrado, validarContrasena } from '../utils/cifrado';
 
-export const LIMITE_RESPALDO = 25 * 1024 * 1024; // caracteres
+/** Tamaño máximo del archivo (texto) y de los datos ya descomprimidos. */
+export const LIMITE_ARCHIVO = 120 * 1024 * 1024;
+export const LIMITE_DATOS = 400 * 1024 * 1024;
+/** A partir de este tamaño, el respaldo se guarda comprimido (gzip): el formato es muy repetitivo. */
+export const UMBRAL_COMPRESION = 8 * 1024 * 1024;
 const DIAS_RECORDATORIO = 7;
 
 export interface Respaldo {
@@ -158,7 +163,7 @@ export class ServicioRespaldos {
    * Respaldo JSON versionado. Con `contrasena`, el archivo completo se cifra
    * (AES-GCM + PBKDF2); la contraseña no se guarda en ningún lugar.
    */
-  async exportar(escuelaIds: string[], opciones: { contrasena?: string | null; confirmacion?: string } = {}): Promise<{ nombreArchivo: string; contenido: string; registros: number; cifrado: boolean }> {
+  async exportar(escuelaIds: string[], opciones: { contrasena?: string | null; confirmacion?: string; sinComprimir?: boolean } = {}): Promise<{ nombreArchivo: string; contenido: string; registros: number; cifrado: boolean }> {
     if (!escuelaIds.length) throw new ErrorDominio('VALIDACION', 'Selecciona al menos una escuela.');
     if (opciones.contrasena != null) validarContrasena(opciones.contrasena, opciones.confirmacion);
     const escuelas = [];
@@ -170,8 +175,9 @@ export class ServicioRespaldos {
     const datos = {} as Record<TablaRespaldo, Metadatos[]>;
     let registros = 0;
     for (const t of TABLAS_RESPALDO) {
-      const lista: Metadatos[] = [];
-      for (const e of escuelas) lista.push(...await this.registrosDe(e.id, t));
+      // Sin `push(...arreglo)`: con cientos de miles de asistencias desborda la pila (Fase 9).
+      let lista: Metadatos[] = [];
+      for (const e of escuelas) lista = lista.concat(await this.registrosDe(e.id, t));
       datos[t] = lista.sort((a, b) => a.id.localeCompare(b.id));
       registros += lista.length;
     }
@@ -184,7 +190,9 @@ export class ServicioRespaldos {
       huella: await sha256(JSON.stringify(datos)), datos,
     };
     const base = escuelas.length === 1 ? (escuelas[0]!.cct ?? normalizarTexto(escuelas[0]!.nombre).replace(/[^a-z0-9]+/g, '-')) : 'todas';
-    const texto = JSON.stringify(respaldo);
+    const plano = JSON.stringify(respaldo);
+    // Escuelas grandes: se comprime (de lo contrario el archivo podría no poder restaurarse).
+    const texto = plano.length > UMBRAL_COMPRESION && !opciones.sinComprimir ? await comprimir(plano) : plano;
     const cifrado = opciones.contrasena != null;
     return {
       nombreArchivo: `respaldo-gestion-escolar-${base}-${creadoEn.slice(0, 10)}${cifrado ? '.cifrado' : ''}.json`,
@@ -233,10 +241,13 @@ export class ServicioRespaldos {
 
   /** Descifra si hace falta (fuera de cualquier transacción). */
   private async abrir(contenido: string, contrasena: string | null): Promise<string> {
-    if (contenido.length > LIMITE_RESPALDO * 1.4) throw new ErrorDominio('VALIDACION', 'El archivo supera 25 MB.');
-    if (!esCifrado(contenido)) return contenido;
-    if (!contrasena) throw new ErrorDominio('VALIDACION', 'Este respaldo está protegido con contraseña. Escríbela para abrirlo.', [{ campo: 'contrasena', mensaje: 'Escribe la contraseña del respaldo.' }]);
-    return descifrar(contenido, contrasena);
+    if (contenido.length > LIMITE_ARCHIVO) throw new ErrorDominio('VALIDACION', `El archivo supera ${LIMITE_ARCHIVO / 1024 / 1024} MB.`);
+    let texto = contenido;
+    if (esCifrado(texto)) {
+      if (!contrasena) throw new ErrorDominio('VALIDACION', 'Este respaldo está protegido con contraseña. Escríbela para abrirlo.', [{ campo: 'contrasena', mensaje: 'Escribe la contraseña del respaldo.' }]);
+      texto = await descifrar(texto, contrasena);
+    }
+    return esComprimido(texto) ? descomprimir(texto, LIMITE_DATOS) : texto;
   }
 
   /**
@@ -246,7 +257,7 @@ export class ServicioRespaldos {
    */
   private async verificarArchivo(contenido: string): Promise<{ analisis: AnalisisRespaldo; sobre?: { escuelas: { id: string; nombre: string }[]; creadoEn: string }; datos?: Record<TablaRespaldo, Metadatos[]> }> {
     const vacio = (errores: string[]): AnalisisRespaldo => ({ errores, advertencias: [], creadoEn: null, esquema: null, escuelas: [], puedeRestaurar: false, cifrado: false, registros: 0 });
-    if (contenido.length > LIMITE_RESPALDO) return { analisis: vacio(['El archivo supera 25 MB.']) };
+    if (contenido.length > LIMITE_DATOS) return { analisis: vacio([`Los datos del respaldo superan ${LIMITE_DATOS / 1024 / 1024} MB.`]) };
     let crudo: unknown;
     try { crudo = JSON.parse(contenido); } catch { return { analisis: vacio(['El archivo no es un respaldo válido (no se pudo leer).']) }; }
     const sobre = esquemaSobre.safeParse(crudo);

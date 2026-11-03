@@ -52,7 +52,7 @@ async function entrar(page: Page, request: APIRequestContext, correo: string) {
 test('inicio de sesión, verificación en dos pasos, invitación, permisos del servidor y revocación', async ({ page, browser, request }) => {
   // 1. Administrador: entra con código y el aviso deja claro que no se envían datos
   await entrar(page, request, 'admin.e2e@ejemplo.test');
-  await expect(page.locator('#aviso-fase')).toContainText('NO envía ni sincroniza tus datos escolares');
+  await expect(page.locator('#aviso-fase')).toContainText('por sí solo, NO envía tus datos escolares');
   await expect(page.locator('#aviso-segundo-factor')).toContainText('exige la verificación en dos pasos');
   await expect(page.locator('#estado-segundo-factor')).toContainText('Obligatoria para tu rol');
 

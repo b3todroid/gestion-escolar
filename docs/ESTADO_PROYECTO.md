@@ -1,6 +1,32 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8E — Migración y piloto institucional (ficticio)** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. **Ningún dato real migrado.** El despliegue y la migración real requieren autorización (D11, D2, D10). Esquema local v11.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 9 — Auditoría integral, estabilización y preparación para piloto.** Terminada en lo que toca al código: no quedan defectos CRÍTICOS ni ALTOS abiertos. Pendiente de revisión del usuario. **No es un piloto real:** no hay servidor desplegado, ningún dato real se usó ni migró, y el piloto necesita autorizaciones (`docs/PLAN_PILOTO.md`). Esquema local v12.
+
+## Fase 9 — Auditoría integral y estabilización (2026-11-03)
+Detalle completo en `docs/AUDITORIA_FASE_9.md` (matriz de funcionalidad, integridad, rendimiento, interfaz y pruebas), `docs/SEGURIDAD.md` y `docs/PLAN_PILOTO.md`.
+
+**Estado real:**
+- Fases 1–7: operativas en el dispositivo.
+- Fases 8B–8E (cuentas, permisos, sincronización y migración): implementadas y probadas **sólo con un servidor local**. **No hay multiusuario institucional operativo** mientras no se despliegue.
+
+**Defectos encontrados y corregidos:**
+- **CRÍTICOS:**
+  - Respaldo de escuela grande imposible de generar (desbordamiento de pila) y de restaurar (límite de 25 MB).
+  - Cola de sincronización enviada con otra cuenta.
+- **ALTOS:**
+  - Datos que quedaban sin aviso al cerrar sesión en un dispositivo compartido.
+  - Importación de 1 500 alumnos en 95,6 s (ahora 18,1 s; esquema v12 con índices).
+  - Texto falso en «Cuenta» sobre la sincronización.
+- **MEDIOS:** restauración en 44,5 s (ahora 22 s), «Mi día» en 2,5 s (ahora ~0,1 s), indicador desactualizado y módulos marcados «Próximamente» que ya existían.
+
+**Pruebas:** 182 unitarias, 59 funcionales, 109 del servidor, 4 con servidor real, rendimiento con volumen e interfaz en 3 tamaños, todas en verde. `npm audit --omit=dev`: 0.
+
+**Pendientes / límites:**
+- Despliegue (HTTPS, SMTP, respaldos del servidor, IP real).
+- Base local por persona (S4).
+- Medir el servidor con volumen.
+- Probar en teléfonos reales.
+- Aviso de privacidad y elección de la escuela piloto.
 
 ## Fase 8E — Migración y piloto institucional ficticio (2026-11-03)
 **Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 98 del servidor, 3 con servidor real).
