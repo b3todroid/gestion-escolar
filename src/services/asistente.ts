@@ -49,7 +49,7 @@ export class ServicioAsistente {
     }
   }
 
-  crearEscuelaCompleta(entrada: EntradaAsistente): Promise<ResultadoAsistente> {
+  async crearEscuelaCompleta(entrada: EntradaAsistente): Promise<ResultadoAsistente> {
     // Validación completa antes de abrir la transacción.
     validar(esquemaEscuela, entrada.escuela);
     validar(esquemaCicloAsistente, entrada.ciclo);

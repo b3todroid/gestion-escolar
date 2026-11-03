@@ -88,3 +88,52 @@ export interface Grupo extends Metadatos {
 
 /** Datos de entrada (sin metadatos ni claves de ámbito). */
 export type Datos<T extends Metadatos> = Omit<T, keyof Metadatos | 'escuelaId' | 'cicloEscolarId'>;
+
+// ===================== Fase 2 =====================
+
+export const FUNCIONES_PERSONAL = ['docente', 'directivo', 'administrativo', 'prefectura', 'apoyo'] as const;
+export type FuncionPersonal = (typeof FUNCIONES_PERSONAL)[number];
+
+/**
+ * Persona que trabaja en la escuela. Pertenece a la escuela (no al ciclo):
+ * se captura una vez y se reutiliza en todos los ciclos.
+ * «Docente» es una función, no una entidad aparte, para no duplicar personas.
+ * Datos mínimos a propósito: no se piden CURP, RFC, teléfono ni domicilio.
+ */
+export interface Personal extends Metadatos {
+  escuelaId: string;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  numeroEmpleado: string | null; // clave interna opcional
+  funciones: FuncionPersonal[];
+  activo: boolean;
+}
+
+export interface Materia extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  nombre: string;
+  abreviatura: string | null;
+}
+
+/** Qué materia recibe un grupo, con qué docente y cuántas horas por semana. */
+export interface Asignacion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  grupoId: string;
+  materiaId: string;
+  personalId: string | null; // null = docente pendiente
+  horasSemana: number;
+}
+
+/** Una celda del horario semanal: una asignación en un día y periodo. */
+export interface Sesion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  asignacionId: string;
+  grupoId: string; // desnormalizado para consultas
+  personalId: string | null; // desnormalizado para detectar choques del docente
+  dia: DiaSemana;
+  periodoId: string;
+}

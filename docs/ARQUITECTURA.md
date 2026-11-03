@@ -31,6 +31,9 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 | Asistente que reutiliza servicios en transacciones anidadas de Dexie | Las mismas reglas aplican al alta guiada y a la edición; si un paso falla no queda nada a medias. |
 | Generadores puros (`domain/generadores.ts`) | Un dato se captura una vez: 3 parámetros producen todos los módulos y recesos; grados × letras producen los grupos. |
 | Borrador del asistente en localStorage | Comodidad por dispositivo; IndexedDB sigue siendo la única fuente de verdad. |
+| Choques de docentes por hora real (`services/conflictos.ts`) | Turnos distintos pueden tener periodos con horas diferentes; comparar por número de periodo no detectaría choques. |
+| Disponibilidad calculada antes de elegir (`opcionesParaCelda`) | La persona ve qué no se puede y por qué antes de intentarlo, en vez de recibir un error después. |
+| Un solo aviso visible a la vez | Al trabajar rápido, los avisos apilados cubrían la pantalla del teléfono. |
 | `registerType: 'prompt'` en la PWA | El usuario decide cuándo actualizar; no se recarga a mitad de una captura. |
 
 ## Dependencias (verificadas el 2026-11-02)

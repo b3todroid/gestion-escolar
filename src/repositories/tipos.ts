@@ -4,7 +4,7 @@
  * que combine el almacenamiento local con un backend seguro (sincronización).
  */
 import type {
-  CicloEscolar, Escuela, Grado, Grupo, Jornada, Metadatos, Periodo, Receso, Turno,
+  Asignacion, CicloEscolar, Escuela, Grado, Grupo, Jornada, Materia, Metadatos, Periodo, Personal, Receso, Sesion, Turno,
 } from '../models';
 
 export interface Repositorio<T extends Metadatos> {
@@ -28,6 +28,10 @@ export interface Repositorios {
   recesos: Repositorio<Receso>;
   grados: Repositorio<Grado>;
   grupos: Repositorio<Grupo>;
+  personal: Repositorio<Personal>;
+  materias: Repositorio<Materia>;
+  asignaciones: Repositorio<Asignacion>;
+  sesiones: Repositorio<Sesion>;
 }
 
 /** Ejecuta varias operaciones de forma atómica (todo o nada). */

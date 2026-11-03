@@ -349,7 +349,70 @@ main:focus { outline: none; }
 .bloque__nombre { font-weight: 700; margin: 0; }
 .bloque__meta { margin: 0.2rem 0 0; color: var(--texto-suave); font-size: 0.92rem; }
 
-/* ----- Avisos ----- */
+/* ----- Fase 2: listas sencillas ----- */
+.campo textarea {
+  width: 100%; min-height: 8rem; padding: 0.6rem 0.8rem; resize: vertical;
+  font: inherit; font-size: 1.05rem; line-height: 1.5; color: var(--texto); background: var(--superficie);
+  border: 2px solid var(--borde); border-radius: var(--r-medio);
+}
+.campo textarea:focus-visible { border-color: var(--primario); }
+
+.renglones { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+.renglon {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem;
+  padding: 0.55rem 0.75rem; border-radius: var(--r-medio); background: var(--superficie-2);
+}
+.renglon--bloque { display: grid; justify-items: start; }
+.renglon__texto { font-weight: 700; flex: 1 1 10rem; }
+.renglon__sub, .renglon__meta { color: var(--texto-suave); font-weight: 400; }
+.renglon__acciones { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.tarjeta--baja { opacity: 0.75; }
+
+/* Selector de día: chips de radio */
+.dias { border: 0; padding: 0; margin: 0 0 0.9rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(3.2rem, 1fr)); gap: 0.4rem; }
+.dias__opcion {
+  display: grid; place-items: center; min-height: var(--toque); border-radius: var(--r-medio);
+  border: 2px solid var(--borde); font-weight: 700; cursor: pointer; background: var(--superficie);
+}
+.dias__opcion input { position: absolute; opacity: 0; pointer-events: none; }
+.dias__opcion:has(input:checked) { background: var(--primario); border-color: var(--primario); color: var(--primario-texto); }
+.dias__opcion:has(input:focus-visible) { outline: 3px solid var(--foco); outline-offset: 2px; }
+
+/* Celdas del horario de un día */
+.celdas { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+.celda {
+  display: grid; grid-template-columns: 3.6rem 1fr auto; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.75rem; border-radius: var(--r-medio);
+  background: var(--primario-suave); border-left: 5px solid var(--primario);
+}
+.celda--libre { background: transparent; border: 2px dashed var(--borde); border-left-width: 5px; }
+.celda__hora { display: grid; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 0.92rem; line-height: 1.25; }
+.celda__cuerpo { display: grid; min-width: 0; }
+.celda__materia { font-weight: 700; overflow-wrap: anywhere; }
+.celda--libre .celda__materia { color: var(--texto-suave); font-weight: 400; }
+.celda__docente { color: var(--texto-suave); font-size: 0.9rem; }
+
+/* Diálogo con lista de opciones */
+.dialogo--lista { max-height: min(85dvh, 40rem); overflow-y: auto; }
+.opciones { list-style: none; padding: 0; margin: 0.5rem 0 0; display: grid; gap: 0.45rem; }
+.opcion {
+  width: 100%; display: grid; gap: 0.1rem; text-align: left; cursor: pointer;
+  min-height: var(--toque); padding: 0.6rem 0.85rem; font: inherit; color: var(--texto);
+  background: var(--superficie-2); border: 2px solid var(--borde); border-radius: var(--r-medio);
+}
+.opcion:hover:not([disabled]) { border-color: var(--primario); }
+.opcion--actual { border-color: var(--primario); background: var(--primario-suave); }
+.opcion[disabled] { cursor: not-allowed; background: transparent; border-style: dashed; color: var(--texto-suave); }
+.opcion__texto { font-weight: 700; }
+.opcion__marca { font-weight: 400; color: var(--texto-suave); }
+.opcion__detalle { font-size: 0.9rem; color: var(--texto-suave); }
+.opcion__motivo { font-size: 0.9rem; font-weight: 700; color: var(--peligro); }
+
+/* Semana del docente */
+.semana { display: grid; gap: 0.9rem; }
+.semana__dia h3 { margin-bottom: 0.35rem; }
+
+
 /* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
    El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */
 .avisos {

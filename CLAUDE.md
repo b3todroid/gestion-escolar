@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Fase actual: **Fase 1 (configuración escolar) — completada**.
+PWA **local-first** para gestión escolar. Fase actual: **Fase 2 (personal, materias, asignaciones y horario semanal) — completada**. Fase 1 (configuración escolar) completada y auditada.
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
 
 ## Comandos
@@ -18,6 +18,10 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 ## Flujo principal
 `#/asistente` (pages/asistente.ts): 6 pasos que crean escuela, ciclo, turno, periodos/recesos generados, grados y grupos en **una** transacción (`services/asistente.ts`, que reutiliza los demás servicios). El borrador vive en localStorage sólo como comodidad. Las pantallas `#/escuela/ID`, `#/ciclo/ID`, `#/turno/ID` permiten ajustar después.
 
+## Fase 2 (rutas)
+`#/escuela/ID/personal` (personal por escuela) · `#/personal/ID` (semana del docente) · `#/ciclo/ID/materias` · `#/grupo/ID` (materias asignadas + horario por día).
+Regla central: un docente no puede tener dos clases que se traslapen en **hora real** (aunque sean de turnos con periodos distintos): `services/conflictos.ts`.
+
 ## Capas (dependencias sólo hacia abajo)
 `pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
 - Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.
@@ -27,6 +31,7 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 ## Reglas obligatorias
 - IDs: `nuevoId()` (UUID). Nunca usar nombres como identificador.
 - Todo registro de configuración lleva `escuelaId` y `cicloEscolarId` cuando aplica. No mezclar escuelas ni ciclos.
+- Los métodos públicos de servicio que devuelven promesa son `async` (los errores de validación llegan como rechazo, nunca como excepción síncrona).
 - Validar toda entrada con Zod (`validators/esquemas.ts` + `validar()`), errores como `ErrorDominio` con `campos`.
 - **Nunca** `innerHTML`/`outerHTML`/`insertAdjacentHTML` con datos: usar `h()` (textContent).
 - Estilos dinámicos sólo vía CSSOM (`el.style.setProperty`): la CSP bloquea atributos `style="…"`.
@@ -39,5 +44,5 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 - No instalar ExcelJS, PDF.js, Tesseract.js, jsPDF/pdf-lib hasta la fase que los use; antes, verificar repositorio, licencia, mantenimiento, vulnerabilidades y tamaño, y documentarlo en `docs/ARQUITECTURA.md`.
 
 ## Fuera de alcance hasta nuevas fases
-Importación PDF/Excel, OCR, asistencia, Prefectura, personal/alumnos, sincronización, autenticación.
+Importación PDF/Excel, OCR, alumnos, asistencia, Prefectura, respaldos, sincronización, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

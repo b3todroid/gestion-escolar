@@ -1,4 +1,4 @@
-import { h } from './dom';
+import { agregar, h } from './dom';
 
 export interface OpcionesConfirmacion {
   titulo: string;
@@ -40,5 +40,51 @@ export function confirmar(op: OpcionesConfirmacion): Promise<boolean> {
     document.body.appendChild(dialogo);
     dialogo.showModal();
     cancelar.focus(); // la opción segura recibe el foco
+  });
+}
+
+export interface OpcionElegible {
+  valor: string;
+  texto: string;
+  detalle?: string;
+  /** Si existe, la opción se muestra deshabilitada con este motivo. */
+  motivo?: string | null;
+  actual?: boolean;
+}
+
+/**
+ * Diálogo para elegir una opción de una lista. Las no disponibles se muestran
+ * con el motivo (texto, no sólo color). Devuelve el valor elegido o null.
+ */
+export function elegir(op: { titulo: string; descripcion?: string; opciones: OpcionElegible[]; textoVacio?: string; opcionLiberar?: string }): Promise<string | null | ''> {
+  return new Promise((resolver) => {
+    const dialogo = h('dialog', { class: 'dialogo dialogo--lista', 'aria-labelledby': 'elegir-titulo' });
+    const cerrar = (r: string | null | '') => { dialogo.close(); dialogo.remove(); resolver(r); };
+    const botones = op.opciones.map((o) => {
+      const b = h('button', {
+        type: 'button', class: `opcion${o.actual ? ' opcion--actual' : ''}`, disabled: !!o.motivo,
+        'aria-describedby': o.motivo ? `motivo-${o.valor}` : undefined,
+      },
+        h('span', { class: 'opcion__texto' }, o.texto, o.actual ? h('span', { class: 'opcion__marca' }, ' (actual)') : null),
+        o.detalle ? h('span', { class: 'opcion__detalle' }, o.detalle) : null,
+        o.motivo ? h('span', { class: 'opcion__motivo', id: `motivo-${o.valor}` }, '⚠ ', o.motivo) : null,
+      );
+      b.addEventListener('click', () => cerrar(o.valor));
+      return h('li', {}, b);
+    });
+    const cancelar = h('button', { type: 'button', class: 'boton boton--secundario' }, 'Cancelar');
+    cancelar.addEventListener('click', () => cerrar(null));
+    const liberar = op.opcionLiberar ? h('button', { type: 'button', class: 'boton boton--peligro' }, op.opcionLiberar) : null;
+    liberar?.addEventListener('click', () => cerrar(''));
+    dialogo.addEventListener('cancel', (e) => { e.preventDefault(); cerrar(null); });
+    agregar(dialogo,
+      h('h2', { id: 'elegir-titulo' }, op.titulo),
+      op.descripcion ? h('p', { class: 'ayuda' }, op.descripcion) : null,
+      botones.length ? h('ul', { class: 'opciones' }, ...botones) : h('p', {}, op.textoVacio ?? 'No hay opciones disponibles.'),
+      h('div', { class: 'acciones' }, liberar, cancelar),
+    );
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
+    (dialogo.querySelector<HTMLButtonElement>('.opcion:not([disabled])') ?? cancelar).focus();
   });
 }

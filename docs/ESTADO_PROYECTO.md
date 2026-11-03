@@ -1,6 +1,24 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-02 (auditoría de Fase 1) · **Fase:** 1 — Configuración escolar · **Estado:** completada
+**Última actualización:** 2026-11-03 · **Fase:** 2 — Personal, materias, asignaciones y horario semanal · **Estado:** completada (pendiente de revisión con el usuario)
+
+## Hecho en Fase 2
+- Esquema v2 (sólo tablas nuevas) con prueba de migración desde v1 con datos.
+- Personal por escuela con funciones, baja/reactivación y datos mínimos.
+- Materias por ciclo, individuales o por lote.
+- Asignaciones por grupo (materia, docente o pendiente, horas por semana).
+- Horario semanal por grupo y día con detección de choques de docente por hora real, límite de horas y disponibilidad visible antes de elegir.
+- Semana de cada docente.
+- Reglas de la Fase 1 extendidas para proteger el horario (periodos, días, grupos, turnos).
+
+### Defectos encontrados y corregidos durante la Fase 2
+1. Métodos de servicio que lanzaban la validación de forma síncrona en lugar de rechazar la promesa (venía de la Fase 1; no se notaba en la interfaz). Ahora todos son `async`.
+2. Los avisos se apilaban al trabajar rápido y cubrían la pantalla. Ahora se muestra sólo el más reciente.
+
+### Verificación Fase 2 (ejecutada el 2026-11-03)
+- `npm run typecheck`: sin errores. `npm test`: 7 archivos, **64 pruebas** aprobadas (13 nuevas de Fase 2, incluida la migración).
+- `npm run test:e2e`: **22 pruebas** aprobadas (3 nuevas de Fase 2), estables en dos ejecuciones seguidas; fallan ante cualquier error de consola.
+- `npm run build`: correcto.
 
 ## Hecho en Fase 1
 - Asistente guiado de 6 pasos con generación de periodos, recesos y grupos, vista previa proporcional de la jornada («regla») y borrador recuperable.
@@ -43,6 +61,11 @@ Batería permanente nueva: `tests/e2e/auditoria.spec.ts` (10 pruebas) y `tests/e
 Las 3 fallas iniciales de la batería nueva eran errores de las pruebas, no de la app (selector ambiguo; un receso alargado que la app rechazó correctamente por traslape; texto de insignia con símbolo).
 
 ## Pendiente / siguientes pasos
+- Fase 2, pendientes conocidos:
+  - El horario se arma día por día; falta una vista semanal completa (tabla) para pantallas grandes e impresión.
+  - No hay «copiar el horario de un día a otro» ni asignar una materia a varios grupos a la vez.
+  - El asistente de la Fase 1 no incluye materias ni docentes; se capturan después.
+  - Sin control de horas máximas por docente (carga laboral).
 - Menores detectados en la auditoría (no corregidos para no cambiar funciones sin necesidad):
   - Pulsar «Editar» en un elemento reemplaza el formulario de alta del mismo panel sin preguntar; se pierde lo escrito en ese alta.
   - El aviso de éxito cubre el título de la página unos segundos (no bloquea toques).

@@ -7,6 +7,10 @@ import { paginaEscuela } from './pages/escuela';
 import { paginaCiclo } from './pages/ciclo';
 import { paginaHorario } from './pages/horario';
 import { paginaAsistente } from './pages/asistente';
+import { paginaPersonal } from './pages/personal';
+import { paginaMaterias } from './pages/materias';
+import { paginaGrupo } from './pages/grupo';
+import { paginaDocente } from './pages/docente';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 
 const principal = document.getElementById('contenido');
@@ -25,6 +29,10 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/escuela/:id/editar', paginaEscuelaEditar)
     .ruta('/ciclo/:id', paginaCiclo)
     .ruta('/turno/:id', paginaHorario)
+    .ruta('/escuela/:id/personal', paginaPersonal)
+    .ruta('/personal/:id', paginaDocente)
+    .ruta('/ciclo/:id/materias', paginaMaterias)
+    .ruta('/grupo/:id', paginaGrupo)
     .iniciar();
 }
 

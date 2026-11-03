@@ -25,6 +25,7 @@ export function avisar(mensaje: string, tipo: TipoAviso = 'info', duracionMs = t
     h('span', {}, mensaje),
     h('button', { type: 'button', class: 'aviso__cerrar', 'aria-label': 'Cerrar aviso', onclick: () => aviso.remove() }, '×'),
   );
-  obtenerContenedor().appendChild(aviso);
+  // Sólo el aviso más reciente: al trabajar rápido no se apilan sobre el contenido.
+  obtenerContenedor().replaceChildren(aviso);
   window.setTimeout(() => aviso.remove(), duracionMs);
 }

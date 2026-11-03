@@ -12,11 +12,11 @@ export class ServicioEscuelas {
     return todas.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }
 
-  obtener(id: string): Promise<Escuela> {
+  async obtener(id: string): Promise<Escuela> {
     return requerir(this.ctx.repos.escuelas.obtener(id), 'la escuela');
   }
 
-  crear(entrada: EntradaEscuela): Promise<Escuela> {
+  async crear(entrada: EntradaEscuela): Promise<Escuela> {
     const datos = validar(esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
@@ -32,7 +32,7 @@ export class ServicioEscuelas {
     await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
   }
 
-  actualizar(id: string, entrada: EntradaEscuela): Promise<Escuela> {
+  async actualizar(id: string, entrada: EntradaEscuela): Promise<Escuela> {
     const datos = validar(esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtener(id);
@@ -44,7 +44,7 @@ export class ServicioEscuelas {
   }
 
   /** Sólo se elimina una escuela sin ciclos escolares registrados. */
-  eliminar(id: string): Promise<void> {
+  async eliminar(id: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       await this.obtener(id);
       const ciclos = await this.ctx.repos.ciclos.contarPor('escuelaId', id);
@@ -53,6 +53,10 @@ export class ServicioEscuelas {
           'TIENE_DEPENDENCIAS',
           `La escuela tiene ${ciclos} ciclo(s) escolar(es). Elimínalos antes de eliminar la escuela.`,
         );
+      }
+      const personal = await this.ctx.repos.personal.contarPor('escuelaId', id);
+      if (personal > 0) {
+        throw new ErrorDominio('TIENE_DEPENDENCIAS', `La escuela tiene ${personal} persona(s) registradas. Elimínalas o consérvalas dadas de baja.`);
       }
       await this.ctx.repos.escuelas.eliminar(id);
     });

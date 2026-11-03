@@ -2,6 +2,8 @@ import type { Periodo, Receso } from '../models';
 import { esquemaBloque, validar, type EntradaBloque } from '../validators/esquemas';
 import { validarBloqueEnJornada, type BloqueHorario } from '../domain/reglas';
 import { compararPorInicio, duracionMinutos } from '../domain/tiempo';
+import { ErrorDominio } from '../domain/errores';
+import { choqueDocente } from './conflictos';
 import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
 
 export type TipoBloque = 'periodo' | 'receso';
@@ -44,7 +46,7 @@ export class ServicioHorario {
     };
   }
 
-  crear(tipo: TipoBloque, jornadaId: string, entrada: EntradaBloque): Promise<Periodo | Receso> {
+  async crear(tipo: TipoBloque, jornadaId: string, entrada: EntradaBloque): Promise<Periodo | Receso> {
     const datos = validar(esquemaBloque, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const jornada = await requerir(this.ctx.repos.jornadas.obtener(jornadaId), 'la jornada');
@@ -59,7 +61,7 @@ export class ServicioHorario {
     });
   }
 
-  actualizar(tipo: TipoBloque, id: string, entrada: EntradaBloque): Promise<Periodo | Receso> {
+  async actualizar(tipo: TipoBloque, id: string, entrada: EntradaBloque): Promise<Periodo | Receso> {
     const datos = validar(esquemaBloque, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.repo(tipo).obtener(id), tipo === 'periodo' ? 'el periodo' : 'el receso');
@@ -67,15 +69,29 @@ export class ServicioHorario {
       await cicloEditable(this.ctx, jornada.cicloEscolarId);
       const bloque = { ...actual, ...datos, ...metadatosActualizados(this.ctx, actual) };
       validarBloqueEnJornada({ ...bloque, tipo }, jornada, await bloquesDeJornada(this.ctx, jornada.id));
+      if (tipo === 'periodo') {
+        // Con el nuevo horario, ningún docente de este periodo puede quedar en dos grupos a la vez.
+        const sesiones = await this.ctx.repos.sesiones.listarPor('periodoId', id);
+        const propias = new Set(sesiones.map((s) => s.id));
+        for (const s of sesiones) {
+          if (!s.personalId) continue;
+          const choque = await choqueDocente(this.ctx, s.personalId, s.dia, bloque, propias);
+          if (choque) throw new ErrorDominio('TRASLAPE', `Con ese horario, ${choque.charAt(0).toLowerCase()}${choque.slice(1)}`, [{ campo: 'horaInicio', mensaje: choque }]);
+        }
+      }
       await this.repo(tipo).actualizar(bloque);
       return bloque;
     });
   }
 
-  eliminar(tipo: TipoBloque, id: string): Promise<void> {
+  async eliminar(tipo: TipoBloque, id: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.repo(tipo).obtener(id), tipo === 'periodo' ? 'el periodo' : 'el receso');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
+      if (tipo === 'periodo') {
+        const n = await this.ctx.repos.sesiones.contarPor('periodoId', id);
+        if (n > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Hay ${n} clase(s) programadas en este periodo. Quítalas del horario de los grupos primero.`);
+      }
       await this.repo(tipo).eliminar(id);
     });
   }

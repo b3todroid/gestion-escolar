@@ -55,6 +55,7 @@ function formularioCiclo(ctx: ContextoPagina, escuela: Escuela, ciclo: CicloEsco
 export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vista> {
   const escuela = await ctx.s.escuelas.obtener(id);
   const ciclos = await ctx.s.ciclos.listar(id);
+  const personal = await ctx.s.personal.listar(id);
 
   const contenedorForm = h('div', {});
   const panelForm = desplegable('Agregar ciclo escolar', ciclos.length === 0, contenedorForm);
@@ -124,6 +125,10 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
             if (ok && await ejecutar(async () => { await ctx.s.escuelas.eliminar(escuela.id); return 'Escuela eliminada.'; })) ctx.ir('#/');
           }, 'peligro'),
         ),
+      ),
+      seccion('personal', 'Personal',
+        h('p', {}, personal.length ? `${personal.filter((p) => p.activo).length} persona(s) activa(s), ${personal.filter((p) => p.activo && p.funciones.includes('docente')).length} con función docente.` : 'Registra una vez a docentes y demás personal; sirve para todos los ciclos.'),
+        h('a', { class: 'boton boton--chico', href: `#/escuela/${escuela.id}/personal` }, personal.length ? 'Ver personal' : 'Registrar personal'),
       ),
       seccion('ciclos', 'Ciclos escolares',
         ciclos.length ? h('ul', { class: 'tarjetas' }, ...ciclos.map(tarjetaCiclo)) : vacio('Agrega el primer ciclo escolar para configurar turnos, periodos, grados y grupos.'),

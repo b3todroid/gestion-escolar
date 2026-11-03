@@ -1,4 +1,4 @@
-# Reglas de negocio (Fase 1)
+# Reglas de negocio (Fases 1 y 2)
 
 Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`; aplicación en `src/services/*`. Pruebas en `tests/unit/`.
 
@@ -48,3 +48,38 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Un grupo pertenece a un grado y a un turno **del mismo ciclo** (no se mezclan ciclos ni escuelas).
 - Nombre de grupo único por grado + turno (puede existir 1° A matutino y 1° A vespertino).
 - Capacidad opcional, entero 1–80.
+
+# Fase 2
+
+## Personal
+- Se registra por escuela; sirve para todos los ciclos.
+- Nombre y primer apellido obligatorios; al menos una función.
+- Número de empleado opcional y único por escuela. Sin número, no puede repetirse el nombre completo (normalizado).
+- **Baja** en lugar de borrado: se conserva el historial. No se da de baja, ni se le quita la función docente, si tiene materias asignadas en ciclos no cerrados.
+- Sólo se elimina a quien nunca tuvo asignaciones.
+
+## Materias
+- Por ciclo; nombre único y abreviatura única (si se captura).
+- Alta por lote (una por renglón): todo o nada; se rechazan repetidas en la lista y las que ya existen.
+- No se elimina una materia asignada a algún grupo.
+
+## Asignaciones
+- Una materia una sola vez por grupo; grupo y materia del mismo ciclo.
+- Docente: activo, de la misma escuela y con función docente; puede quedar «pendiente».
+- Horas por semana 1–40; no pueden bajar de las ya puestas en el horario.
+- Al cambiar el docente se revisan choques en todas sus horas ya programadas.
+- Al quitar una asignación se quitan también sus horas del horario (con confirmación que indica cuántas).
+
+## Horario semanal (sesiones)
+- Sólo en días laborables del turno del grupo y en periodos de ese turno (no en recesos).
+- Una materia por celda; asignar sobre una celda ocupada la reemplaza.
+- No se rebasan las horas semanales de la materia.
+- **Un docente no puede tener dos clases que se traslapen en hora real**, aunque sean de turnos con periodos distintos.
+- El diálogo de selección muestra de antemano qué materias no caben y por qué.
+
+## Protección del horario frente a cambios de configuración
+- No se elimina un periodo con clases, ni un grupo con materias asignadas.
+- No se quita un día laborable del turno si hay clases ese día.
+- No se cambia de turno un grupo con clases programadas.
+- Si cambian las horas de un periodo, se verifica que ningún docente quede en dos grupos a la vez.
+- No se elimina un ciclo con materias, ni una escuela con personal registrado.

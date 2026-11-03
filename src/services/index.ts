@@ -8,6 +8,9 @@ import { ServicioGrados } from './grados';
 import { ServicioHorario } from './horario';
 import { ServicioTurnos } from './turnos';
 import { ServicioAsistente } from './asistente';
+import { ServicioPersonal } from './personal';
+import { ServicioMaterias } from './materias';
+import { ServicioAsignaciones } from './asignaciones';
 
 export interface Servicios {
   escuelas: ServicioEscuelas;
@@ -16,6 +19,9 @@ export interface Servicios {
   horario: ServicioHorario;
   grados: ServicioGrados;
   asistente: ServicioAsistente;
+  personal: ServicioPersonal;
+  materias: ServicioMaterias;
+  asignaciones: ServicioAsignaciones;
 }
 
 export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
@@ -26,7 +32,13 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     horario: new ServicioHorario(ctx),
     grados: new ServicioGrados(ctx),
   };
-  return { ...base, asistente: new ServicioAsistente(ctx, base) };
+  return {
+    ...base,
+    asistente: new ServicioAsistente(ctx, base),
+    personal: new ServicioPersonal(ctx),
+    materias: new ServicioMaterias(ctx),
+    asignaciones: new ServicioAsignaciones(ctx),
+  };
 }
 
 /** Punto único de composición: BD local + repositorios Dexie + servicios. */

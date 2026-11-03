@@ -9,7 +9,7 @@
  * Ver docs/MODELO_DATOS.md.
  */
 import { Dexie, type Table } from 'dexie';
-import type { CicloEscolar, Escuela, Grado, Grupo, Jornada, Periodo, Receso, Turno } from '../models';
+import type { Asignacion, CicloEscolar, Escuela, Grado, Grupo, Jornada, Materia, Periodo, Personal, Receso, Sesion, Turno } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 
@@ -22,6 +22,10 @@ export class BaseDatosEscolar extends Dexie {
   recesos!: Table<Receso, string>;
   grados!: Table<Grado, string>;
   grupos!: Table<Grupo, string>;
+  personal!: Table<Personal, string>;
+  materias!: Table<Materia, string>;
+  asignaciones!: Table<Asignacion, string>;
+  sesiones!: Table<Sesion, string>;
 
   constructor(nombre: string = NOMBRE_BD) {
     super(nombre);
@@ -38,8 +42,16 @@ export class BaseDatosEscolar extends Dexie {
       grupos: 'id, cicloEscolarId, gradoId, turnoId',
     });
 
-    // Ejemplo para fases futuras (NO descomentar sin documentar en MODELO_DATOS.md):
-    // this.version(2).stores({ docentes: 'id, escuelaId, cicloEscolarId' })
-    //   .upgrade(async (tx) => { /* transformar datos existentes sin perderlos */ });
+    // Versión 2 — Fase 2: personal, materias, asignaciones y horario semanal.
+    // Sólo agrega tablas; las de la versión 1 y sus datos no se modifican.
+    this.version(2).stores({
+      personal: 'id, escuelaId',
+      materias: 'id, cicloEscolarId, escuelaId',
+      asignaciones: 'id, cicloEscolarId, grupoId, materiaId, personalId',
+      sesiones: 'id, cicloEscolarId, grupoId, personalId, asignacionId, periodoId',
+    });
+
+    // Para fases futuras: agregar this.version(3) (con .upgrade() si hay que transformar
+    // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

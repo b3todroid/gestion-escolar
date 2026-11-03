@@ -28,13 +28,34 @@ Escuela 1─* CicloEscolar 1─* Turno 1─1 Jornada 1─* Periodo
 
 Toda entidad dentro de un ciclo guarda `escuelaId` y `cicloEscolarId` (desnormalizados) para consultar y aislar datos por escuela/ciclo, y para futuras reglas de permisos y sincronización.
 
+## Entidades de la Fase 2 (versión 2 del esquema)
+```
+Escuela 1─* Personal (funciones: docente, directivo, …)
+CicloEscolar 1─* Materia
+Grupo 1─* Asignacion *─1 Materia, *─0..1 Personal (docente)
+Asignacion 1─* Sesion *─1 Periodo   (Sesion = una hora del horario: día + periodo)
+```
+| Tabla | Campos | Índices |
+|---|---|---|
+| `personal` | escuelaId, nombre, primerApellido, segundoApellido?, numeroEmpleado?, funciones[], activo | `id`, `escuelaId` |
+| `materias` | escuelaId, cicloEscolarId, nombre, abreviatura? | `id`, `cicloEscolarId`, `escuelaId` |
+| `asignaciones` | escuelaId, cicloEscolarId, grupoId, materiaId, personalId?, horasSemana | `id`, `cicloEscolarId`, `grupoId`, `materiaId`, `personalId` |
+| `sesiones` | escuelaId, cicloEscolarId, asignacionId, grupoId, personalId?, dia (1–7), periodoId | `id`, `cicloEscolarId`, `grupoId`, `personalId`, `asignacionId`, `periodoId` |
+
+Decisiones:
+- **Docente no es una tabla aparte**: es una función de `Personal`. Una persona puede ser docente y prefecta sin duplicarse.
+- `Personal` pertenece a la escuela, no al ciclo: se reutiliza en todos los ciclos. Materias y asignaciones sí son por ciclo.
+- `Sesion` guarda `grupoId` y `personalId` desnormalizados para consultar rápido los choques del docente; al cambiar el docente de una asignación se actualizan sus sesiones en la misma transacción.
+- **Datos personales mínimos**: no se guardan CURP, RFC, teléfonos ni domicilios.
+
 ## Entidades previstas (fases posteriores)
-Personal, Docente, Alumno, Materia, Asignación, Horario, Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
+Alumno, Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
 ## Versionado y migraciones
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 2 | 2026-11-03 | Agrega `personal`, `materias`, `asignaciones`, `sesiones`. Sin cambios en tablas v1; prueba de migración con datos en `tests/unit/fase2.test.ts`. |
 
 Procedimiento:
 1. No modificar `this.version(1)`. Agregar `this.version(2).stores({...})` sólo con las tablas/índices nuevos o cambiados.

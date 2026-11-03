@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 
@@ -190,3 +190,46 @@ export interface EntradaAsistente {
   horario: EntradaPlantillaHorario;
   grados: EntradaGradosGrupos;
 }
+
+// ===================== Fase 2 =====================
+
+export const esquemaPersonal = z.object({
+  nombre: texto('El nombre', 2, 60),
+  primerApellido: texto('El primer apellido', 2, 60),
+  segundoApellido: textoOpcional('El segundo apellido', 60),
+  numeroEmpleado: textoOpcional('El número de empleado', 20)
+    .transform((v) => (v ? v.toUpperCase() : null))
+    .refine((v) => v === null || /^[A-Z0-9-]+$/.test(v), { message: 'El número de empleado sólo admite letras, números y guiones.' }),
+  funciones: z.array(z.enum(FUNCIONES_PERSONAL)).min(1, 'Selecciona al menos una función.')
+    .transform((f) => [...new Set(f)]),
+});
+
+export const esquemaMateria = z.object({
+  nombre: texto('El nombre de la materia', 2, 80),
+  abreviatura: textoOpcional('La abreviatura', 12),
+});
+
+/** Varias materias, una por renglón (captura rápida). */
+export const esquemaMateriasLote = z
+  .string()
+  .transform((t) => t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))
+  .pipe(z.array(texto('Cada materia', 2, 80)).min(1, 'Escribe al menos una materia.').max(40, 'Máximo 40 materias a la vez.'));
+
+export const esquemaAsignacion = z.object({
+  grupoId: z.uuid('Selecciona un grupo.'),
+  materiaId: z.uuid('Selecciona una materia.'),
+  personalId: z.uuid('Selecciona un docente válido.').nullable().optional().transform((v) => v ?? null),
+  horasSemana: z.number('Indica las horas por semana.').int('Usa un número entero.').min(1, 'Mínimo 1 hora.').max(40, 'Máximo 40 horas.'),
+});
+
+export const esquemaSesion = z.object({
+  grupoId: z.uuid(),
+  asignacionId: z.uuid('Selecciona una materia.'),
+  periodoId: z.uuid(),
+  dia: z.number().int().min(1).max(7),
+});
+
+export type EntradaPersonal = z.input<typeof esquemaPersonal>;
+export type EntradaMateria = z.input<typeof esquemaMateria>;
+export type EntradaAsignacion = z.input<typeof esquemaAsignacion>;
+export type EntradaSesion = z.input<typeof esquemaSesion>;

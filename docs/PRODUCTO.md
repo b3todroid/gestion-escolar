@@ -16,10 +16,17 @@ Una persona responsable de la configuración (dirección, subdirección o coordi
 - Grados y grupos por ciclo, asignando cada grupo a un turno.
 - Persistencia local (IndexedDB) y funcionamiento sin conexión (Service Worker).
 
+## Fase 2 — Personal, materias y horarios (entregada)
+- Personal por escuela (se registra una vez para todos los ciclos), con funciones: docente, directivo, administrativo, prefectura, apoyo educativo. Alta, edición, baja (conserva historial) y reactivación.
+- Materias por ciclo, una por una o varias a la vez (una por renglón).
+- Asignaciones por grupo: materia, docente (o «pendiente») y horas por semana.
+- Horario semanal de cada grupo por día; al elegir la materia de cada hora se ve de antemano cuáles no se pueden y por qué.
+- Semana de cada docente con todos sus grupos.
+
 ## Fases futuras (no implementadas)
 | Fase | Contenido previsto |
 |---|---|
-| 2 | Personal, docentes, materias, asignaciones y horarios |
+| 2 | ✓ Personal, docentes, materias, asignaciones y horarios |
 | 3 | Importación Excel (ExcelJS) y PDF (PDF.js), OCR (Tesseract.js) |
 | 4 | Alumnos, asistencia, incidencias, salidas del aula, coberturas, Prefectura |
 | 5 | Reportes PDF (jsPDF o pdf-lib), respaldo y restauración |

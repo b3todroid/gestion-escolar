@@ -43,6 +43,10 @@ export function crearRepositoriosDexie(db: BaseDatosEscolar): Repositorios {
     recesos: new RepositorioDexie(db.recesos),
     grados: new RepositorioDexie(db.grados),
     grupos: new RepositorioDexie(db.grupos),
+    personal: new RepositorioDexie(db.personal),
+    materias: new RepositorioDexie(db.materias),
+    asignaciones: new RepositorioDexie(db.asignaciones),
+    sesiones: new RepositorioDexie(db.sesiones),
   };
 }
 

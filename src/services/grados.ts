@@ -21,7 +21,7 @@ export class ServicioGrados {
     return grados.sort((a, b) => a.numero - b.numero);
   }
 
-  crearGrado(cicloId: string, entrada: EntradaGrado): Promise<Grado> {
+  async crearGrado(cicloId: string, entrada: EntradaGrado): Promise<Grado> {
     const datos = validar(esquemaGrado, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
@@ -32,7 +32,7 @@ export class ServicioGrados {
     });
   }
 
-  actualizarGrado(id: string, entrada: EntradaGrado): Promise<Grado> {
+  async actualizarGrado(id: string, entrada: EntradaGrado): Promise<Grado> {
     const datos = validar(esquemaGrado, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.ctx.repos.grados.obtener(id), 'el grado');
@@ -44,7 +44,7 @@ export class ServicioGrados {
     });
   }
 
-  eliminarGrado(id: string): Promise<void> {
+  async eliminarGrado(id: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.ctx.repos.grados.obtener(id), 'el grado');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
@@ -68,11 +68,15 @@ export class ServicioGrados {
 
   // ---------- Grupos ----------
 
-  listarGrupos(cicloId: string): Promise<Grupo[]> {
+  async obtenerGrupo(id: string): Promise<Grupo> {
+    return requerir(this.ctx.repos.grupos.obtener(id), 'el grupo');
+  }
+
+  async listarGrupos(cicloId: string): Promise<Grupo[]> {
     return this.ctx.repos.grupos.listarPor('cicloEscolarId', cicloId);
   }
 
-  crearGrupo(cicloId: string, entrada: EntradaGrupo): Promise<Grupo> {
+  async crearGrupo(cicloId: string, entrada: EntradaGrupo): Promise<Grupo> {
     const datos = validar(esquemaGrupo, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
@@ -83,22 +87,28 @@ export class ServicioGrados {
     });
   }
 
-  actualizarGrupo(id: string, entrada: EntradaGrupo): Promise<Grupo> {
+  async actualizarGrupo(id: string, entrada: EntradaGrupo): Promise<Grupo> {
     const datos = validar(esquemaGrupo, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.ctx.repos.grupos.obtener(id), 'el grupo');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       await this.verificarGrupo(actual.cicloEscolarId, datos, id);
+      if (datos.turnoId !== actual.turnoId && (await this.ctx.repos.sesiones.contarPor('grupoId', id)) > 0) {
+        const mensaje = 'El grupo ya tiene clases en el horario de su turno. Quítalas antes de cambiarlo de turno.';
+        throw new ErrorDominio('TIENE_DEPENDENCIAS', mensaje, [{ campo: 'turnoId', mensaje }]);
+      }
       const grupo: Grupo = { ...actual, ...datos, ...metadatosActualizados(this.ctx, actual) };
       await this.ctx.repos.grupos.actualizar(grupo);
       return grupo;
     });
   }
 
-  eliminarGrupo(id: string): Promise<void> {
+  async eliminarGrupo(id: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       const actual = await requerir(this.ctx.repos.grupos.obtener(id), 'el grupo');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
+      const asignadas = await this.ctx.repos.asignaciones.contarPor('grupoId', id);
+      if (asignadas > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${asignadas} materia(s) asignada(s). Quítalas primero.`);
       await this.ctx.repos.grupos.eliminar(id);
     });
   }

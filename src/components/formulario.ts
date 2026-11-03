@@ -187,3 +187,13 @@ export async function ejecutar(accion: () => Promise<string>): Promise<boolean> 
     return false;
   }
 }
+
+export function areaTexto(form: string, op: { nombre: string; etiqueta: string; ayuda?: string; filas?: number; requerido?: boolean }): HTMLDivElement {
+  const i = ids(form, op.nombre);
+  return h('div', { class: 'campo', 'data-campo': op.nombre },
+    h('label', { for: i.campo }, op.etiqueta, op.requerido ? h('span', { class: 'requerido' }, ' (obligatorio)') : null),
+    op.ayuda ? h('p', { class: 'ayuda', id: i.ayuda }, op.ayuda) : null,
+    h('textarea', { id: i.campo, name: op.nombre, rows: op.filas ?? 5, required: op.requerido, 'aria-describedby': [op.ayuda ? i.ayuda : '', i.error].filter(Boolean).join(' ') }),
+    h('p', { class: 'error-campo', id: i.error, hidden: true }),
+  );
+}

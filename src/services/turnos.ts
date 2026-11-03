@@ -43,7 +43,7 @@ export class ServicioTurnos {
     return { turno, jornada };
   }
 
-  crear(cicloId: string, entrada: EntradaTurno): Promise<TurnoConJornada> {
+  async crear(cicloId: string, entrada: EntradaTurno): Promise<TurnoConJornada> {
     const datos = validar(esquemaTurnoConJornada, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
@@ -62,7 +62,7 @@ export class ServicioTurnos {
     });
   }
 
-  actualizar(turnoId: string, entrada: EntradaTurno): Promise<TurnoConJornada> {
+  async actualizar(turnoId: string, entrada: EntradaTurno): Promise<TurnoConJornada> {
     const datos = validar(esquemaTurnoConJornada, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtener(turnoId);
@@ -78,6 +78,18 @@ export class ServicioTurnos {
         throw new ErrorDominio('FUERA_DE_JORNADA', mensaje, [{ campo: 'horaInicio', mensaje }]);
       }
 
+      const diasQuitados = actual.jornada.dias.filter((d) => !datos.dias.includes(d));
+      if (diasQuitados.length > 0) {
+        const grupos = await this.ctx.repos.grupos.listarPor('turnoId', turnoId);
+        for (const g of grupos) {
+          const ocupado = (await this.ctx.repos.sesiones.listarPor('grupoId', g.id)).find((s) => diasQuitados.includes(s.dia));
+          if (ocupado) {
+            const dia = DIAS_SEMANA.find((d) => d.valor === ocupado.dia)?.nombre ?? '';
+            const mensaje = `Hay clases programadas el ${dia.toLowerCase()} en grupos de este turno. Quítalas antes de quitar ese día.`;
+            throw new ErrorDominio('TIENE_DEPENDENCIAS', mensaje, [{ campo: 'dias', mensaje }]);
+          }
+        }
+      }
       const turno: Turno = { ...actual.turno, nombre: datos.nombre, ...metadatosActualizados(this.ctx, actual.turno) };
       const jornada: Jornada = {
         ...actual.jornada, horaInicio: datos.horaInicio, horaFin: datos.horaFin, dias: datos.dias,
@@ -103,7 +115,7 @@ export class ServicioTurnos {
    * Elimina el turno con su jornada, periodos y recesos.
    * Se bloquea si hay grupos asignados al turno (información de otra entidad).
    */
-  eliminar(turnoId: string): Promise<void> {
+  async eliminar(turnoId: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       const { turno, jornada } = await this.obtener(turnoId);
       await cicloEditable(this.ctx, turno.cicloEscolarId);

@@ -115,6 +115,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
   const turnos = await ctx.s.turnos.listar(id);
   const grados = await ctx.s.grados.listarGrados(id);
   const grupos = await ctx.s.grados.listarGrupos(id);
+  const materias = await ctx.s.materias.listar(id);
   const resumenes = await Promise.all(turnos.map((t) => ctx.s.horario.resumen(t.jornada.id)));
   const editable = ciclo.estado !== 'cerrado';
   const nombreTurno = new Map(turnos.map((t) => [t.turno.id, t.turno.nombre]));
@@ -179,6 +180,9 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
             ? h('ul', { class: 'grupos' }, ...suyos.map((gr) => h('li', { class: 'grupo' },
                 h('span', { class: 'grupo__nombre' }, `${g.numero}° ${gr.nombre}`),
                 h('span', { class: 'grupo__meta' }, nombreTurno.get(gr.turnoId) ?? 'Turno desconocido', gr.capacidad ? `, ${gr.capacidad} lugares` : ''),
+                h('span', { class: 'grupo__acciones' },
+                  h('a', { class: 'boton boton--chico', href: `#/grupo/${gr.id}`, 'aria-label': `Materias y horario de ${g.numero}° ${gr.nombre}` }, 'Materias y horario'),
+                ),
                 editable ? h('span', { class: 'grupo__acciones' },
                   botonAccion('Editar', () => {
                     contGrupo.replaceChildren(formularioGrupo(ctx, ciclo, grados, turnos, gr, altaGrupo));
@@ -213,6 +217,7 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
     ['Periodos de clase', resumenes.some((r) => r.bloques.some((b) => b.tipo === 'periodo'))],
     ['Grados', grados.length > 0],
     ['Grupos', grupos.length > 0],
+    ['Materias', materias.length > 0],
   ];
 
   return {
@@ -226,6 +231,10 @@ export async function paginaCiclo(ctx: ContextoPagina, id: string): Promise<Vist
         h('ol', {}, ...pasos.map(([t, ok]) => h('li', { class: ok ? 'hecho' : 'pendiente' }, icono(ok ? '✓' : '○'), ' ', t, h('span', { class: 'solo-lectores' }, ok ? ': completo' : ': pendiente')))),
       ),
       seccion('turnos', 'Turnos y jornadas', listaTurnos, editable ? panelTurno : null),
+      seccion('materias', 'Materias',
+        h('p', {}, materias.length ? `${materias.length} materia(s): ${materias.slice(0, 6).map((m) => m.nombre).join(', ')}${materias.length > 6 ? '…' : '.'}` : 'Captura las materias del ciclo una vez; después se asignan a cada grupo.'),
+        h('a', { class: 'boton boton--chico', href: `#/ciclo/${ciclo.id}/materias` }, materias.length ? 'Ver materias' : 'Registrar materias'),
+      ),
       seccion('grados', 'Grados y grupos',
         listaGrados,
         editable ? panelGrado : null,

@@ -18,11 +18,11 @@ export class ServicioCiclos {
     return ciclos.sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio));
   }
 
-  obtener(id: string): Promise<CicloEscolar> {
+  async obtener(id: string): Promise<CicloEscolar> {
     return requerir(this.ctx.repos.ciclos.obtener(id), 'el ciclo escolar');
   }
 
-  crear(escuelaId: string, entrada: EntradaCiclo): Promise<CicloEscolar> {
+  async crear(escuelaId: string, entrada: EntradaCiclo): Promise<CicloEscolar> {
     const datos = validar(esquemaCiclo, entrada);
     return this.ctx.uow.ejecutar(async () => {
       await requerir(this.ctx.repos.escuelas.obtener(escuelaId), 'la escuela');
@@ -33,7 +33,7 @@ export class ServicioCiclos {
     });
   }
 
-  actualizar(id: string, entrada: EntradaCiclo): Promise<CicloEscolar> {
+  async actualizar(id: string, entrada: EntradaCiclo): Promise<CicloEscolar> {
     const datos = validar(esquemaCiclo, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await cicloEditable(this.ctx, id);
@@ -44,7 +44,7 @@ export class ServicioCiclos {
     });
   }
 
-  cambiarEstado(id: string, nuevo: EstadoCiclo): Promise<CicloEscolar> {
+  async cambiarEstado(id: string, nuevo: EstadoCiclo): Promise<CicloEscolar> {
     const estado = validar(esquemaEstadoCiclo, nuevo);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtener(id);
@@ -67,14 +67,15 @@ export class ServicioCiclos {
   }
 
   /** Sólo se elimina un ciclo vacío (sin turnos ni grados). */
-  eliminar(id: string): Promise<void> {
+  async eliminar(id: string): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       await this.obtener(id);
       const turnos = await this.ctx.repos.turnos.contarPor('cicloEscolarId', id);
       const grados = await this.ctx.repos.grados.contarPor('cicloEscolarId', id);
-      if (turnos + grados > 0) {
+      const materias = await this.ctx.repos.materias.contarPor('cicloEscolarId', id);
+      if (turnos + grados + materias > 0) {
         throw new ErrorDominio('TIENE_DEPENDENCIAS',
-          `El ciclo tiene ${turnos} turno(s) y ${grados} grado(s). Elimínalos antes de eliminar el ciclo.`);
+          `El ciclo tiene ${turnos} turno(s), ${grados} grado(s) y ${materias} materia(s). Elimínalos antes de eliminar el ciclo.`);
       }
       await this.ctx.repos.ciclos.eliminar(id);
     });
