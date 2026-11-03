@@ -1,6 +1,6 @@
 # Fase 8A — Arquitectura multiusuario y sincronización (diseño)
 
-**Estado:** diseño propuesto, **pendiente de autorización**. No se implementó backend, no se crearon recursos externos, no se contrató ningún servicio y no se migró ningún dato.
+**Estado:** diseño propuesto; decisiones D1–D9 tomadas por el usuario el 2026-11-03 (sección 15). **Pendiente de autorización** para iniciar 8B. No se implementó backend, no se crearon recursos externos, no se contrató ningún servicio y no se migró ningún dato.
 **Fecha:** 2026-11-03 · **Alcance:** auditoría, comparación de alternativas, arquitectura, riesgos, costos estimados, plan de migración y decisiones pendientes.
 
 > Este documento no es asesoría legal. Los apartados de privacidad deben revisarlos la Unidad de Transparencia / área jurídica de la autoridad educativa o de la escuela antes de tratar datos reales.
@@ -290,6 +290,29 @@ No se migrará información real sin la autorización del paso 6. Las pruebas us
 | D10 | Escuelas piloto y fechas | — | Planeación de 8E |
 
 ---
+
+## 15. Decisiones tomadas (2026-11-03) y ajustes al diseño
+| # | Decisión del usuario | Efecto en el diseño |
+|---|---|---|
+| D1 | **Sí**: los datos residen en México | Se descarta Supabase gestionado (sin región en México). Opción vigente: **PostgreSQL en una región de nube en México** con el mismo esquema, RLS y API; autenticación con Supabase Auth (GoTrue) autohospedado o un proveedor OIDC autohospedado (Keycloak/Zitadel) en la misma región. Proveedor concreto (Google Cloud Querétaro, AWS México, Azure México Central u otro) por elegir y verificar en 8B: ver D11 |
+| D2 | **Cada escuela** es responsable del tratamiento | Aviso de privacidad por escuela (la app ofrecerá una plantilla editable); el proveedor de nube y quien opere el servidor actúan como encargados; cada escuela administra sus membresías y atiende derechos ARCO. Aislamiento por escuela es requisito legal, no sólo técnico |
+| D3 | **Ambos** métodos: SSO institucional y código por correo | Se habilitan ambos en el proveedor de identidad; una misma persona puede vincular los dos |
+| D4 | **No** todo el personal tiene correo institucional | Quien no tenga correo institucional entrará con código a un **correo personal** que la persona proporciona con su consentimiento (dato nuevo, declarado en el aviso de privacidad, visible sólo para el administrador de la escuela). Alternativa a evaluar: código por SMS (tiene costo por mensaje). Ver D12 |
+| D5 | El **administrador de cada escuela** confirma incidencias y autoriza coberturas | Nuevo rol por escuela «administrador de escuela» con permiso C en incidencias y coberturas. Interpretación: el administrador puede **delegar** ese permiso a Dirección o Subdirección mediante membresías; si no delega, sólo él confirma y autoriza. `autorizadoPor` deja de ser texto libre: será el usuario autenticado |
+| D6 | **No** habrá acceso de padres, tutores ni alumnos | Los alumnos siguen sin ser usuarios; no se piden sus correos |
+| D7 | Conservación: **1 ciclo escolar** | Al cerrar un ciclo, sus datos quedan en sólo lectura; al terminar el ciclo siguiente se ofrece al administrador exportar un respaldo cifrado y **depurar** el ciclo del servidor (borrado o anonimización). La depuración nunca es automática: exige confirmación del administrador y queda en la auditoría. Se recomienda verificar con el área jurídica si alguna constancia (p. ej. asistencia para efectos oficiales) exige un plazo mayor |
+| D8 | El **administrador** es dueño de la cuenta del proveedor y paga | Las credenciales de la cuenta de nube y las claves de servicio las custodia sólo el administrador; nunca en el código ni en el cliente. Se documentará un procedimiento de continuidad (qué pasa si el administrador cambia) |
+| D9 | **Sí** se mantiene el modo sólo local | La app sigue funcionando sin cuenta, como hoy. Unirse al servidor es opcional y por escuela |
+| D10 | Piloto: escuela **por definir**, **durante el ciclo escolar** | 8E se planea para iniciar durante un ciclo en curso: migración por escuela con la reversión del paso 9 y sin interrumpir el uso local |
+
+### Nuevas decisiones pendientes
+| # | Decisión | Opciones |
+|---|---|---|
+| D11 | Proveedor de nube en México (lo contrata y paga el administrador, D8) | Google Cloud (Querétaro) / AWS (México) / Azure (México Central) / centro de datos institucional. Se compararán precios y servicios gestionados disponibles en la región **antes** de contratar |
+| D12 | Personal sin correo institucional | Correo personal con consentimiento (recomendado) / SMS (costo) / ambos |
+
+### Ajuste al plan 8B
+Para no crear recursos externos antes de D11, 8B se desarrollará y probará **en un entorno local** (PostgreSQL y el proveedor de identidad en contenedores dentro del entorno de desarrollo) con datos ficticios. El despliegue en la nube del administrador será un paso aparte, con autorización.
 
 ## 14. Fuentes consultadas (noviembre de 2026)
 - Supabase, regiones disponibles: <https://supabase.com/docs/guides/platform/regions>
