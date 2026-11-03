@@ -147,3 +147,7 @@ Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e
 ## Fase 8D — sincronización
 - `servidor/pruebas/dispositivos.test.ts` (12): dispositivos simulados (fake-indexeddb + sesión real + misma app) contra el servidor: sin conexión, cola, conflictos de versión y de clave natural, rechazos, idempotencia, bajas, revocación, bloqueo de restauración.
 - `tests/e2e-servidor/sincronizacion.spec.ts`: navegador real, sin conexión → indicador → reconexión → sincronizado.
+
+## Fase 8E — migración
+- `servidor/pruebas/migracion.test.ts` (9): preparar, ensayo sin escritura, huella, autorización, migrar, validar, revertir, cambio de dispositivo y bloqueo de reversión tras cambios.
+- `tests/e2e-servidor/migracion.spec.ts`: piloto institucional ficticio de punta a punta en el navegador (9 pasos).

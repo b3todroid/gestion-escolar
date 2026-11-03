@@ -178,3 +178,4 @@ Una prueba verifica que el espejo coincide campo por campo con `validators/respa
 
 ## Local v11 (Fase 8D)
 `pendientes` (cola de cambios por enviar: `++orden, &opId, escuelaId, estado, [tabla+registroId]`) y `vinculos` (escuelas sincronizadas: `escuelaId`). Sólo tablas nuevas; propias del dispositivo, no van en los respaldos. Los repositorios Dexie encolan en la misma transacción los cambios de escuelas vinculadas.
+- `0006_migracion` (Fase 8E, `docs/MIGRACION.md`): `acceso.migraciones` (autorización, conteos, huella, escuela previa, secuencia final; una vigente por escuela) y `acceso.migracion_registros` (para revertir); `umbral_confianza` a `double precision` (exactitud de la huella); excepción de ciclo cerrado sólo dentro de la transacción de migración del servidor (`app.migracion`), nunca para `gestion_app`.

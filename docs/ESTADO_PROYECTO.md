@@ -1,6 +1,20 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8D — Sincronización sin conexión** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8E sin autorización. Esquema local v11 (sólo tablas nuevas).
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8E — Migración y piloto institucional (ficticio)** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. **Ningún dato real migrado.** El despliegue y la migración real requieren autorización (D11, D2, D10). Esquema local v11.
+
+## Fase 8E — Migración y piloto institucional ficticio (2026-11-03)
+**Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 98 del servidor, 3 con servidor real).
+
+**Implementado (detalle en `docs/MIGRACION.md`):**
+- Asistente `#/migracion` en 9 pasos: respaldo cifrado, validación, preparación por CCT, ensayo sin escritura, integridad (conteos y huella canónica), autorización registrada, migración todo o nada, validación al releer y cambio del dispositivo a la versión sincronizada.
+- Reversión completa en el servidor, bloqueada si hubo cambios posteriores, más el respaldo local. Historial y auditoría.
+- Migración 0006.
+
+**Defectos encontrados y corregidos:**
+- La columna `real` alteraba 0.6 al guardarse y rompía la huella; se cambió a `double precision`.
+- La regla de ciclo cerrado impedía migrar el historial; se agregó una excepción sólo para la transacción de migración. La primera versión de esa excepción no distinguía a la API (función con permisos del dueño); se corrigió.
+
+**Pendientes / límites:** sin despliegue ni migración real; aviso de privacidad por escuela; escuela piloto (D10); base local por persona. La prueba funcional de PDF «Conservación de datos» falló una vez por tiempo y pasó al repetir (intermitente, no relacionada).
 
 ## Fase 8D — Sincronización sin conexión (2026-11-03)
 **Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 86 del servidor, 2 con servidor real). Decisiones: D13 se mantiene; D14 sí (el administrador modifica grupos y horarios).

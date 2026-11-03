@@ -20,6 +20,8 @@ import type { BuzonDesarrollo, EnviadorCorreo } from './correo.ts';
 const LIMITE_CUERPO = 64 * 1024;
 /** Los lotes de sincronización pueden traer registros completos (p. ej. adjuntos del banco de actividades ≤ 1 MB). */
 const LIMITE_SINCRONIZACION = 4 * 1024 * 1024;
+/** Una migración trae la escuela completa de una sola vez. */
+const LIMITE_MIGRACION = 40 * 1024 * 1024;
 
 export interface ServidorEscolar { servidor: Server; cerrar(): Promise<void> }
 
@@ -86,7 +88,7 @@ export function crearServidorHttp(cfg: Configuracion, bd: Pool, auth: Auth, corr
         return;
       }
 
-      const cuerpoCrudo = metodo === 'POST' ? await leerCuerpo(req, url.pathname.endsWith('/sincronizacion') ? LIMITE_SINCRONIZACION : LIMITE_CUERPO) : Buffer.alloc(0);
+      const cuerpoCrudo = metodo === 'POST' ? await leerCuerpo(req, url.pathname.endsWith('/sincronizacion') ? LIMITE_SINCRONIZACION : /\/migracion(\/ensayo)?$/.test(url.pathname) ? LIMITE_MIGRACION : LIMITE_CUERPO) : Buffer.alloc(0);
       if (metodo === 'POST') {
         const o = req.headers.origin;
         if (o !== origen) throw new ErrorApi(403, 'ORIGEN', 'Origen no permitido.');

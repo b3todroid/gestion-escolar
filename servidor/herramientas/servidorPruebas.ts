@@ -18,8 +18,11 @@ const docenteId = randomUUID();
 await e.bd.query(`INSERT INTO "user" (id, name, email, "emailVerified", "twoFactorEnabled", "createdAt", "updatedAt") VALUES ($1, 'Docente Uno Ficticio', 'docente.uno.e2e@ejemplo.test', true, false, now(), now())`, [docenteId]);
 await e.bd.query(`INSERT INTO acceso.membresias (usuario_id, escuela_id, rol, estado, personal_id, tipo_correo, expira_en, aceptada_en)
   VALUES ($1, $2, 'docente', 'activa', $3, 'institucional', now() + interval '1 day', now())`, [docenteId, escuelaId, semilla.d1]);
+// Escuela VACÍA en el servidor para el piloto de migración (su administrador está invitado).
+const destino = await escuelaFicticia(e, 'admin.migracion.e2e@ejemplo.test');
+const cctDestino = (await e.bd.query('SELECT cct FROM escolar.escuelas WHERE id = $1', [destino.escuelaId])).rows[0].cct as string;
 mkdirSync('test-results', { recursive: true });
-writeFileSync('test-results/semilla-e2e.json', JSON.stringify(semilla));
+writeFileSync('test-results/semilla-e2e.json', JSON.stringify({ ...semilla, migracion: { escuelaId: destino.escuelaId, cct: cctDestino, correo: 'admin.migracion.e2e@ejemplo.test' } }));
 console.info(`Servidor de pruebas listo en ${e.base} · escuela ficticia ${escuelaId}`);
 let cerrando = false;
 const terminar = async () => { if (cerrando) return; cerrando = true; await e.cerrar(); process.exit(0); };

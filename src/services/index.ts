@@ -3,6 +3,7 @@ import { ServicioRespaldos } from './respaldos';
 import { crearAlmacenSincronizacionDexie, crearRepositoriosDexie, crearUnidadDeTrabajoDexie } from '../repositories/dexie';
 import type { AlmacenSincronizacion } from '../repositories/tipos';
 import { ServicioSincronizacion } from './sincronizacion';
+import { ServicioMigracion } from './migracion';
 import { ErrorDominio } from '../domain/errores';
 import { relojSistema, type Reloj } from '../utils/reloj';
 import type { Contexto } from './contexto';
@@ -55,6 +56,8 @@ export interface Servicios {
   cuenta: ServicioCuenta;
   /** Sincronización con el servidor escolar (Fase 8D). */
   sincronizacion: ServicioSincronizacion;
+  /** Migración de una escuela local al servidor (Fase 8E). */
+  migracion: ServicioMigracion;
 }
 
 /** En el servidor no hay cola local: cualquier uso es un error de programación. */
@@ -62,6 +65,7 @@ const sinAlmacen = new Proxy({}, { get: () => () => Promise.reject(new ErrorDomi
 
 export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServidor = new ClienteServidorHttp(), almacen: AlmacenSincronizacion = sinAlmacen): Servicios {
   const sincronizacion = new ServicioSincronizacion(almacen, servidor, ctx.repos, ctx.reloj);
+  const respaldos = new ServicioRespaldos(ctx, VERSION_ESQUEMA, (id) => sincronizacion.estaVinculada(id));
   const base = {
     escuelas: new ServicioEscuelas(ctx),
     ciclos: new ServicioCiclos(ctx),
@@ -86,7 +90,8 @@ export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServ
     plantillas: new ServicioPlantillasImportacion(ctx),
     prefectura: new ServicioPrefectura(ctx),
     importacionDatos: new ServicioImportacionDatos(ctx),
-    respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA, (id) => sincronizacion.estaVinculada(id)),
+    respaldos,
+    migracion: new ServicioMigracion(respaldos, sincronizacion, servidor, ctx.repos, almacen),
     cuenta: new ServicioCuenta(servidor),
     sincronizacion,
   };

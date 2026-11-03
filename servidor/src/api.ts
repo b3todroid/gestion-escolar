@@ -18,6 +18,7 @@ import { ErrorApi } from './errores.ts';
 import { DatosEscolares, type Actor } from './datosEscolares.ts';
 import { ejecutarComando, esquemaPeticionComando } from './comandos.ts';
 import { Sincronizacion } from './sincronizacion.ts';
+import { Migracion } from './migracion.ts';
 
 export { ErrorApi };
 
@@ -64,10 +65,12 @@ export class ApiEscolar {
   private readonly correo: EnviadorCorreo;
   private readonly datos: DatosEscolares;
   private readonly sinc: Sincronizacion;
+  private readonly migracion: Migracion;
   constructor(cfg: Configuracion, bd: Pool, auth: Auth, correo: EnviadorCorreo) {
     this.cfg = cfg; this.bd = bd; this.auth = auth; this.correo = correo;
     this.datos = new DatosEscolares(bd, cfg.ZONA_HORARIA);
     this.sinc = new Sincronizacion(bd, this.datos);
+    this.migracion = new Migracion(bd);
   }
 
   async atender(p: Peticion): Promise<Respuesta> {
@@ -89,6 +92,10 @@ export class ApiEscolar {
     if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/tablas\/([A-Za-z]+)$/))) return this.leerTabla(p, m[1]!, m[2]!);
     if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/sincronizacion$/))) return this.recibirCambios(p, m[1]!);
     if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/sincronizacion$/))) return this.enviarCambios(p, m[1]!);
+    if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/migraciones$/))) return this.historialMigraciones(p, m[1]!);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/migracion\/ensayo$/))) return this.migrar(p, m[1]!, false);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/migracion$/))) return this.migrar(p, m[1]!, true);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/migraciones\/([^/]+)\/revertir$/))) return this.revertirMigracion(p, m[1]!, m[2]!);
     throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ruta no disponible.');
   }
 
@@ -330,6 +337,28 @@ export class ApiEscolar {
     const ctx = await this.contexto(p);
     const actor = this.actor(ctx, escuelaId);
     return { estado: 200, cuerpo: await this.sinc.enviar(actor, p.cuerpo) };
+  }
+
+  // ---------- Fase 8E: migración (sólo el administrador de la escuela, con verificación en dos pasos) ----------
+
+  private async historialMigraciones(p: Peticion, escuelaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    this.exigirRol(ctx, escuelaId, ['administrador']);
+    return { estado: 200, cuerpo: await this.migracion.historial(escuelaId) };
+  }
+
+  private async migrar(p: Peticion, escuelaId: string, aplicar: boolean): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    this.exigirRol(ctx, escuelaId, ['administrador']);
+    return { estado: 200, cuerpo: await this.migracion.procesar(ctx.usuario.id, escuelaId, p.cuerpo, aplicar) };
+  }
+
+  private async revertirMigracion(p: Peticion, escuelaId: string, migracionId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    this.exigirRol(ctx, escuelaId, ['administrador']);
+    if (!uuid.safeParse(migracionId).success) throw new ErrorApi(404, 'NO_ENCONTRADO', 'No existe esa migración en esta escuela.');
+    const { motivo } = validar(esquemaMotivo, p.cuerpo);
+    return { estado: 200, cuerpo: await this.migracion.revertir(ctx.usuario.id, escuelaId, migracionId, motivo) };
   }
 
   /** Vincula la membresía con la ficha de personal de la escuela (define los grupos de un docente). */

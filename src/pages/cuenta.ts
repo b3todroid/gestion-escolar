@@ -231,6 +231,7 @@ async function panelCuenta(ctx: ContextoPagina, yo: Yo): Promise<(Node | null)[]
         : vacio('No tienes accesos vigentes.'),
       h('p', { class: 'ayuda' }, '«Usar en este dispositivo» descarga lo que tu rol te permite ver para trabajar también sin conexión; los cambios se envían al servidor al sincronizar. Las escuelas que ya tenías guardadas sólo en este dispositivo no se mezclan (unirlas con el servidor es la migración, fase posterior).'),
       vinculadas.size ? h('a', { class: 'boton boton--secundario', href: '#/sincronizacion' }, 'Ver sincronización') : null,
+      administradas.length ? h('a', { class: 'boton boton--secundario', href: '#/migracion' }, 'Migrar una escuela de este dispositivo') : null,
     ),
     seccion('verificacion', 'Verificación en dos pasos',
       h('p', { id: 'estado-segundo-factor' }, sf.activo ? insignia('Activa', 'ok', '✓') : sf.requerido ? insignia('Obligatoria para tu rol y aún no activa', 'aviso', '!') : insignia('No activa (opcional para tu rol)', 'neutro', '○')),

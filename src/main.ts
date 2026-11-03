@@ -25,6 +25,7 @@ import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 import { paginaAplicacion } from './pages/aplicacion';
 import { paginaAccesosEscuela, paginaCuenta } from './pages/cuenta';
 import { paginaSincronizacion } from './pages/sincronizacion';
+import { paginaMigracion } from './pages/migracion';
 import { iniciarSincronizacion } from './sincronizador';
 import { paginaBancoActividades, paginaCobertura, paginaPrefectura, paginaPrefecturaInicio, paginaReportesPrefectura } from './pages/prefectura';
 
@@ -47,6 +48,7 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/aplicacion', paginaAplicacion)
     .ruta('/cuenta', paginaCuenta)
     .ruta('/sincronizacion', paginaSincronizacion)
+    .ruta('/migracion', paginaMigracion)
     .ruta('/cuenta/escuela/:id', paginaAccesosEscuela)
     .ruta('/prefectura', paginaPrefecturaInicio)
     .ruta('/ciclo/:id/prefectura/:fecha', paginaPrefectura)
