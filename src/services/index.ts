@@ -1,4 +1,5 @@
-import { BaseDatosEscolar } from '../database/db';
+import { BaseDatosEscolar, VERSION_ESQUEMA } from '../database/db';
+import { ServicioRespaldos } from './respaldos';
 import { crearRepositoriosDexie, crearUnidadDeTrabajoDexie } from '../repositories/dexie';
 import { relojSistema, type Reloj } from '../utils/reloj';
 import type { Contexto } from './contexto';
@@ -36,6 +37,7 @@ export interface Servicios {
   alumnos: ServicioAlumnos;
   asistencia: ServicioAsistencia;
   panel: ServicioPanelDocente;
+  respaldos: ServicioRespaldos;
 }
 
 export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
@@ -59,6 +61,7 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     alumnos: new ServicioAlumnos(ctx),
     asistencia: new ServicioAsistencia(ctx),
     panel: new ServicioPanelDocente(ctx),
+    respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA),
   };
 }
 

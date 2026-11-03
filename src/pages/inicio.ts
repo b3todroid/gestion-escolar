@@ -11,6 +11,8 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
   const escuelas = await ctx.s.escuelas.listar();
   const alm = await consultarAlmacenamiento();
   const borrador = leerBorrador();
+  const sinRespaldo = [];
+  for (const e of escuelas) if ((await ctx.s.respaldos.estado(e.id, new Date())).recordar) sinRespaldo.push(e.nombre);
 
   const pendiente = borrador
     ? h('section', { class: 'pendiente', 'aria-labelledby': 'pendiente-titulo' },
@@ -52,6 +54,9 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
     contenido: h('div', { class: 'pagina' },
       encabezado('Escuelas', 'Configura cada escuela una vez: datos, ciclo, turno, horario, grados y grupos. Todo se guarda en este dispositivo.'),
       pendiente,
+      sinRespaldo.length ? h('div', { class: 'pendiente', role: 'status' },
+        h('p', {}, icono('!'), ` ${sinRespaldo.length === 1 ? `«${sinRespaldo[0]}» tiene` : `${sinRespaldo.length} escuelas tienen`} cambios sin respaldar.`),
+        h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo')) : null,
       borrador ? null : h('a', { class: 'boton boton--ancho', href: '#/asistente' }, icono('+'), ' Configurar una escuela nueva'),
       seccion('lista-escuelas', `Escuelas registradas (${escuelas.length})`, lista),
       seccion('modo-docente', 'Modo docente',
@@ -65,8 +70,8 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
           : null,
         h('p', { class: 'ayuda' },
           'Los datos se conservan al recargar, cerrar el navegador o perder la conexión. ',
-          'Se pierden si borras los datos del navegador o cambias de dispositivo. ',
-          'La función de respaldo y restauración llegará en una próxima fase.'),
+          'Se pierden si borras los datos del navegador o cambias de dispositivo: descarga respaldos con regularidad.'),
+        h('a', { class: 'boton boton--secundario', href: '#/respaldos' }, 'Respaldos'),
         alm.persistente === false
           ? h('button', {
               type: 'button', class: 'boton boton--secundario',

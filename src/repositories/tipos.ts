@@ -14,6 +14,8 @@ export interface Repositorio<T extends Metadatos> {
   listarPor<K extends keyof T & string>(campo: K, valor: T[K]): Promise<T[]>;
   contarPor<K extends keyof T & string>(campo: K, valor: T[K]): Promise<number>;
   insertar(entidad: T): Promise<void>;
+  /** Inserción masiva (restauración de respaldos). Falla si algún id ya existe. */
+  insertarVarios(entidades: T[]): Promise<void>;
   actualizar(entidad: T): Promise<void>;
   eliminar(id: string): Promise<void>;
   eliminarVarios(ids: string[]): Promise<void>;

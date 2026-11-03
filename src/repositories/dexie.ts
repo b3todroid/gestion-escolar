@@ -22,6 +22,9 @@ class RepositorioDexie<T extends Metadatos> implements Repositorio<T> {
   async insertar(entidad: T) {
     await this.tabla.add(entidad);
   }
+  async insertarVarios(entidades: T[]) {
+    if (entidades.length) await this.tabla.bulkAdd(entidades);
+  }
   async actualizar(entidad: T) {
     await this.tabla.put(entidad);
   }

@@ -36,6 +36,12 @@ Regla central: un docente no puede tener dos clases que se traslapen en **hora r
 - Alumnos: `#/alumnos/GRUPO`, `#/alumno/ID`. Datos mínimos (nombre y apellidos). Reportes breves ≤ 280.
 - Los servicios reciben la fecha/hora actual como parámetro (pruebas con `page.clock`).
 
+## Respaldos (`#/respaldos`, `services/respaldos.ts`)
+- Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).
+- Restaurar: verificar archivo (Zod por tabla + referencias internas + huella) **fuera** de la transacción → comparar y escribir **dentro**. Nunca hacer operaciones asíncronas ajenas a IndexedDB (p. ej. `crypto.subtle`, `fetch`) dentro de `uow.ejecutar`: Dexie cierra la transacción antes de tiempo.
+- Reemplazar descarga antes una copia de los datos actuales. Escuela distinta con la misma CCT: bloqueado (no se mezclan).
+- `VERSION_ESQUEMA` (db.ts) debe igualar la última `this.version(n)`; hay prueba que lo verifica.
+
 ## Capas (dependencias sólo hacia abajo)
 `pages/` + `components/` (presentación) → `services/` → `domain/` (reglas puras) + `validators/` (Zod) → `repositories/` (interfaces + Dexie) → `database/` (esquema Dexie).
 - Las páginas **nunca** usan Dexie directamente; sólo `ctx.s.<servicio>`.

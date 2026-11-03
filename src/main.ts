@@ -6,6 +6,7 @@ import { paginaRaiz } from './pages/miDia';
 import { paginaPerfil } from './pages/perfil';
 import { paginaLista } from './pages/lista';
 import { paginaAlumnos, paginaAlumno } from './pages/alumnos';
+import { paginaRespaldos } from './pages/respaldos';
 import { paginaEscuelaEditar, paginaEscuelaNueva } from './pages/escuela-formulario';
 import { paginaEscuela } from './pages/escuela';
 import { paginaCiclo } from './pages/ciclo';
@@ -30,6 +31,7 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/', paginaRaiz)
     .ruta('/escuelas', paginaInicio)
     .ruta('/perfil', paginaPerfil)
+    .ruta('/respaldos', paginaRespaldos)
     .ruta('/lista/:id/:fecha', paginaLista)
     .ruta('/alumnos/:id', paginaAlumnos)
     .ruta('/alumno/:id', paginaAlumno)

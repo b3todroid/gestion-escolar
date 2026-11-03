@@ -34,6 +34,8 @@ ALMACENAMIENTO src/database        esquema Dexie versionado (IndexedDB)
 | Choques de docentes por hora real (`services/conflictos.ts`) | Turnos distintos pueden tener periodos con horas diferentes; comparar por número de periodo no detectaría choques. |
 | Disponibilidad calculada antes de elegir (`opcionesParaCelda`) | La persona ve qué no se puede y por qué antes de intentarlo, en vez de recibir un error después. |
 | Un solo aviso visible a la vez | Al trabajar rápido, los avisos apilados cubrían la pantalla del teléfono. |
+| Respaldo: verificación fuera de la transacción | Operaciones asíncronas ajenas a IndexedDB (`crypto.subtle`) cierran la transacción de Dexie antes de tiempo; se detectó porque provocaba pérdida de datos en un reemplazo fallido. |
+| Respaldo con huella SHA-256 | Detecta archivos dañados o editados a mano antes de restaurar. |
 | `registerType: 'prompt'` en la PWA | El usuario decide cuándo actualizar; no se recarga a mitad de una captura. |
 
 ## Dependencias (verificadas el 2026-11-02)

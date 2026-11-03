@@ -587,6 +587,18 @@ main:focus { outline: none; }
   .alumno > .marcas { grid-column: 2; grid-row: 1 / span 3; }
 }
 
+/* ----- Respaldos ----- */
+.respaldo-escuela { margin: 0.75rem 0; padding: 0.75rem 1rem; border-radius: var(--r-medio); background: var(--superficie-2); border-left: 5px solid var(--ok); }
+.respaldo-escuela--reemplazar { border-left-color: var(--lapiz); }
+.respaldo-escuela--bloqueado { border-left-color: var(--peligro); background: var(--peligro-suave); }
+.respaldo-escuela h4 { margin: 0; }
+.conteos-respaldo { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.conteos-respaldo th, .conteos-respaldo td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--borde); }
+.conteos-respaldo td { text-align: right; }
+.conteos-respaldo thead th:not(:first-child) { text-align: right; }
+.conteos-respaldo tr.difiere td { font-weight: 700; color: var(--aviso); }
+.pendiente p { margin: 0 0 0.5rem; font-weight: 700; }
+
 /* ----- Avisos ----- */
 /* Arriba, bajo la barra: los botones de acción (zona del pulgar) quedan libres.
    El aviso deja pasar los toques; sólo su botón de cerrar los recibe. */

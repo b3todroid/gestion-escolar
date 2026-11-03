@@ -1,6 +1,13 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Fase:** 4 — Módulo docente · **Estado:** completada (pendiente de revisión con el usuario)
+**Última actualización:** 2026-11-03 · **Fase:** 4 — Módulo docente (completada) + **Respaldo y restauración** (completado, pendiente de revisión con el usuario)
+
+## Respaldo y restauración (2026-11-03)
+- Descargar respaldo por escuela o de todas (JSON con huella SHA-256); fecha del último respaldo y recordatorio (en Escuelas y en «Mi día») si hay cambios sin respaldar con más de 7 días o nunca.
+- Restaurar con revisión previa: validación Zod de cada registro, referencias internas, huella, versión de esquema; por escuela «Se agregará» / «Reemplazará» / «No se puede» con conteos actuales vs. respaldo. Nada cambia hasta confirmar.
+- Reemplazar descarga antes una copia automática de los datos actuales; todo o nada.
+- **Defecto grave detectado y corregido antes de entregar:** calcular la huella dentro de la transacción hacía que IndexedDB la cerrara antes de tiempo; en un reemplazo fallido los datos actuales quedaban borrados. Ahora la verificación se hace fuera de la transacción y una prueba simula una falla a mitad del reemplazo (los datos originales quedan intactos).
+- Verificación: `npm test` **96** pruebas (7 nuevas); `npm run test:e2e` **33** pruebas (3 nuevas: descargar, restaurar en navegador vacío, reemplazar con copia previa, archivo alterado), estables en repetición.
 
 ## Hecho en Fase 4
 - Esquema v4 (sólo tablas nuevas): alumnos, pases, asistencias, salidas, reportes, ajustes.
@@ -115,11 +122,12 @@ Las 3 fallas iniciales de la batería nueva eran errores de las pruebas, no de l
   - El aviso de éxito cubre el título de la página unos segundos (no bloquea toques).
   - El asistente crea un solo turno y el mismo número de grupos por grado; las variaciones se ajustan después en pantalla.
 - Pruebas automatizadas sólo en Chromium (perfil Pixel 7); falta Firefox y Safari/iOS.
-1. **Respaldo y restauración** (exportar/importar JSON validado con Zod). Prioridad alta: mitiga la pérdida de datos locales.
-2. Fase 2: personal, docentes, materias, asignaciones, horarios.
-3. Revisión de accesibilidad con lector de pantalla real (NVDA/TalkBack/VoiceOver).
-4. Pruebas e2e en Firefox y WebKit.
+- Respaldos, pendientes conocidos: el respaldo no se cifra (es un archivo con datos personales; la persona debe guardarlo en lugar seguro); no hay respaldo automático programado (el navegador no permite escribir archivos sin acción del usuario).
+1. Reportes de asistencia por periodo (semana/mes) y exportación/impresión de listas y horarios.
+2. Revisión de accesibilidad con lector de pantalla real (NVDA/TalkBack/VoiceOver).
+3. Pruebas e2e en Firefox y WebKit.
 
 ## Riesgos
-- Pérdida de datos si se borran los datos del navegador (sin respaldo todavía).
+- Pérdida de datos si se borran los datos del navegador y no hay respaldo reciente (mitigado: respaldos con recordatorio).
+- El archivo de respaldo contiene datos personales sin cifrar.
 - Sin autenticación: cualquiera con acceso al dispositivo puede ver/modificar.

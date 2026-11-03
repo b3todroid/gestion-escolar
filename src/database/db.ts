@@ -15,6 +15,8 @@ import type {
 } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
+/** Versión actual del esquema (debe coincidir con la última this.version(n)). */
+export const VERSION_ESQUEMA = 4;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;

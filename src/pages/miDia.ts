@@ -61,6 +61,7 @@ function tarjetaSiguiente(p: Panel) {
 export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promise<Vista> {
   const ahora = new Date();
   const p = await ctx.s.panel.panel(persona, ahora);
+  const respaldo = await ctx.s.respaldos.estado(persona.escuelaId, ahora);
   const reloj = h('p', { class: 'reloj', 'aria-label': 'Hora actual' }, horaLocal(ahora));
   const firma = `${p.actual?.segmento.horaInicio ?? ''}|${p.siguiente?.segmento.horaInicio ?? ''}`;
 
@@ -85,6 +86,9 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
         reloj,
         h('h1', { tabindex: '-1' }, `Hola, ${persona.nombre}`),
       ),
+      respaldo.recordar ? h('div', { class: 'pendiente', role: 'status' },
+        h('p', {}, icono('!'), ' Las listas y reportes de este dispositivo no tienen respaldo reciente.'),
+        h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo')) : null,
       !p.ciclo ? h('p', { class: 'mensaje' }, icono('ℹ'), ' Tu escuela no tiene un ciclo escolar activo. Pide a la dirección que lo active.') : null,
       p.ciclo ? tarjetaAhora(p) : null,
       p.ciclo ? tarjetaSiguiente(p) : null,

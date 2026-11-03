@@ -39,6 +39,10 @@ Una persona responsable de la configuración (dirección, subdirección o coordi
 - Alumnos por grupo (alta individual o por lote, baja que conserva historial), resumen de faltas/retardos/salidas/reportes y ficha con historial.
 - Reportes breves (conducta, académico, reconocimiento, otro).
 
+## Respaldo y restauración (entregado)
+- Botón «Descargar respaldo» por escuela (o todas). Recordatorio si hay cambios sin respaldar.
+- «Restaurar»: muestra qué se agregaría o reemplazaría antes de confirmar; al reemplazar descarga primero una copia de lo actual.
+
 ## Fases futuras (no implementadas)
 | Fase | Contenido previsto |
 |---|---|
@@ -50,5 +54,5 @@ Una persona responsable de la configuración (dirección, subdirección o coordi
 
 ## Limitaciones conocidas
 - Los datos viven **sólo en este navegador y dispositivo**. Se pierden si se borran los datos del sitio, se usa modo privado o se cambia de dispositivo. La app solicita almacenamiento persistente, pero el navegador decide.
-- Aún no hay respaldo/restauración (previsto).
+- El respaldo es manual (archivo descargado) y no está cifrado: guárdalo en un lugar seguro.
 - La primera carga necesita conexión; después funciona sin ella. El modo sin conexión requiere HTTPS o `localhost`.
