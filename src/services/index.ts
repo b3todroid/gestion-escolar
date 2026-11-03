@@ -19,6 +19,7 @@ import { ServicioImportacion } from './importacion';
 import { ServicioAlumnos } from './alumnos';
 import { ServicioAsistencia } from './asistencia';
 import { ServicioPanelDocente } from './panelDocente';
+import { ServicioImportacionDatos } from './importacionDatos';
 
 export interface Servicios {
   escuelas: ServicioEscuelas;
@@ -37,6 +38,7 @@ export interface Servicios {
   alumnos: ServicioAlumnos;
   asistencia: ServicioAsistencia;
   panel: ServicioPanelDocente;
+  importacionDatos: ServicioImportacionDatos;
   respaldos: ServicioRespaldos;
 }
 
@@ -61,6 +63,7 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     alumnos: new ServicioAlumnos(ctx),
     asistencia: new ServicioAsistencia(ctx),
     panel: new ServicioPanelDocente(ctx),
+    importacionDatos: new ServicioImportacionDatos(ctx),
     respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA),
   };
 }

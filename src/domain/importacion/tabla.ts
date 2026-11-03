@@ -34,24 +34,47 @@ function numeroATexto(v: string, estilo: boolean): string {
   return Number.isInteger(n) ? String(n) : v;
 }
 
-export async function leerXlsx(archivo: ArrayBuffer): Promise<string[][]> {
-  const partes = await leerZip(archivo, () => ['xl/workbook.xml', 'xl/_rels/workbook.xml.rels', 'xl/sharedStrings.xml']);
+export interface HojaXlsx { nombre: string; ruta: string }
+
+/** Hojas del libro, en orden (sólo se leen nombres y rutas; no se ejecuta nada). */
+export async function hojasXlsx(archivo: ArrayBuffer): Promise<HojaXlsx[]> {
+  const partes = await leerZip(archivo, () => ['xl/workbook.xml', 'xl/_rels/workbook.xml.rels']);
   const libro = partes.get('xl/workbook.xml');
   if (!libro) throw new ErrorArchivo('El archivo no es un libro de Excel válido (.xlsx).');
-  const primera = /<sheet\b[^>]*\br:id="([^"]+)"/.exec(libro) ?? /<sheet\b[^>]*\bid="([^"]+)"/.exec(libro);
   const rels = partes.get('xl/_rels/workbook.xml.rels') ?? '';
-  const destino = primera ? new RegExp(`<Relationship\\b[^>]*Id="${primera[1]}"[^>]*Target="([^"]+)"`).exec(rels)?.[1]
-    ?? new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${primera[1]}"`).exec(rels)?.[1] : undefined;
-  const rutaHoja = destino ? (destino.startsWith('/') ? destino.slice(1) : `xl/${destino.replace(/^\.\//, '')}`) : 'xl/worksheets/sheet1.xml';
+  const hojas: HojaXlsx[] = [];
+  for (const m of libro.matchAll(/<sheet\b([^>]*?)\/?>/g)) {
+    const attrs = m[1] ?? '';
+    const nombre = desescapar(/\bname="([^"]*)"/.exec(attrs)?.[1] ?? `Hoja ${hojas.length + 1}`);
+    const rid = /\br:id="([^"]+)"/.exec(attrs)?.[1];
+    const destino = rid ? (new RegExp(`<Relationship\\b[^>]*Id="${rid}"[^>]*Target="([^"]+)"`).exec(rels)?.[1]
+      ?? new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${rid}"`).exec(rels)?.[1]) : undefined;
+    const ruta = destino ? (destino.startsWith('/') ? destino.slice(1) : `xl/${destino.replace(/^\.\//, '')}`) : `xl/worksheets/sheet${hojas.length + 1}.xml`;
+    hojas.push({ nombre, ruta });
+  }
+  if (!hojas.length) throw new ErrorArchivo('El libro no tiene hojas.');
+  return hojas;
+}
+
+/** Lee una hoja (por nombre) o, si no se indica, la primera. */
+export async function leerXlsx(archivo: ArrayBuffer, nombreHoja?: string): Promise<string[][]> {
+  const hojas = await hojasXlsx(archivo);
+  const elegida = nombreHoja ? hojas.find((x) => x.nombre === nombreHoja) : hojas[0];
+  if (!elegida) throw new ErrorArchivo(`No existe la hoja «${nombreHoja}».`);
+  const partes = await leerZip(archivo, () => ['xl/sharedStrings.xml']);
+  const rutaHoja = elegida.ruta;
   const hoja = (await leerZip(archivo, () => [rutaHoja])).get(rutaHoja);
   if (!hoja) throw new ErrorArchivo('No se encontró la primera hoja del libro.');
 
   const compartidas = [...(partes.get('xl/sharedStrings.xml') ?? '').matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) => textoDe(m[1] ?? ''));
   const filas: string[][] = [];
-  for (const f of hoja.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
-    if (filas.length >= LIMITE_FILAS) throw new ErrorArchivo(`El archivo tiene más de ${LIMITE_FILAS} filas.`);
+  for (const f of hoja.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
+    // Se respeta el número real de fila (Excel omite las vacías): los mensajes citan la fila correcta.
+    const numeroFila = Number(/\br="(\d+)"/.exec(f[1] ?? '')?.[1] ?? filas.length + 1);
+    if (numeroFila > LIMITE_FILAS) throw new ErrorArchivo(`El archivo tiene más de ${LIMITE_FILAS} filas.`);
+    while (filas.length < numeroFila - 1) filas.push([]);
     const fila: string[] = [];
-    for (const c of (f[1] ?? '').matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+    for (const c of (f[2] ?? '').matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const attrs = c[1] ?? '';
       const ref = /\br="([A-Z]+\d+)"/.exec(attrs)?.[1] ?? '';
       const tipo = /\bt="([^"]+)"/.exec(attrs)?.[1] ?? 'n';
@@ -99,9 +122,18 @@ export function leerCsv(textoCsv: string): string[][] {
   return filas.filter((f) => f.some((c) => c !== ''));
 }
 
-export async function leerTabla(nombre: string, contenido: ArrayBuffer): Promise<string[][]> {
-  if (/\.xlsx$/i.test(nombre)) return leerXlsx(contenido);
-  if (/\.csv$/i.test(nombre)) return leerCsv(new TextDecoder().decode(contenido));
+/** UTF-8 si es válido; si no, Windows-1252 (como guarda Excel en español en Windows). */
+export function decodificarTexto(contenido: ArrayBuffer): string {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(contenido); }
+  catch { return new TextDecoder('windows-1252').decode(contenido); }
+}
+
+export async function leerTabla(nombre: string, contenido: ArrayBuffer, hoja?: string): Promise<string[][]> {
+  if (/\.xlsx$/i.test(nombre)) return leerXlsx(contenido, hoja);
+  if (/\.csv$/i.test(nombre)) {
+    if (contenido.byteLength > 5 * 1024 * 1024) throw new ErrorArchivo('El archivo supera 5 MB.');
+    return leerCsv(decodificarTexto(contenido));
+  }
   if (/\.xls$/i.test(nombre)) throw new ErrorArchivo('El formato .xls (Excel 97-2003) no es compatible. Ábrelo en Excel y guárdalo como .xlsx.');
   throw new ErrorArchivo('Selecciona un archivo .xlsx o .csv.');
 }

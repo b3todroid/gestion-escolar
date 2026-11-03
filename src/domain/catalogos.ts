@@ -19,3 +19,20 @@ export const CLAVES_ENTIDAD = ENTIDADES.map(([c]) => c) as unknown as readonly [
 export function nombreEntidad(clave: string | null | undefined): string | null {
   return ENTIDADES.find(([c]) => c === clave)?.[1] ?? null;
 }
+
+/**
+ * Sugerencias para secundaria (plan de estudios 2022, Nueva Escuela Mexicana).
+ * Son sólo sugerencias: la escuela elige cuáles agregar y puede escribir las suyas.
+ */
+export const SUGERENCIAS_SECUNDARIA: { nombre: string; tipo: 'materia' | 'campo_formativo' | 'tutoria' | 'servicio' }[] = [
+  { nombre: 'Lenguajes', tipo: 'campo_formativo' },
+  { nombre: 'Saberes y Pensamiento Científico', tipo: 'campo_formativo' },
+  { nombre: 'Ética, Naturaleza y Sociedades', tipo: 'campo_formativo' },
+  { nombre: 'De lo Humano y lo Comunitario', tipo: 'campo_formativo' },
+  { nombre: 'Español', tipo: 'materia' }, { nombre: 'Inglés', tipo: 'materia' }, { nombre: 'Artes', tipo: 'materia' },
+  { nombre: 'Matemáticas', tipo: 'materia' }, { nombre: 'Biología', tipo: 'materia' }, { nombre: 'Física', tipo: 'materia' },
+  { nombre: 'Química', tipo: 'materia' }, { nombre: 'Geografía', tipo: 'materia' }, { nombre: 'Historia', tipo: 'materia' },
+  { nombre: 'Formación Cívica y Ética', tipo: 'materia' }, { nombre: 'Tecnología', tipo: 'materia' },
+  { nombre: 'Educación Física', tipo: 'materia' }, { nombre: 'Tutoría', tipo: 'tutoria' },
+  { nombre: 'Horas de servicio (SE)', tipo: 'servicio' },
+];

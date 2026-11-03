@@ -4,7 +4,7 @@
  * que combine el almacenamiento local con un backend seguro (sincronización).
  */
 import type {
-  Actividad, Ajuste, Alumno, Asistencia, PaseLista, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, RegistroBitacora, Grado, Grupo, Jornada, Materia, Metadatos, Periodo, Personal, Receso, Sesion, Turno,
+  Actividad, Adscripcion, Ajuste, Inscripcion, MovimientoInscripcion, RegistroImportacion, Alumno, Asistencia, PaseLista, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, RegistroBitacora, Grado, Grupo, Jornada, Materia, Metadatos, Periodo, Personal, Receso, Sesion, Turno,
 } from '../models';
 
 export interface Repositorio<T extends Metadatos> {
@@ -44,6 +44,10 @@ export interface Repositorios {
   salidas: Repositorio<SalidaAula>;
   reportes: Repositorio<ReporteAlumno>;
   ajustes: Repositorio<Ajuste>;
+  adscripciones: Repositorio<Adscripcion>;
+  inscripciones: Repositorio<Inscripcion>;
+  movimientos: Repositorio<MovimientoInscripcion>;
+  importaciones: Repositorio<RegistroImportacion>;
 }
 
 /** Ejecuta varias operaciones de forma atómica (todo o nada). */

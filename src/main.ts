@@ -5,7 +5,7 @@ import { paginaInicio } from './pages/inicio';
 import { paginaRaiz } from './pages/miDia';
 import { paginaPerfil } from './pages/perfil';
 import { paginaLista } from './pages/lista';
-import { paginaAlumnos, paginaAlumno } from './pages/alumnos';
+import { paginaAlumnos, paginaAlumno, paginaAlumnoEditar } from './pages/alumnos';
 import { paginaRespaldos } from './pages/respaldos';
 import { paginaEscuelaEditar, paginaEscuelaNueva } from './pages/escuela-formulario';
 import { paginaEscuela } from './pages/escuela';
@@ -17,6 +17,9 @@ import { paginaMaterias } from './pages/materias';
 import { paginaGrupo } from './pages/grupo';
 import { paginaDocente } from './pages/docente';
 import { paginaImportar } from './pages/importar';
+import { paginaImportarDatos } from './pages/importarDatos';
+import { paginaDocentes } from './pages/docentes';
+import { paginaAlumnosCiclo } from './pages/alumnosCiclo';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 
 const principal = document.getElementById('contenido');
@@ -35,6 +38,7 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/lista/:id/:fecha', paginaLista)
     .ruta('/alumnos/:id', paginaAlumnos)
     .ruta('/alumno/:id', paginaAlumno)
+    .ruta('/alumno/:id/editar', paginaAlumnoEditar)
     .ruta('/asistente', paginaAsistente)
     .ruta('/escuela/nueva', paginaEscuelaNueva)
     .ruta('/escuela/:id', paginaEscuela)
@@ -45,6 +49,9 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/personal/:id', paginaDocente)
     .ruta('/ciclo/:id/materias', paginaMaterias)
     .ruta('/ciclo/:id/importar', paginaImportar)
+    .ruta('/ciclo/:id/importar-datos', paginaImportarDatos)
+    .ruta('/ciclo/:id/docentes', paginaDocentes)
+    .ruta('/ciclo/:id/alumnos', paginaAlumnosCiclo)
     .ruta('/grupo/:id', paginaGrupo)
     .iniciar();
 }

@@ -1,6 +1,22 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 1 ampliada (configuración escolar)** — completada, pendiente de que el usuario la pruebe personalmente. Fases 2–4 y respaldos completados previamente.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 2 — Catálogos escolares e importación inteligente** — completada, pendiente de revisión del usuario. No se avanza a la Fase 3 sin autorización.
+
+## Fase 2 — Catálogos escolares e importación (2026-11-03)
+**Implementado:**
+- Menú de catálogos (Personal · Docentes · Materias · Alumnos · Importar información) en el panel y en cada módulo; resumen real en el panel (personal activo, docentes, alumnos inscritos, sin grupo, materias activas, por grado y por grupo).
+- **Personal**: identificador interno único, 12 funciones (varias por persona), turnos del ciclo, observaciones, búsqueda y filtros (función, estado, turno), baja sin borrar historial. Las funciones anteriores (directivo, administrativo, apoyo) se conservan sin convertir.
+- **Docentes** (`#/ciclo/ID/docentes`): vista del mismo catálogo de personal; materias que puede impartir y turnos por ciclo; asignaciones reales a grupos (no se inventan).
+- **Materias y actividades**: tipo (materia, campo formativo, taller, tutoría, actividad especial, horas de servicio SE), activar/desactivar, búsqueda y filtros, sugerencias opcionales para secundaria.
+- **Alumnos** (`#/ciclo/ID/alumnos`): identidad separada de la inscripción por ciclo (esquema v6 con migración que conserva todo), matrícula y CURP opcionales y únicas, alta con o sin grupo, búsqueda y filtros (grado, grupo, sin grupo, bajas), cambio de grupo con historial, baja/reactivación, posibles inscripciones dobles (sólo aviso).
+- **Importar información** (`#/ciclo/ID/importar-datos`): .xlsx (con selección de hoja) y .csv; detección de fila de encabezados, mapeo sugerido y editable, clasificación NUEVO/ACTUALIZABLE/POSIBLE DUPLICADO/CONFLICTO/ERROR/OMITIDO, decisión por fila, totales, cancelar sin guardar, confirmación en una transacción, registro del origen y aviso de reimportación. Ver `docs/IMPORTACIONES.md`.
+- Plantillas descargables de alumnos, docentes, personal, materias y grupos (con instrucciones y ejemplos ficticios).
+
+**Defectos encontrados y corregidos:** el lector .xlsx omitía filas vacías y los números de fila no coincidían con Excel; los saltos de línea dentro de un campo CSV se rechazaban como caracteres de control; los posibles duplicados no consideraban a alumnos sin grupo; eliminar materias, turnos o personal dejaba referencias en las adscripciones (ahora se limpian o se bloquea si hay historial); los selectores del mapeo medían menos de 44 px en teléfono.
+
+**Verificación (ejecutada):** ver la sección final del reporte y `docs/PRUEBAS.md`.
+
+**Pendientes:** inscribir desde la interfaz a un alumno de un ciclo anterior en el ciclo nuevo (hoy: por importación con matrícula/CURP, o el servicio `inscribirExistente`); fusionar manualmente dos registros que resulten ser la misma persona; importar grupos no crea grados ni turnos (por diseño).
 
 ## Fase 1 ampliada (2026-11-03)
 **Implementado:** bienvenida; datos completos del plantel (nombre corto, entidad con catálogo de 32, municipio, zona, sector, domicilio, teléfono, correo, logotipo) con CCT coherente con la entidad; edición de periodos uno por uno en el asistente con marca del bloque en conflicto; grados y grupos personalizados (sin límite práctico, AA, AB…); agregar varios grupos y desactivar/reactivar grupos en la administración; panel principal con resumen, accesos y «Próximamente»; esquema v5 con migración.

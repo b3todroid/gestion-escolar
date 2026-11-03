@@ -39,3 +39,9 @@ export function vaciar(el: Element): void {
 export function icono(simbolo: string): HTMLSpanElement {
   return h('span', { class: 'icono', 'aria-hidden': 'true' }, simbolo);
 }
+
+/** Reemplaza el contenido de un elemento (admite hijos nulos u omitidos). */
+export function reemplazar(el: Element, ...hijos: Hijo[]): void {
+  vaciar(el);
+  agregar(el, ...hijos);
+}

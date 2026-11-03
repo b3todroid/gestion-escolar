@@ -124,6 +124,11 @@ export class ServicioTurnos {
         throw new ErrorDominio('TIENE_DEPENDENCIAS',
           `El turno tiene ${grupos} grupo(s) asignado(s). Reasígnalos o elimínalos primero.`);
       }
+      const alumnos = (await this.ctx.repos.inscripciones.listarPor('cicloEscolarId', turno.cicloEscolarId)).filter((i) => i.turnoId === turnoId).length;
+      if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Hay ${alumnos} alumno(s) inscritos en este turno.`);
+      for (const a of await this.ctx.repos.adscripciones.listarPor('cicloEscolarId', turno.cicloEscolarId)) {
+        if (a.turnoIds.includes(turnoId)) await this.ctx.repos.adscripciones.actualizar({ ...a, turnoIds: a.turnoIds.filter((x) => x !== turnoId), ...metadatosActualizados(this.ctx, a) });
+      }
       const periodos = await this.ctx.repos.periodos.listarPor('jornadaId', jornada.id);
       const recesos = await this.ctx.repos.recesos.listarPor('jornadaId', jornada.id);
       await this.ctx.repos.periodos.eliminarVarios(periodos.map((p) => p.id));

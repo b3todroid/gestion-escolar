@@ -1,11 +1,12 @@
 import type { ContextoPagina, Vista } from '../app';
 import { h, icono } from '../components/dom';
-import { alEnviar, areaTexto, botonEnviar, campo, ejecutar, formulario, texto } from '../components/formulario';
+import { alEnviar, areaTexto, botonEnviar, campo, ejecutar, formulario, selector, texto } from '../components/formulario';
 import { botonAccion, desplegable, encabezado, insignia, migas, seccion, vacio } from '../components/piezas';
-import { confirmar, pedirTexto } from '../components/dialogo';
+import { confirmar } from '../components/dialogo';
 import { ETIQUETA_REPORTE, pedirReporte } from '../components/reporte';
-import { interpretarRenglon, nombreAlumno } from '../services/alumnos';
-import { ErrorDominio } from '../domain/errores';
+import { nombreAlumno } from '../services/alumnos';
+import type { Alumno } from '../models';
+import type { EntradaAlumno } from '../validators/esquemas';
 import { horaLocal, fechaLocal } from '../utils/fechas';
 import { aMinutos } from '../domain/tiempo';
 
@@ -87,29 +88,78 @@ export async function paginaAlumnos(ctx: ContextoPagina, grupoId: string): Promi
 
 export async function paginaAlumno(ctx: ContextoPagina, alumnoId: string): Promise<Vista> {
   const a = await ctx.s.alumnos.obtener(alumnoId);
-  const grupo = await ctx.s.grados.obtenerGrupo(a.grupoId);
-  const grado = (await ctx.s.grados.listarGrados(grupo.cicloEscolarId)).find((g) => g.id === grupo.gradoId);
-  const ciclo = await ctx.s.ciclos.obtener(a.cicloEscolarId);
+  const inscripciones = await ctx.s.alumnos.inscripciones(alumnoId);
+  const ins = inscripciones[0] ?? null;
+  const ciclo = ins ? await ctx.s.ciclos.obtener(ins.cicloEscolarId) : null;
+  const grados = ciclo ? await ctx.s.grados.listarGrados(ciclo.id) : [];
+  const grupos = ciclo ? (await ctx.s.grados.listarGrupos(ciclo.id)).filter((g) => g.activo !== false) : [];
+  const nombreGrupoDe = (id: string | null) => { const g = grupos.find((x) => x.id === id) ?? null; const gr = grados.find((x) => x.id === g?.gradoId); return g ? `${gr?.numero ?? ''}° ${g.nombre}` : 'Sin grupo'; };
+  const grupoActual = ins?.grupoId ? await ctx.s.grados.obtenerGrupo(ins.grupoId) : null;
   const persona = await ctx.s.panel.perfil();
   const h0 = await ctx.s.asistencia.historialAlumno(alumnoId);
+  const movimientos = await ctx.s.alumnos.movimientos(alumnoId);
   const nombre = nombreAlumno(a);
-  const nombreGrupo = `${grado?.numero ?? ''}° ${grupo.nombre}`;
-  const editable = ciclo.estado !== 'cerrado';
+  const activo = ins?.estado === 'inscrito';
+  const editable = !!ciclo && ciclo.estado !== 'cerrado';
   const faltas = h0.asistencias.filter((x) => x.marca === 'F');
   const retardos = h0.asistencias.filter((x) => x.marca === 'R');
   const fecha = (f: string) => f.split('-').reverse().join('/');
+  const volver = ins?.grupoId ? `#/alumnos/${ins.grupoId}` : ciclo ? `#/ciclo/${ciclo.id}/alumnos` : '#/';
+  const curpVisible = h('span', {}, a.curp ? `${a.curp.slice(0, 4)}••••••••••${a.curp.slice(-4)}` : 'Sin registrar');
+
+  // Cambio de grupo (misma persona; queda en el historial)
+  const fG = 'f-cambio-grupo';
+  const formGrupo = ins && editable && activo ? alEnviar(formulario(fG, null,
+    selector(fG, { nombre: 'grupoId', etiqueta: 'Grupo', valor: ins.grupoId ?? 'sin', opciones: [{ valor: 'sin', texto: 'Sin grupo' }, ...grupos.map((g) => ({ valor: g.id, texto: nombreGrupoDe(g.id) }))] }),
+    campo(fG, { nombre: 'motivo', etiqueta: 'Motivo del cambio', maxlength: 200 }),
+    h('div', { class: 'acciones' }, botonEnviar('Cambiar de grupo')),
+  ), async () => {
+    const f = document.getElementById(fG) as HTMLFormElement;
+    const g = texto(f, 'grupoId');
+    await ctx.s.alumnos.cambiarGrupo(ins.id, g === 'sin' || g === '' ? null : g, texto(f, 'motivo') || null);
+    await ctx.recargar();
+    return 'Cambio de grupo registrado.';
+  }) : null;
 
   return {
     titulo: nombre,
     contenido: h('div', { class: 'pagina' },
-      migas([{ texto: 'Inicio', href: '#/' }, { texto: `Alumnos de ${nombreGrupo}`, href: `#/alumnos/${grupo.id}` }, { texto: nombre }]),
-      encabezado(nombre, `${nombreGrupo}, ciclo ${ciclo.nombre}`),
-      a.activo ? null : h('p', {}, insignia('Dado(a) de baja', 'neutro', '■')),
+      migas([{ texto: 'Inicio', href: '#/' }, ...(ciclo ? [{ texto: 'Alumnos', href: `#/ciclo/${ciclo.id}/alumnos` }] : []), { texto: nombre }]),
+      encabezado(nombre, ciclo ? `${grupoActual ? nombreGrupoDe(grupoActual.id) : 'Sin grupo'}, ciclo ${ciclo.nombre}` : null),
+      activo ? null : h('p', {}, insignia('Inscripción dada de baja', 'neutro', '■')),
       h('dl', { class: 'totales' },
         h('div', {}, h('dt', {}, 'Faltas'), h('dd', {}, String(faltas.length))),
         h('div', {}, h('dt', {}, 'Retardos'), h('dd', {}, String(retardos.length))),
         h('div', {}, h('dt', {}, 'Salidas'), h('dd', {}, String(h0.salidas.length))),
       ),
+      seccion('identidad', 'Datos del alumno',
+        h('dl', { class: 'datos' },
+          h('dt', {}, 'Matrícula'), h('dd', {}, a.matricula ?? 'Sin registrar'),
+          h('dt', {}, 'CURP'), h('dd', {}, curpVisible, a.curp ? h('button', { type: 'button', class: 'boton boton--chico boton--secundario', onclick: (ev: Event) => { curpVisible.textContent = a.curp; (ev.currentTarget as HTMLElement).remove(); } }, 'Mostrar') : null),
+          a.observaciones ? h('dt', {}, 'Observaciones') : null, a.observaciones ? h('dd', {}, a.observaciones) : null,
+        ),
+        editable ? botonAccion('Editar datos', () => ctx.ir(`#/alumno/${a.id}/editar`), 'secundario') : null,
+      ),
+      ins ? seccion('inscripcion', `Inscripción en ${ciclo?.nombre ?? 'el ciclo'}`,
+        h('p', {}, `${nombreGrupoDe(ins.grupoId)}${ins.numeroLista ? `, número de lista ${ins.numeroLista}` : ''}. Estado: ${activo ? 'inscrito' : 'baja'}.`),
+        formGrupo ? desplegable('Cambiar de grupo', false, formGrupo) : null,
+        editable ? h('div', { class: 'acciones acciones--izq' },
+          botonAccion(activo ? 'Dar de baja' : 'Reactivar inscripción', async () => {
+            if (activo && !(await confirmar({ titulo: `¿Dar de baja a ${nombre}?`, mensaje: 'Dejará de aparecer en las listas de este ciclo. Su identidad e historial se conservan.', textoConfirmar: 'Dar de baja' }))) return;
+            if (await ejecutar(async () => { await ctx.s.alumnos.cambiarEstado(ins.id, activo ? 'baja' : 'inscrito'); return activo ? 'Inscripción dada de baja.' : 'Inscripción reactivada.'; })) await ctx.recargar();
+          }, 'secundario'),
+          botonAccion('Eliminar', async () => {
+            if (await confirmar({ titulo: `¿Eliminar a ${nombre}?`, mensaje: 'Sólo si se registró por error y no tiene historial.', textoConfirmar: 'Eliminar', peligro: true })
+              && await ejecutar(async () => { await ctx.s.alumnos.eliminar(a.id); return 'Alumno eliminado.'; })) ctx.ir(volver);
+          }, 'peligro'),
+        ) : null,
+      ) : null,
+      movimientos.length ? seccion('historial-ins', 'Historial de inscripción',
+        h('ul', { class: 'renglones' }, ...movimientos.map((m) => h('li', { class: 'renglon renglon--bloque' },
+          h('span', { class: 'renglon__texto' }, `${new Date(m.creadoEn).toLocaleDateString('es-MX')}: ${({ alta: 'Alta', cambio_grupo: 'Cambio de grupo', baja: 'Baja', reactivacion: 'Reactivación', migracion: 'Registro anterior' } as const)[m.tipo]}`),
+          m.tipo === 'cambio_grupo' ? h('span', { class: 'renglon__meta' }, `${nombreGrupoDe(m.grupoAnteriorId)} → ${nombreGrupoDe(m.grupoNuevoId)}`) : null,
+          m.motivo ? h('span', { class: 'renglon__meta' }, m.motivo) : null,
+        )))) : null,
       seccion('faltas', 'Faltas y retardos',
         h0.asistencias.length
           ? h('ul', { class: 'renglones' }, ...h0.asistencias.map((x) => h('li', { class: 'renglon' },
@@ -137,31 +187,53 @@ export async function paginaAlumno(ctx: ContextoPagina, alumnoId: string): Promi
               }, 'peligro', 'Eliminar reporte') : null,
             )))
           : vacio('Sin reportes.'),
-        editable && a.activo ? botonAccion('Nuevo reporte', async () => {
+        editable && activo && ins?.grupoId ? botonAccion('Nuevo reporte', async () => {
           const r = await pedirReporte(nombre);
           if (r && await ejecutar(async () => { await ctx.s.asistencia.crearReporte(a.id, r, { personalId: persona?.id ?? null, sesionId: null, fecha: fechaLocal(new Date()) }); return 'Reporte guardado.'; })) await ctx.recargar();
         }, 'principal') : null,
       ),
-      editable ? seccion('datos-alumno', 'Datos',
-        h('div', { class: 'acciones acciones--izq' },
-          botonAccion('Corregir nombre', async () => {
-            const nuevo = await pedirTexto({ titulo: 'Corregir nombre', mensaje: 'Escribe «Apellidos, Nombre(s)».', etiqueta: 'Nombre completo', textoConfirmar: 'Guardar' });
-            if (!nuevo) return;
-            const e = interpretarRenglon(nuevo);
-            if (await ejecutar(async () => {
-              if (!e) throw new ErrorDominio('VALIDACION', 'Usa el formato «Apellidos, Nombre(s)».');
-              await ctx.s.alumnos.actualizar(a.id, e); return 'Nombre corregido.';
-            })) await ctx.recargar();
-          }, 'secundario'),
-          botonAccion(a.activo ? 'Dar de baja' : 'Reactivar', async () => {
-            if (a.activo && !(await confirmar({ titulo: `¿Dar de baja a ${nombre}?`, mensaje: 'Dejará de aparecer en las listas. Su historial se conserva.', textoConfirmar: 'Dar de baja' }))) return;
-            if (await ejecutar(async () => { await ctx.s.alumnos.cambiarActivo(a.id, !a.activo); return a.activo ? 'Alumno dado de baja.' : 'Alumno reactivado.'; })) await ctx.recargar();
-          }, 'secundario'),
-          botonAccion('Eliminar', async () => {
-            if (await confirmar({ titulo: `¿Eliminar a ${nombre}?`, mensaje: 'Sólo si se registró por error y no tiene asistencias ni reportes.', textoConfirmar: 'Eliminar', peligro: true })
-              && await ejecutar(async () => { await ctx.s.alumnos.eliminar(a.id); return 'Alumno eliminado.'; })) ctx.ir(`#/alumnos/${grupo.id}`);
-          }, 'peligro'),
-        )) : null,
+      h('a', { class: 'boton boton--secundario', href: volver }, 'Volver'),
+    ),
+  };
+}
+
+/** Campos de identidad del alumno (alta y edición). CURP opcional y con aviso. */
+export function camposAlumno(f: string, a: Partial<Alumno> = {}): HTMLElement[] {
+  return [
+    campo(f, { nombre: 'nombre', etiqueta: 'Nombre(s)', valor: a.nombre, requerido: true, maxlength: 60 }),
+    h('div', { class: 'fila' },
+      campo(f, { nombre: 'primerApellido', etiqueta: 'Primer apellido', valor: a.primerApellido, requerido: true, maxlength: 60 }),
+      campo(f, { nombre: 'segundoApellido', etiqueta: 'Segundo apellido', valor: a.segundoApellido, maxlength: 60 }),
+    ),
+    desplegable('Datos opcionales', !!(a.matricula || a.curp || a.observaciones),
+      h('div', { class: 'formulario formulario--anidado' },
+        campo(f, { nombre: 'matricula', etiqueta: 'Matrícula institucional', valor: a.matricula, maxlength: 30, mayusculas: true }),
+        campo(f, { nombre: 'curp', etiqueta: 'CURP', valor: a.curp, maxlength: 18, mayusculas: true, ayuda: 'Sólo si es necesaria. Es un dato personal sensible: se guarda en este dispositivo y en los respaldos.' }),
+        campo(f, { nombre: 'observaciones', etiqueta: 'Observaciones administrativas', valor: a.observaciones, maxlength: 300, ayuda: 'No registres información médica ni otros datos sensibles.' }),
+      )),
+  ];
+}
+
+export function leerAlumno(form: HTMLFormElement): EntradaAlumno {
+  return { nombre: texto(form, 'nombre'), primerApellido: texto(form, 'primerApellido'), segundoApellido: texto(form, 'segundoApellido'), matricula: texto(form, 'matricula'), curp: texto(form, 'curp'), observaciones: texto(form, 'observaciones') };
+}
+
+export async function paginaAlumnoEditar(ctx: ContextoPagina, alumnoId: string): Promise<Vista> {
+  const a = await ctx.s.alumnos.obtener(alumnoId);
+  const f = 'f-alumno-editar';
+  const form = alEnviar(formulario(f, null, ...camposAlumno(f, a),
+    h('div', { class: 'acciones' }, h('a', { class: 'boton boton--secundario', href: `#/alumno/${a.id}` }, 'Cancelar'), botonEnviar('Guardar cambios'))),
+  async () => {
+    await ctx.s.alumnos.actualizar(a.id, leerAlumno(document.getElementById(f) as HTMLFormElement));
+    ctx.ir(`#/alumno/${a.id}`);
+    return 'Datos del alumno actualizados.';
+  });
+  return {
+    titulo: `Editar a ${nombreAlumno(a)}`,
+    contenido: h('div', { class: 'pagina' },
+      migas([{ texto: 'Inicio', href: '#/' }, { texto: nombreAlumno(a), href: `#/alumno/${a.id}` }, { texto: 'Editar' }]),
+      encabezado('Editar datos del alumno', nombreAlumno(a)),
+      form,
     ),
   };
 }

@@ -1,9 +1,9 @@
-import type { Alumno, Asistencia, MarcaAsistencia, PaseLista, ReporteAlumno, SalidaAula, Sesion, TipoReporte } from '../models';
+import type { AlumnoInscrito, Asistencia, MarcaAsistencia, PaseLista, ReporteAlumno, SalidaAula, Sesion, TipoReporte } from '../models';
 import { esquemaFecha, esquemaHora, esquemaMarcas, esquemaReporte, validar, type EntradaReporte } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { aMinutos } from '../domain/tiempo';
 import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
-import { nombreAlumno, ordenLista } from './alumnos';
+import { ServicioAlumnos, nombreAlumno } from './alumnos';
 import { DIAS_SEMANA } from './turnos';
 import { diaDeFecha } from '../utils/fechas';
 
@@ -15,7 +15,7 @@ export interface ListaAbierta {
   fecha: string;
   horaInicio: string;
   horaFin: string;
-  alumnos: Alumno[];
+  alumnos: AlumnoInscrito[];
   pase: PaseLista | null;
   /** Marcas guardadas (si el pase existe). */
   marcas: Map<string, Asistencia>;
@@ -24,7 +24,7 @@ export interface ListaAbierta {
 }
 
 export interface ResumenAlumno {
-  alumno: Alumno;
+  alumno: AlumnoInscrito;
   faltas: number;
   retardos: number;
   salidas: number;
@@ -40,7 +40,13 @@ export interface ResumenAlumno {
  * - un pase por clase y fecha; sólo en el día de la semana de la clase, dentro del ciclo y no en el futuro.
  */
 export class ServicioAsistencia {
-  constructor(private readonly ctx: Contexto) {}
+  private readonly alumnosSrv: ServicioAlumnos;
+  constructor(private readonly ctx: Contexto) { this.alumnosSrv = new ServicioAlumnos(ctx); }
+
+  /** Inscripción vigente del alumno en el ciclo (o null si no está inscrito o está de baja). */
+  private async inscripcionVigente(alumnoId: string, cicloId: string) {
+    return (await this.ctx.repos.inscripciones.listarPor('alumnoId', alumnoId)).find((i) => i.cicloEscolarId === cicloId && i.estado === 'inscrito') ?? null;
+  }
 
   /** Sólo lectura: abrir la lista NO crea ni modifica registros. */
   async abrirLista(sesionId: string, fecha: string): Promise<ListaAbierta> {
@@ -52,7 +58,7 @@ export class ServicioAsistencia {
     const asig = await requerir(this.ctx.repos.asignaciones.obtener(sesion.asignacionId), 'la asignación');
     const materia = await this.ctx.repos.materias.obtener(asig.materiaId);
     const docente = sesion.personalId ? await this.ctx.repos.personal.obtener(sesion.personalId) : undefined;
-    const alumnos = (await this.ctx.repos.alumnos.listarPor('grupoId', grupo.id)).filter((a) => a.activo).sort(ordenLista);
+    const alumnos = await this.alumnosSrv.listarGrupo(grupo.id);
     const pase = await this.paseDe(sesionId, f);
     const marcas = new Map<string, Asistencia>();
     if (pase) for (const a of await this.ctx.repos.asistencias.listarPor('paseId', pase.id)) marcas.set(a.alumnoId, a);
@@ -90,7 +96,7 @@ export class ServicioAsistencia {
       const sesion = await requerir(this.ctx.repos.sesiones.obtener(sesionId), 'la clase');
       await this.verificarFecha(sesion, f, hoy);
       const periodo = await requerir(this.ctx.repos.periodos.obtener(sesion.periodoId), 'el periodo');
-      const alumnos = (await this.ctx.repos.alumnos.listarPor('grupoId', sesion.grupoId)).filter((a) => a.activo);
+      const alumnos = await this.alumnosSrv.listarGrupo(sesion.grupoId);
       if (alumnos.length === 0) throw new ErrorDominio('VALIDACION', 'El grupo no tiene alumnos registrados.');
       const ids = new Set(alumnos.map((a) => a.id));
       for (const id of Object.keys(m)) if (!ids.has(id)) throw new ErrorDominio('VALIDACION', 'La lista incluye un alumno que no está activo en este grupo. Vuelve a abrirla.');
@@ -147,7 +153,8 @@ export class ServicioAsistencia {
       const sesion = await requerir(this.ctx.repos.sesiones.obtener(sesionId), 'la clase');
       await this.verificarFecha(sesion, f, hoy);
       const alumno = await requerir(this.ctx.repos.alumnos.obtener(alumnoId), 'al alumno');
-      if (alumno.grupoId !== sesion.grupoId || !alumno.activo) throw new ErrorDominio('VALIDACION', 'El alumno no está activo en este grupo.');
+      const ins = await this.inscripcionVigente(alumnoId, sesion.cicloEscolarId);
+      if (!ins || ins.grupoId !== sesion.grupoId) throw new ErrorDominio('VALIDACION', 'El alumno no está inscrito en este grupo.');
       const pase = await this.paseDe(sesionId, f);
       if (pase) {
         const marca = (await this.ctx.repos.asistencias.listarPor('paseId', pase.id)).find((a) => a.alumnoId === alumnoId);
@@ -189,11 +196,11 @@ export class ServicioAsistencia {
   }
 
   async resumenGrupo(grupoId: string): Promise<ResumenAlumno[]> {
-    const alumnos = await this.ctx.repos.alumnos.listarPor('grupoId', grupoId);
+    const alumnos = await this.alumnosSrv.listarGrupo(grupoId, true);
     const asistencias = await this.ctx.repos.asistencias.listarPor('grupoId', grupoId);
     const salidas = await this.ctx.repos.salidas.listarPor('grupoId', grupoId);
     const reportes = await this.ctx.repos.reportes.listarPor('grupoId', grupoId);
-    return alumnos.sort((a, b) => Number(b.activo) - Number(a.activo) || ordenLista(a, b)).map((alumno) => ({
+    return alumnos.map((alumno) => ({
       alumno,
       faltas: asistencias.filter((x) => x.alumnoId === alumno.id && x.marca === 'F').length,
       retardos: asistencias.filter((x) => x.alumnoId === alumno.id && x.marca === 'R').length,
@@ -224,10 +231,16 @@ export class ServicioAsistencia {
     const fecha = validar(esquemaFecha, contexto.fecha);
     return this.ctx.uow.ejecutar(async () => {
       const alumno = await requerir(this.ctx.repos.alumnos.obtener(alumnoId), 'al alumno');
-      await cicloEditable(this.ctx, alumno.cicloEscolarId);
-      if (!alumno.activo) throw new ErrorDominio('VALIDACION', 'El alumno está dado de baja.');
+      // La inscripción a la que corresponde el reporte: la de la clase, o la vigente más reciente.
+      const sesion = contexto.sesionId ? await this.ctx.repos.sesiones.obtener(contexto.sesionId) : undefined;
+      const ins = sesion
+        ? await this.inscripcionVigente(alumnoId, sesion.cicloEscolarId)
+        : (await this.alumnosSrv.inscripciones(alumnoId)).find((i) => i.estado === 'inscrito') ?? null;
+      if (!ins) throw new ErrorDominio('VALIDACION', 'El alumno está dado de baja o no está inscrito.');
+      await cicloEditable(this.ctx, ins.cicloEscolarId);
+      if (!ins.grupoId) throw new ErrorDominio('VALIDACION', 'El alumno no tiene grupo asignado; asígnalo antes de registrar reportes.');
       const r: ReporteAlumno = {
-        ...metadatosNuevos(this.ctx), escuelaId: alumno.escuelaId, cicloEscolarId: alumno.cicloEscolarId, grupoId: alumno.grupoId, alumnoId,
+        ...metadatosNuevos(this.ctx), escuelaId: alumno.escuelaId, cicloEscolarId: ins.cicloEscolarId, grupoId: ins.grupoId, alumnoId,
         personalId: contexto.personalId, sesionId: contexto.sesionId, fecha, tipo: datos.tipo as TipoReporte, texto: datos.texto,
       };
       await this.ctx.repos.reportes.insertar(r);

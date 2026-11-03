@@ -53,6 +53,8 @@ export class ServicioGrados {
       if (grupos > 0) {
         throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grado tiene ${grupos} grupo(s). Elimínalos primero.`);
       }
+      const alumnos = (await this.ctx.repos.inscripciones.listarPor('cicloEscolarId', actual.cicloEscolarId)).filter((i) => i.gradoId === id).length;
+      if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Hay ${alumnos} alumno(s) inscritos en este grado.`);
       await this.ctx.repos.grados.eliminar(id);
     });
   }
@@ -132,7 +134,7 @@ export class ServicioGrados {
       const actual = await requerir(this.ctx.repos.grupos.obtener(id), 'el grupo');
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       if (!activo) {
-        const alumnos = (await this.ctx.repos.alumnos.listarPor('grupoId', id)).filter((a) => a.activo).length;
+        const alumnos = (await this.ctx.repos.inscripciones.listarPor('grupoId', id)).filter((i) => i.estado === 'inscrito').length;
         if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${alumnos} alumno(s) activos. Cámbialos de grupo o dalos de baja antes de desactivarlo.`);
         const materias = await this.ctx.repos.asignaciones.contarPor('grupoId', id);
         if (materias > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${materias} materia(s) asignada(s). Quítalas antes de desactivarlo.`);
@@ -149,7 +151,7 @@ export class ServicioGrados {
       await cicloEditable(this.ctx, actual.cicloEscolarId);
       const asignadas = await this.ctx.repos.asignaciones.contarPor('grupoId', id);
       if (asignadas > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${asignadas} materia(s) asignada(s). Quítalas primero.`);
-      const alumnos = await this.ctx.repos.alumnos.contarPor('grupoId', id);
+      const alumnos = await this.ctx.repos.inscripciones.contarPor('grupoId', id);
       if (alumnos > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `El grupo tiene ${alumnos} alumno(s) registrados. No se puede eliminar.`);
       await this.ctx.repos.grupos.eliminar(id);
     });

@@ -1,7 +1,7 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. **Fase 1 ampliada** (bienvenida, datos completos del plantel, periodos y grupos editables en el asistente, grupos desactivables, panel principal) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
-Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md`.
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. **Fase 2 — Catálogos e importación inteligente** — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
 - `npm run dev` — servidor de desarrollo (http://localhost:5173)
@@ -25,6 +25,14 @@ Vite 8 · TypeScript 7 (estricto) · Dexie 4 (IndexedDB) · Zod 4 · vite-plugin
 ## Fase 2 (rutas)
 `#/escuela/ID/personal` (personal por escuela) · `#/personal/ID` (semana del docente) · `#/ciclo/ID/materias` · `#/grupo/ID` (materias asignadas + horario por día).
 Regla central: un docente no puede tener dos clases que se traslapen en **hora real** (aunque sean de turnos con periodos distintos): `services/conflictos.ts`.
+
+## Fase 2 — Catálogos (esquema v6)
+Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-datos`; menú `pages/catalogos.ts` (`navCatalogos`).
+- **Alumno = identidad** (`alumnos`, por escuela) **+ inscripción por ciclo** (`inscripciones`: turno, grado, grupo, estado, número de lista). Cambiar de grupo actualiza la inscripción y agrega un `movimiento`; nunca crea otra persona. Usar `ServicioAlumnos.listarGrupo/listarCiclo` (devuelven `AlumnoInscrito`), no leer `alumnos` por grupo.
+- El nombre **nunca** identifica a una persona: sólo matrícula/CURP (alumnos) o identificador interno (personal). Coincidencias por nombre = «posible duplicado», jamás se fusionan solas.
+- Docentes = personal con función `docente` (no otra tabla). Turnos y materias que **puede** impartir: `adscripciones` por ciclo (no crean asignaciones). Funciones anteriores (`directivo`, `administrativo`, `apoyo`) se conservan sin convertir.
+- Materias tipo `servicio` (SE) no se asignan a grupos; materias desactivadas no reciben asignaciones nuevas.
+- Importación de catálogos (`services/importacionDatos.ts`): `analizar` no escribe; `aplicar` re-analiza dentro de `uow` y sólo ejecuta decisiones confirmadas; la huella SHA-256 se calcula en la página, fuera de la transacción. Detalle en `docs/IMPORTACIONES.md`.
 
 ## Fase 3 (horarios)
 - Tipos de bloque explícitos: CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA (`domain/horarioVista.ts`, `components/horarioSemanal.ts`). **Un hueco nunca es servicio.**

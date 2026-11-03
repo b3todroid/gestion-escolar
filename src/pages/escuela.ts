@@ -8,6 +8,7 @@ import { ETIQUETA_ESTADO } from '../services/ciclos';
 import { NIVEL_ETIQUETA, formatoFecha } from './etiquetas';
 import { nombreEntidad } from '../domain/catalogos';
 import { textoDias } from './ciclo';
+import { navCatalogos } from './catalogos';
 
 const INSIGNIA_ESTADO: Record<EstadoCiclo, [variante: 'ok' | 'aviso' | 'neutro', simbolo: string]> = {
   activo: ['ok', '●'],
@@ -96,11 +97,28 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
       ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}` }, 'Administrar grupos') : null,
     ),
   );
+  // ---------- Resumen de catálogos (conteos reales del ciclo vigente) ----------
+  const activosPersonal = personal.filter((p) => p.activo);
+  const matricula = ciclo ? await ctx.s.alumnos.resumen(ciclo.id) : null;
+  const materias = ciclo ? (await ctx.s.materias.listar(ciclo.id)).filter((m) => m.activo !== false) : [];
+  const cifra = (etiqueta: string, valor: number, href: string | null) =>
+    h('div', {}, h('dt', {}, etiqueta), h('dd', {}, href ? h('a', { href }, String(valor)) : String(valor)));
+  const catalogos = h('section', { class: 'seccion', 'aria-labelledby': 'catalogos-titulo' },
+    h('h2', { id: 'catalogos-titulo' }, 'Catálogos escolares'),
+    navCatalogos(escuela.id, ciclo?.id ?? null, 'personal', false),
+    h('dl', { class: 'totales totales--5', id: 'resumen-catalogos' },
+      cifra('Personal activo', activosPersonal.length, `#/escuela/${escuela.id}/personal`),
+      cifra('Docentes', activosPersonal.filter((p) => p.funciones.includes('docente')).length, ciclo ? `#/ciclo/${ciclo.id}/docentes` : null),
+      cifra('Alumnos inscritos', matricula?.inscritos ?? 0, ciclo ? `#/ciclo/${ciclo.id}/alumnos` : null),
+      cifra('Alumnos sin grupo', matricula?.sinGrupo ?? 0, ciclo ? `#/ciclo/${ciclo.id}/alumnos` : null),
+      cifra('Materias activas', materias.length, ciclo ? `#/ciclo/${ciclo.id}/materias` : null),
+    ),
+    matricula && matricula.inscritos ? h('p', { class: 'ayuda' }, 'Por grado: ', grados.map((g) => `${g.nombre} ${matricula.porGrado.find((x) => x.gradoId === g.id)?.n ?? 0}`).join(' · '), '.') : null,
+    matricula && matricula.inscritos ? h('p', { class: 'ayuda' }, 'Por grupo: ', grupos.filter((g) => g.activo !== false).map((g) => `${grados.find((x) => x.id === g.gradoId)?.numero ?? ''}° ${g.nombre} ${matricula.porGrupo.find((x) => x.grupoId === g.id)?.n ?? 0}`).join(' · '), '.') : null,
+  );
   const herramientas = h('section', { class: 'seccion', 'aria-labelledby': 'mas-titulo' },
     h('h2', { id: 'mas-titulo' }, 'Otros módulos'),
     h('ul', { class: 'modulos' },
-      h('li', {}, h('a', { href: `#/escuela/${escuela.id}/personal` }, 'Personal y docentes'), h('span', { class: 'modulos__estado' }, 'Disponible')),
-      ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/materias` }, 'Materias'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
       ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/importar` }, 'Importar horarios desde Excel'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
       h('li', {}, h('a', { href: '#/respaldos' }, 'Respaldos'), h('span', { class: 'modulos__estado' }, 'Disponible')),
       ...['Prefectura', 'Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
@@ -183,9 +201,10 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
           }, 'peligro'),
         ),
       ),
+      catalogos,
       herramientas,
       seccion('personal', 'Personal',
-        h('p', {}, personal.length ? `${personal.filter((p) => p.activo).length} persona(s) activa(s), ${personal.filter((p) => p.activo && p.funciones.includes('docente')).length} con función docente.` : 'Registra una vez a docentes y demás personal; sirve para todos los ciclos.'),
+        h('p', {}, personal.length ? `${activosPersonal.length} persona(s) activa(s), ${activosPersonal.filter((p) => p.funciones.includes('docente')).length} con función docente.` : 'Registra una vez a docentes y demás personal; sirve para todos los ciclos.'),
         h('a', { class: 'boton boton--chico', href: `#/escuela/${escuela.id}/personal` }, personal.length ? 'Ver personal' : 'Registrar personal'),
       ),
       seccion('ciclos', 'Ciclos escolares',

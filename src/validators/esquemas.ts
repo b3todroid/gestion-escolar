@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE, TIPOS_MATERIA } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 import { CLAVES_ENTIDAD, nombreEntidad } from '../domain/catalogos';
@@ -249,11 +249,13 @@ export const esquemaPersonal = z.object({
     .refine((v) => v === null || /^[A-Z0-9-]+$/.test(v), { message: 'El número de empleado sólo admite letras, números y guiones.' }),
   funciones: z.array(z.enum(FUNCIONES_PERSONAL)).min(1, 'Selecciona al menos una función.')
     .transform((f) => [...new Set(f)]),
+  observaciones: textoOpcional('Las observaciones', 300),
 });
 
 export const esquemaMateria = z.object({
   nombre: texto('El nombre de la materia', 2, 80),
   abreviatura: textoOpcional('La abreviatura', 12),
+  tipo: z.enum(TIPOS_MATERIA, 'Selecciona el tipo.').optional().transform((v) => v ?? 'materia'),
 });
 
 /** Varias materias, una por renglón (captura rápida). */
@@ -308,11 +310,26 @@ export type EntradaExcepcion = z.input<typeof esquemaExcepcion>;
 
 // ===================== Fase 4 =====================
 
+/** CURP: estructura de 18 caracteres. Sólo se valida el formato. */
+export const PATRON_CURP = /^[A-Z][AEIOUX][A-Z]{2}\d{6}[HMX][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z\d]\d$/;
+
 export const esquemaAlumno = z.object({
   nombre: texto('El nombre', 2, 60),
   primerApellido: texto('El primer apellido', 2, 60),
   segundoApellido: textoOpcional('El segundo apellido', 60),
+  matricula: textoOpcional('La matrícula', 30).transform((v) => (v ? v.toUpperCase() : null)),
+  curp: z.string().transform((v) => v.trim().toUpperCase()).transform((v) => (v === '' ? null : v)).nullable().optional().transform((v) => v ?? null)
+    .refine((v) => v === null || PATRON_CURP.test(v), { message: 'La CURP debe tener 18 caracteres con el formato oficial.' }),
+  observaciones: textoOpcional('Las observaciones', 300),
 });
+
+export const esquemaInscripcion = z.object({
+  grupoId: z.uuid('Selecciona un grupo válido.').nullable().optional().transform((v) => v ?? null),
+  gradoId: z.uuid('Selecciona un grado válido.').nullable().optional().transform((v) => v ?? null),
+  turnoId: z.uuid('Selecciona un turno válido.').nullable().optional().transform((v) => v ?? null),
+  numeroLista: z.number().int('Usa un número entero.').min(1, 'El número de lista mínimo es 1.').max(200, 'El número de lista máximo es 200.').nullable().optional().transform((v) => v ?? null),
+});
+export type EntradaInscripcion = z.input<typeof esquemaInscripcion>;
 
 /**
  * Varios alumnos, uno por renglón, con el formato «Apellidos, Nombre(s)».

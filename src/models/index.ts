@@ -100,7 +100,18 @@ export type Datos<T extends Metadatos> = Omit<T, keyof Metadatos | 'escuelaId' |
 
 // ===================== Fase 2 =====================
 
-export const FUNCIONES_PERSONAL = ['docente', 'directivo', 'administrativo', 'prefectura', 'apoyo'] as const;
+/** Funciones vigentes (las que se ofrecen al capturar). */
+export const FUNCIONES_VIGENTES = [
+  'docente', 'prefectura', 'direccion', 'subdireccion_academica', 'subdireccion_gestion', 'orientacion',
+  'trabajo_social', 'udei', 'secretaria', 'asistencia_escolar', 'biblioteca', 'otro',
+] as const;
+/**
+ * Funciones anteriores (versión 4). Se conservan tal cual: convertirlas
+ * automáticamente sería inventar datos («Directivo» puede ser Dirección o
+ * Subdirección). Se muestran y se pueden cambiar a mano.
+ */
+export const FUNCIONES_ANTERIORES = ['directivo', 'administrativo', 'apoyo'] as const;
+export const FUNCIONES_PERSONAL = [...FUNCIONES_VIGENTES, ...FUNCIONES_ANTERIORES] as const;
 export type FuncionPersonal = (typeof FUNCIONES_PERSONAL)[number];
 
 /**
@@ -117,13 +128,31 @@ export interface Personal extends Metadatos {
   numeroEmpleado: string | null; // clave interna opcional
   funciones: FuncionPersonal[];
   activo: boolean;
+  observaciones: string | null; // administrativas, no sensibles
 }
+
+/**
+ * Adscripción de una persona a un ciclo: turnos en los que trabaja y, para
+ * docentes, materias que PUEDE impartir (no son asignaciones a grupos).
+ */
+export interface Adscripcion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  personalId: string;
+  turnoIds: string[];
+  materiaIds: string[];
+}
+
+export const TIPOS_MATERIA = ['materia', 'campo_formativo', 'taller', 'tutoria', 'actividad_especial', 'servicio'] as const;
+export type TipoMateria = (typeof TIPOS_MATERIA)[number];
 
 export interface Materia extends Metadatos {
   escuelaId: string;
   cicloEscolarId: string;
   nombre: string;
   abreviatura: string | null;
+  tipo: TipoMateria; // «servicio» (SE) es un tipo de actividad, no una materia frente a grupo
+  activo: boolean;
 }
 
 /** Qué materia recibe un grupo, con qué docente y cuántas horas por semana. */
@@ -212,14 +241,64 @@ export interface RegistroBitacora extends Metadatos {
  * Alumno de un grupo en un ciclo. Datos mínimos a propósito:
  * no se guardan CURP, fecha de nacimiento ni datos de contacto.
  */
+/**
+ * IDENTIDAD del alumno en la escuela (no cambia de un ciclo a otro).
+ * Datos mínimos: no se guarda información médica ni otros datos sensibles.
+ * La CURP es opcional y sólo debe capturarse cuando haya necesidad justificada.
+ */
 export interface Alumno extends Metadatos {
   escuelaId: string;
-  cicloEscolarId: string;
-  grupoId: string;
   nombre: string;
   primerApellido: string;
   segundoApellido: string | null;
-  activo: boolean;
+  matricula: string | null; // matrícula institucional (única en la escuela)
+  curp: string | null;
+  observaciones: string | null; // administrativas, no sensibles
+}
+
+export const ESTADOS_INSCRIPCION = ['inscrito', 'baja'] as const;
+export type EstadoInscripcion = (typeof ESTADOS_INSCRIPCION)[number];
+
+/** INSCRIPCIÓN del alumno en un ciclo: turno, grado y grupo (pueden faltar). Una por alumno y ciclo. */
+export interface Inscripcion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  alumnoId: string;
+  turnoId: string | null;
+  gradoId: string | null;
+  grupoId: string | null; // null = sin grupo
+  estado: EstadoInscripcion;
+  numeroLista: number | null;
+}
+
+/** Historial de cambios de la inscripción (altas, cambios de grupo, bajas). */
+export interface MovimientoInscripcion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  alumnoId: string;
+  inscripcionId: string;
+  tipo: 'alta' | 'cambio_grupo' | 'baja' | 'reactivacion' | 'migracion';
+  grupoAnteriorId: string | null;
+  grupoNuevoId: string | null;
+  motivo: string | null;
+}
+
+/** Alumno con su inscripción en un ciclo (vista de trabajo). */
+export interface AlumnoInscrito extends Alumno {
+  inscripcion: Inscripcion;
+  grupoId: string | null;
+  activo: boolean; // inscripción vigente
+}
+
+/** Registro de cada importación aplicada (origen, fecha, tipo y resultado). */
+export interface RegistroImportacion extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  tipo: 'alumnos' | 'docentes' | 'personal' | 'materias' | 'grupos';
+  archivo: string;
+  hoja: string | null;
+  huella: string | null; // SHA-256 del archivo, para advertir reimportaciones
+  resultado: { nuevos: number; actualizados: number; omitidos: number };
 }
 
 export const MARCAS_ASISTENCIA = ['P', 'F', 'R'] as const;

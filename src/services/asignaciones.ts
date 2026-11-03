@@ -39,6 +39,13 @@ export class ServicioAsignaciones {
     return r.sort((x, y) => x.materia.localeCompare(y.materia, 'es'));
   }
 
+  /** Asignaciones registradas por docente en el ciclo (dato real, para resúmenes). */
+  async conteoPorDocente(cicloId: string): Promise<Map<string, number>> {
+    const r = new Map<string, number>();
+    for (const a of await this.ctx.repos.asignaciones.listarPor('cicloEscolarId', cicloId)) if (a.personalId) r.set(a.personalId, (r.get(a.personalId) ?? 0) + 1);
+    return r;
+  }
+
   async crear(cicloId: string, entrada: EntradaAsignacion): Promise<Asignacion> {
     const datos = validar(esquemaAsignacion, entrada);
     return this.ctx.uow.ejecutar(async () => {
@@ -46,6 +53,8 @@ export class ServicioAsignaciones {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(datos.grupoId), 'el grupo');
       asegurarGrupoActivo(grupo);
       const materia = await requerir(this.ctx.repos.materias.obtener(datos.materiaId), 'la materia');
+      if (materia.activo === false) throw new ErrorDominio('ESTADO_NO_PERMITIDO', `La materia «${materia.nombre}» está desactivada.`, [{ campo: 'materiaId', mensaje: 'La materia está desactivada.' }]);
+      if (materia.tipo === 'servicio') throw new ErrorDominio('VALIDACION', 'Las horas de servicio (SE) no se asignan a un grupo: regístralas en la ficha del docente.', [{ campo: 'materiaId', mensaje: 'Las horas de servicio se registran en la ficha del docente.' }]);
       if (grupo.cicloEscolarId !== cicloId || materia.cicloEscolarId !== cicloId) {
         throw new ErrorDominio('VALIDACION', 'El grupo y la materia deben pertenecer al mismo ciclo escolar.');
       }

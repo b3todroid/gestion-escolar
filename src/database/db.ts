@@ -9,14 +9,15 @@
  * Ver docs/MODELO_DATOS.md.
  */
 import { Dexie, type Table } from 'dexie';
+import { nuevoId } from '../utils/id';
 import type {
-  Actividad, Ajuste, Alumno, Asistencia, PaseLista, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
+  Actividad, Adscripcion, Ajuste, Alumno, Asistencia, Inscripcion, MovimientoInscripcion, PaseLista, RegistroImportacion, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
   Receso, RegistroBitacora, Sesion, Turno,
 } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 5;
+export const VERSION_ESQUEMA = 6;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -41,6 +42,10 @@ export class BaseDatosEscolar extends Dexie {
   salidas!: Table<SalidaAula, string>;
   reportes!: Table<ReporteAlumno, string>;
   ajustes!: Table<Ajuste, string>;
+  adscripciones!: Table<Adscripcion, string>;
+  inscripciones!: Table<Inscripcion, string>;
+  movimientos!: Table<MovimientoInscripcion, string>;
+  importaciones!: Table<RegistroImportacion, string>;
 
   constructor(nombre: string = NOMBRE_BD) {
     super(nombre);
@@ -96,7 +101,45 @@ export class BaseDatosEscolar extends Dexie {
       await tx.table('grupos').toCollection().modify((g: Record<string, unknown>) => { if (g['activo'] === undefined) g['activo'] = true; });
     });
 
-    // Para fases futuras: agregar this.version(6) (con .upgrade() si hay que transformar
+    // Versión 6 — Catálogos e importación: identidad del alumno separada de su
+    // inscripción por ciclo; adscripciones del personal; tipos de materia; registro
+    // de importaciones. La migración NO borra información: la mueve.
+    this.version(6).stores({
+      alumnos: 'id, escuelaId', // antes también por grupo y ciclo: eso pasa a la inscripción
+      inscripciones: 'id, alumnoId, cicloEscolarId, grupoId, escuelaId, &[alumnoId+cicloEscolarId]',
+      movimientos: 'id, alumnoId, cicloEscolarId',
+      adscripciones: 'id, personalId, cicloEscolarId, &[personalId+cicloEscolarId]',
+      importaciones: 'id, escuelaId, cicloEscolarId',
+    }).upgrade(async (tx) => {
+      const ahora = new Date().toISOString();
+      const meta = () => ({ id: nuevoId(), creadoEn: ahora, actualizadoEn: ahora, version: 1 });
+      const grupos = new Map((await tx.table('grupos').toArray()).map((g: { id: string; gradoId: string; turnoId: string }) => [g.id, g]));
+      const inscripciones: unknown[] = [];
+      const movimientos: unknown[] = [];
+      await tx.table('alumnos').toCollection().modify((a: Record<string, unknown>) => {
+        if (a['cicloEscolarId'] !== undefined) {
+          const g = grupos.get(a['grupoId'] as string);
+          const ins = {
+            ...meta(), escuelaId: a['escuelaId'], cicloEscolarId: a['cicloEscolarId'], alumnoId: a['id'],
+            turnoId: g?.turnoId ?? null, gradoId: g?.gradoId ?? null, grupoId: a['grupoId'] ?? null,
+            estado: a['activo'] === false ? 'baja' : 'inscrito', numeroLista: null,
+          };
+          inscripciones.push(ins);
+          movimientos.push({ ...meta(), escuelaId: a['escuelaId'], cicloEscolarId: a['cicloEscolarId'], alumnoId: a['id'], inscripcionId: ins.id, tipo: 'migracion', grupoAnteriorId: null, grupoNuevoId: ins.grupoId, motivo: 'Migración a la versión 6 (identidad e inscripción separadas)' });
+          delete a['cicloEscolarId']; delete a['grupoId']; delete a['activo'];
+        }
+        for (const c of ['matricula', 'curp', 'observaciones']) if (a[c] === undefined) a[c] = null;
+      });
+      await tx.table('inscripciones').bulkAdd(inscripciones);
+      await tx.table('movimientos').bulkAdd(movimientos);
+      await tx.table('personal').toCollection().modify((p: Record<string, unknown>) => { if (p['observaciones'] === undefined) p['observaciones'] = null; });
+      await tx.table('materias').toCollection().modify((m: Record<string, unknown>) => {
+        if (m['tipo'] === undefined) m['tipo'] = 'materia';
+        if (m['activo'] === undefined) m['activo'] = true;
+      });
+    });
+
+    // Para fases futuras: agregar this.version(7) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

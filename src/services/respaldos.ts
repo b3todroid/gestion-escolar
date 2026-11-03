@@ -1,6 +1,7 @@
 import type { Metadatos } from '../models';
 import type { Repositorio } from '../repositories/tipos';
 import { ErrorDominio } from '../domain/errores';
+import { nuevoId } from '../utils/id';
 import { normalizarTexto } from '../domain/texto';
 import { ESQUEMAS_TABLA, FORMATO_RESPALDO, TABLAS_RESPALDO, esquemaSobre, type TablaRespaldo } from '../validators/respaldo';
 import { type Contexto, metadatosActualizados, metadatosNuevos } from './contexto';
@@ -39,7 +40,8 @@ export const ETIQUETA_TABLA: Record<TablaRespaldo, string> = {
   escuelas: 'Escuela', ciclos: 'Ciclos escolares', turnos: 'Turnos', jornadas: 'Jornadas', periodos: 'Periodos', recesos: 'Recesos',
   grados: 'Grados', grupos: 'Grupos', personal: 'Personal', materias: 'Materias', asignaciones: 'Asignaciones', sesiones: 'Clases del horario',
   actividades: 'Servicio y otras actividades', excepciones: 'Casos especiales', confirmaciones: 'Horarios confirmados', bitacora: 'Bitácora',
-  alumnos: 'Alumnos', pases: 'Listas de asistencia', asistencias: 'Marcas de asistencia', salidas: 'Salidas del aula', reportes: 'Reportes',
+  alumnos: 'Alumnos', inscripciones: 'Inscripciones', movimientos: 'Historial de inscripciones', adscripciones: 'Turnos y materias del personal',
+  importaciones: 'Registro de importaciones', pases: 'Listas de asistencia', asistencias: 'Marcas de asistencia', salidas: 'Salidas del aula', reportes: 'Reportes',
 };
 
 /** Referencias internas que deben existir dentro del mismo respaldo. */
@@ -63,13 +65,41 @@ const REFERENCIAS: [TablaRespaldo, string, TablaRespaldo, boolean][] = [
   ['actividades', 'grupoId', 'grupos', true],
   ['excepciones', 'personalId', 'personal', false],
   ['confirmaciones', 'grupoId', 'grupos', false],
-  ['alumnos', 'grupoId', 'grupos', false],
+  ['inscripciones', 'alumnoId', 'alumnos', false],
+  ['inscripciones', 'grupoId', 'grupos', true],
+  ['inscripciones', 'gradoId', 'grados', true],
+  ['inscripciones', 'turnoId', 'turnos', true],
+  ['movimientos', 'alumnoId', 'alumnos', false],
+  ['adscripciones', 'personalId', 'personal', false],
   ['pases', 'asignacionId', 'asignaciones', false],
   ['asistencias', 'paseId', 'pases', false],
   ['asistencias', 'alumnoId', 'alumnos', false],
   ['salidas', 'alumnoId', 'alumnos', false],
   ['reportes', 'alumnoId', 'alumnos', false],
 ];
+
+function convertirAlumnosAnteriores(datos: Record<string, unknown[]>): void {
+  const grupos = new Map(((datos['grupos'] ?? []) as { id: string; gradoId: string; turnoId: string }[]).map((g) => [g.id, g]));
+  const inscripciones: unknown[] = [...(datos['inscripciones'] ?? [])];
+  const movimientos: unknown[] = [...(datos['movimientos'] ?? [])];
+  datos['alumnos'] = (datos['alumnos'] ?? []).map((x) => {
+    const a = { ...(x as Record<string, unknown>) };
+    if (typeof a['cicloEscolarId'] === 'string') {
+      const g = grupos.get(a['grupoId'] as string);
+      const marca = typeof a['creadoEn'] === 'string' ? a['creadoEn'] : new Date().toISOString();
+      const ins = {
+        id: nuevoId(), creadoEn: marca, actualizadoEn: marca, version: 1, escuelaId: a['escuelaId'], cicloEscolarId: a['cicloEscolarId'], alumnoId: a['id'],
+        turnoId: g?.turnoId ?? null, gradoId: g?.gradoId ?? null, grupoId: a['grupoId'] ?? null, estado: a['activo'] === false ? 'baja' : 'inscrito', numeroLista: null,
+      };
+      inscripciones.push(ins);
+      movimientos.push({ id: nuevoId(), creadoEn: marca, actualizadoEn: marca, version: 1, escuelaId: a['escuelaId'], cicloEscolarId: a['cicloEscolarId'], alumnoId: a['id'], inscripcionId: ins.id, tipo: 'migracion', grupoAnteriorId: null, grupoNuevoId: ins.grupoId, motivo: 'Respaldo de una versión anterior' });
+      delete a['cicloEscolarId']; delete a['grupoId']; delete a['activo'];
+    }
+    return a;
+  });
+  datos['inscripciones'] = inscripciones;
+  datos['movimientos'] = movimientos;
+}
 
 async function sha256(texto: string): Promise<string | null> {
   const sutil = globalThis.crypto?.subtle;
@@ -174,6 +204,10 @@ export class ServicioRespaldos {
     if (s.huella && huella && s.huella !== huella) errores.push('El archivo fue modificado o está dañado: su huella de verificación no coincide.');
     if (!s.huella) advertencias.push('El respaldo no tiene huella de verificación; no se puede comprobar que esté íntegro.');
     if (s.huella && !huella) advertencias.push('Este navegador no puede verificar la huella del archivo (requiere HTTPS o localhost).');
+
+    // Respaldos anteriores al esquema 6: el alumno traía su grupo y ciclo; se
+    // convierten en inscripciones (igual que la migración de la base de datos).
+    if (s.esquema < 6) convertirAlumnosAnteriores(s.datos);
 
     // Validación de cada registro
     const datos = {} as Record<TablaRespaldo, Metadatos[]>;

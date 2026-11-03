@@ -31,7 +31,7 @@ beforeEach(async () => {
   p = (await s.asignaciones.horarioDelDia(A.id, 1)).map((c) => c.periodo);
   claseA = await s.asignaciones.programar({ grupoId: A.id, asignacionId: aA.id, dia: 1, periodoId: p[0]!.id }); // lunes 07:00
   claseB = await s.asignaciones.programar({ grupoId: B.id, asignacionId: aB.id, dia: 1, periodoId: p[2]!.id }); // lunes 08:40
-  alumnos = await s.alumnos.crearVarios(A.id, 'Alumna Ficticia, Ana\nAlumno Ficticio Dos, Beto\nAlumna Prueba, Carla\nAlumno Prueba Tres, Dani');
+  alumnos = await s.alumnos.crearVarios(A.id, 'Alumna Ficticia, Ana\nAlumno Ficticio, Beto\nAlumna Prueba, Carla\nAlumno Prueba, Dani');
 });
 
 const ids = () => Object.fromEntries((alumnos).map((a) => [a.nombre, a.id])) as Record<string, string>;
@@ -41,7 +41,9 @@ describe('alumnos', () => {
     const lista = await s.alumnos.listarGrupo(A.id);
     // Orden por apellidos: «Alumna Ficticia», «Alumna Prueba», «Alumno Ficticio Dos», «Alumno Prueba Tres»
     expect(lista.map((a) => a.nombre)).toEqual(['Ana', 'Carla', 'Beto', 'Dani']);
-    expect(lista[2]).toMatchObject({ primerApellido: 'Alumno', segundoApellido: 'Ficticio Dos' });
+    expect(lista[2]).toMatchObject({ primerApellido: 'Alumno', segundoApellido: 'Ficticio' });
+    // Ambiguo (tres palabras antes de la coma): no se adivina
+    await expect(s.alumnos.crearVarios(A.id, 'De la Cruz, Eva')).rejects.toThrow('captúralo por separado');
     await expect(s.alumnos.crearVarios(A.id, 'Sin coma Nombre')).rejects.toThrow('Apellidos, Nombre');
     await expect(s.alumnos.crearVarios(A.id, 'Alumna Prueba, carla')).rejects.toMatchObject({ codigo: 'DUPLICADO' });
   });

@@ -208,7 +208,7 @@ main:focus { outline: none; }
 .campo label, .campo legend { font-weight: 700; }
 .requerido, .opcional { font-weight: 400; color: var(--texto-suave); font-size: 0.85rem; }
 .campo .ayuda { margin: 0; }
-.campo input, .campo select {
+.campo input, .campo select, .mapeo__col select {
   width: 100%; min-height: var(--toque); padding: 0.55rem 0.8rem;
   font: inherit; font-size: 1.05rem; color: var(--texto); background: var(--superficie);
   border: 2px solid var(--borde); border-radius: var(--r-medio);
@@ -719,3 +719,48 @@ main:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* ===== Fase 2: catálogos e importación ===== */
+.subnav { margin: 0 0 1rem; }
+.subnav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.subnav__enlace {
+  display: inline-flex; align-items: center; min-height: var(--toque); padding: 0 0.9rem;
+  border: 2px solid var(--primario); border-radius: 999px; color: var(--primario); font-weight: 700; text-decoration: none;
+  background: var(--superficie);
+}
+.subnav__enlace[aria-current="page"] { background: var(--primario); color: var(--primario-texto); }
+.subnav__enlace[aria-current="page"]::before { content: "● "; }
+.filtros { display: grid; gap: 0.5rem 0.75rem; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); margin: 0 0 0.75rem; }
+.filtros .campo { margin: 0; }
+.filtros input, .filtros select { width: 100%; }
+.renglon--inactivo { opacity: 0.8; border-style: dashed; }
+.mensaje--aviso { background: var(--aviso-suave); border-left-color: var(--lapiz); color: var(--texto); }
+.mensaje--exito { background: var(--ok-suave); border-left-color: var(--ok); }
+.mensaje--exito ul, .mensaje ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.datos--compacto { font-size: 0.95rem; margin: 0.25rem 0 0.5rem; }
+.sugerencias { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.resumen-matricula { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin-top: 0.5rem; }
+.opciones-tipo { display: grid; gap: 0.5rem; }
+.opcion-tipo {
+  display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem; min-height: var(--toque);
+  border: 2px solid var(--borde); border-radius: var(--r-medio); background: var(--superficie); cursor: pointer;
+}
+.opcion-tipo:has(input:checked) { border-color: var(--primario); background: var(--primario-suave); }
+.opcion-tipo input { width: 1.4rem; height: 1.4rem; margin-top: 0.1rem; flex: none; }
+.opcion-tipo__texto { display: grid; gap: 0.15rem; }
+.opcion-tipo__desc { color: var(--texto-suave); font-size: 0.92rem; }
+.mapeo { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.mapeo__col { display: grid; gap: 0.25rem; padding: 0.6rem 0.75rem; border: 1px solid var(--borde); border-radius: var(--r-medio); background: var(--superficie); }
+.mapeo__col label { overflow-wrap: anywhere; }
+.mapeo__letra { color: var(--texto-suave); font-size: 0.85rem; }
+.mapeo__ejemplo { color: var(--texto-suave); font-size: 0.88rem; overflow-wrap: anywhere; }
+.mapeo__col select { width: 100%; }
+.fila-imp--posible_duplicado { background: var(--aviso-suave); border-left-color: var(--lapiz); }
+.fila-imp--actualizable { border-left-color: var(--tinta); }
+.fila-imp--omitido { border-left-color: var(--borde); }
+.fila-imp__existente { font-size: 0.92rem; }
+.fila-imp__cambios { margin: 0; padding-left: 1.1rem; font-size: 0.92rem; }
+.campo--compacto { margin: 0.25rem 0 0; }
+.campo--compacto select { max-width: 100%; }
+.totales--importacion { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
+.resumen-decisiones { font-weight: 700; margin: 0.75rem 0; }

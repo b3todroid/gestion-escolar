@@ -74,6 +74,22 @@ Decisiones:
 - El pase guarda copia de la hora y la asignación para que el historial no dependa de cambios posteriores del horario.
 - Un pase sólo existe si se guardó: abrir la lista no crea registros.
 
+## Fase 2 · Catálogos (versión 6 del esquema)
+| Tabla | Campos | Índices |
+|---|---|---|
+| `alumnos` (**identidad**) | escuelaId, nombre, primerApellido, segundoApellido?, matricula?, curp?, observaciones? | `id`, `escuelaId` |
+| `inscripciones` | escuelaId, cicloEscolarId, alumnoId, turnoId?, gradoId?, grupoId?, estado (inscrito/baja), numeroLista? | `id`, `alumnoId`, `cicloEscolarId`, `grupoId`, `escuelaId`, `&[alumnoId+cicloEscolarId]` (una por ciclo) |
+| `movimientos` | escuelaId, cicloEscolarId, alumnoId, inscripcionId, tipo (alta/cambio_grupo/baja/reactivacion/migracion), grupoAnteriorId?, grupoNuevoId?, motivo? | `id`, `alumnoId`, `cicloEscolarId` |
+| `adscripciones` | escuelaId, cicloEscolarId, personalId, turnoIds[], materiaIds[] (materias que **puede** impartir) | `id`, `personalId`, `cicloEscolarId`, `&[personalId+cicloEscolarId]` |
+| `importaciones` | escuelaId, cicloEscolarId, tipo, archivo, hoja?, huella (SHA-256)?, resultado {nuevos, actualizados, omitidos} | `id`, `escuelaId`, `cicloEscolarId` |
+
+Campos nuevos en tablas existentes: `personal.observaciones`; `materias.tipo` (materia, campo_formativo, taller, tutoria, actividad_especial, servicio) y `materias.activo`.
+
+- **Identidad separada de inscripción**: el alumno es una sola persona en la escuela; grado, grupo, turno, estado y número de lista son de su inscripción en cada ciclo. Cambiar de grupo actualiza la inscripción y agrega un `movimiento`; nunca crea otra persona. Las asistencias, salidas y reportes conservan su `grupoId` original.
+- Matrícula y CURP (opcionales) son únicas por escuela; el nombre **no** identifica a nadie (homónimos posibles).
+- **Docentes** no es una tabla: es el personal con función `docente`. Funciones vigentes: docente, prefectura, dirección, subdirección académica, subdirección de gestión, orientación, trabajo social, UDEI, secretaría, asistencia escolar, biblioteca, otro. Las funciones anteriores (`directivo`, `administrativo`, `apoyo`) se conservan tal cual en registros existentes: no se convierten porque no hay forma segura de saber a cuál corresponden.
+- Materias de tipo `servicio` (horas SE) no se asignan a grupos.
+
 ## Entidades previstas (fases posteriores)
  Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
@@ -81,6 +97,7 @@ Decisiones:
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 6 | 2026-11-03 | Agrega `inscripciones`, `movimientos`, `adscripciones`, `importaciones`; `alumnos` pasa a índice `escuelaId`. `upgrade()`: por cada alumno anterior crea su inscripción (turno y grado tomados del grupo; estado según `activo`) y un movimiento `migracion`, y deja en `alumnos` sólo la identidad; personal → `observaciones: null`; materias → `tipo: 'materia'`, `activo: true`. Nada se borra. Probada v5 → v6 con asistencias. Los respaldos con esquema < 6 se convierten igual al restaurar (después de verificar la huella). |
 | 5 | 2026-11-03 | Sin cambios de índices. `upgrade()` completa en registros existentes: escuelas → campos del plantel en `null`; grupos → `activo: true`. Probada con datos v1 → v5. Los respaldos de esquemas anteriores se aceptan (los campos faltantes toman esos mismos valores). |
 | 4 | 2026-11-03 | Agrega `alumnos`, `pases`, `asistencias`, `salidas`, `reportes`, `ajustes`. Sin cambios en tablas anteriores; migración v1 → v4 probada. |
 | 3 | 2026-11-03 | Agrega `actividades`, `excepciones`, `confirmaciones`, `bitacora`. Sin cambios en tablas anteriores; la prueba de migración v1 → v3 conserva los datos. |
