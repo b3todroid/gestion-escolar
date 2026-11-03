@@ -7,7 +7,7 @@ import { ETIQUETA_REPORTE, pedirReporte } from '../components/reporte';
 import { nombreAlumno } from '../services/alumnos';
 import type { Alumno } from '../models';
 import type { EntradaAlumno } from '../validators/esquemas';
-import { horaLocal, fechaLocal } from '../utils/fechas';
+import { horaLocal, fechaLocal, diaIso } from '../utils/fechas';
 import { aMinutos } from '../domain/tiempo';
 
 export async function paginaAlumnos(ctx: ContextoPagina, grupoId: string): Promise<Vista> {
@@ -19,6 +19,12 @@ export async function paginaAlumnos(ctx: ContextoPagina, grupoId: string): Promi
   const fuera = await ctx.s.asistencia.fueraDelAula(grupoId);
   const editable = ciclo.estado !== 'cerrado';
   const activos = resumen.filter((r) => r.alumno.activo);
+  // Clases de HOY de este grupo (del módulo Horarios), para pasar lista con un toque.
+  const ahora = new Date();
+  const hoy = fechaLocal(ahora);
+  const asignaciones = await ctx.s.asignaciones.listarPorGrupo(grupoId);
+  const clasesHoy = (await ctx.s.asignaciones.horarioDelDia(grupoId, diaIso(ahora))).filter((c) => c.sesion)
+    .map((c) => ({ ...c, materia: asignaciones.find((a) => a.id === c.sesion!.asignacionId)?.materia ?? 'Clase' }));
 
   const fA = 'f-alumno';
   const formUno = alEnviar(formulario(fA, null,
@@ -50,6 +56,8 @@ export async function paginaAlumnos(ctx: ContextoPagina, grupoId: string): Promi
     contenido: h('div', { class: 'pagina' },
       migas([{ texto: 'Inicio', href: '#/' }, { texto: `Grupo ${nombreGrupo}`, href: `#/grupo/${grupoId}` }, { texto: 'Alumnos' }]),
       encabezado(`Alumnos de ${nombreGrupo}`, `Ciclo ${ciclo.nombre}. ${activos.length} alumno(s) activos.`),
+      clasesHoy.length && activos.length && ciclo.estado === 'activo' ? h('nav', { class: 'clases-hoy', 'aria-label': 'Pasar lista hoy', id: 'clases-hoy' },
+        ...clasesHoy.map((c) => h('a', { class: 'boton boton--ancho', href: `#/lista/${c.sesion!.id}/${hoy}` }, `Pasar lista: ${c.periodo.horaInicio} ${c.materia}`))) : null,
       fuera.length ? seccion('fuera', 'Fuera del aula ahora',
         h('ul', { class: 'renglones' }, ...fuera.map((s) => {
           const a = resumen.find((r) => r.alumno.id === s.alumnoId)?.alumno;
@@ -179,8 +187,12 @@ export async function paginaAlumno(ctx: ContextoPagina, alumnoId: string): Promi
       seccion('reportes', 'Reportes breves',
         h0.reportes.length
           ? h('ul', { class: 'renglones' }, ...h0.reportes.map((r) => h('li', { class: 'renglon renglon--bloque' },
-              h('span', {}, insignia(ETIQUETA_REPORTE[r.tipo], r.tipo === 'reconocimiento' ? 'ok' : 'neutro', '✎'), ` ${fecha(r.fecha)}`),
+              h('span', {}, insignia(ETIQUETA_REPORTE[r.tipo], r.tipo === 'reconocimiento' ? 'ok' : 'neutro', '✎'), ` ${fecha(r.fecha)}${r.hora ? ` ${r.hora}` : ''} `,
+                r.estado === 'atendida' ? insignia('Atendida', 'ok', '✓') : insignia('Abierta', 'aviso', '●')),
               h('span', { class: 'renglon__texto' }, r.texto),
+              editable ? botonAccion(r.estado === 'atendida' ? 'Reabrir' : 'Marcar atendida', async () => {
+                if (await ejecutar(async () => { await ctx.s.asistencia.cambiarEstadoReporte(r.id, r.estado === 'atendida' ? 'abierta' : 'atendida'); return r.estado === 'atendida' ? 'Incidencia reabierta.' : 'Incidencia marcada como atendida.'; })) await ctx.recargar();
+              }, 'secundario', `${r.estado === 'atendida' ? 'Reabrir' : 'Marcar atendida'} reporte del ${fecha(r.fecha)}`) : null,
               editable ? botonAccion('Eliminar', async () => {
                 if (await confirmar({ titulo: '¿Eliminar este reporte?', mensaje: r.texto, textoConfirmar: 'Eliminar', peligro: true })
                   && await ejecutar(async () => { await ctx.s.asistencia.eliminarReporte(r.id); return 'Reporte eliminado.'; })) await ctx.recargar();
@@ -189,7 +201,7 @@ export async function paginaAlumno(ctx: ContextoPagina, alumnoId: string): Promi
           : vacio('Sin reportes.'),
         editable && activo && ins?.grupoId ? botonAccion('Nuevo reporte', async () => {
           const r = await pedirReporte(nombre);
-          if (r && await ejecutar(async () => { await ctx.s.asistencia.crearReporte(a.id, r, { personalId: persona?.id ?? null, sesionId: null, fecha: fechaLocal(new Date()) }); return 'Reporte guardado.'; })) await ctx.recargar();
+          if (r && await ejecutar(async () => { await ctx.s.asistencia.crearReporte(a.id, r, { personalId: persona?.id ?? null, sesionId: null, fecha: fechaLocal(new Date()), hora: horaLocal(new Date()) }); return 'Reporte guardado.'; })) await ctx.recargar();
         }, 'principal') : null,
       ),
       h('a', { class: 'boton boton--secundario', href: volver }, 'Volver'),

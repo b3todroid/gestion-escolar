@@ -169,3 +169,14 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Alta individual o por lote («Apellidos, Nombre(s)»), todo o nada; sin duplicados (normalizado) en el grupo; orden por apellidos.
 - Baja conserva historial; sólo se elimina sin registros. No se elimina un grupo con alumnos ni una materia con listas registradas.
 - Reporte breve: tipo (conducta, académico, reconocimiento, otro) y texto de 3 a 280 caracteres; no a alumnos dados de baja.
+
+## Módulo docente (Fase 4 · segunda etapa, 2026-11)
+- **Actividad actual**: según fecha, hora local, jornada, periodos, recesos y horario del docente (clases, SE y otras actividades). Estados: CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA (hueco dentro de la jornada: **no** es tiempo libre ni servicio), FUERA DE JORNADA (antes del inicio, después del fin, o día sin jornada). Límites exactos: cada bloque es [inicio, fin); a las 07:50 ya empezó el bloque de las 07:50. Con clases simultáneas autorizadas se muestra la clase.
+- La pantalla principal muestra fecha, hora, escuela, turno (el del grupo actual o los del día), ciclo, actividad actual, grupo, materia, siguiente actividad, siguiente clase y acceso al pase de lista; también los alumnos fuera del aula en sus grupos.
+- **Pase de lista**: estados NO INICIADA (sin pase), EN CAPTURA (marcas sin guardar en pantalla), GUARDADA, MODIFICADA (corregida después de guardar). Abrir no guarda; al guardar se registra fecha y hora (primer guardado y último). Un solo pase por clase y fecha; guardar sólo toca las asistencias de ese pase.
+- **Correcciones**: cada cambio de marca (o de hora de llegada) queda en `cambiosAsistencia` con la marca anterior y la nueva, la fecha y hora y el docente del dispositivo; guardar sin cambios se rechaza.
+- **R** = presente con retardo: no cuenta como falta.
+- **Salidas**: alumno, grupo, docente, fecha, hora de salida (automática), hora de regreso (automática, nunca antes de la salida) y periodo. Se guardan al momento y se conservan al cambiar de pantalla. No se inicia una salida si el alumno tiene falta guardada en esa clase.
+- **Conflicto falta ↔ salida**: marcar F a quien salió en esa clase abre un diálogo con resolución explícita: registrar su regreso (no queda falta) o anular la salida por haberse registrado por error (entonces sí queda F). Cancelar no cambia nada. El servicio rechaza siempre la contradicción.
+- **Incidencias**: alumno, tipo, descripción (≤ 280), fecha, hora, docente, grupo y estado (abierta / atendida). `documentoIncidencias()` prepara los datos para un PDF en una fase posterior (no se genera PDF).
+- Búsqueda rápida en la lista (más de 4 alumnos), botones ≥ 44 px, confirmación visible al guardar.

@@ -42,6 +42,7 @@ export const ETIQUETA_TABLA: Record<TablaRespaldo, string> = {
   actividades: 'Servicio y otras actividades', excepciones: 'Casos especiales', confirmaciones: 'Horarios confirmados', bitacora: 'Bitácora',
   alumnos: 'Alumnos', inscripciones: 'Inscripciones', movimientos: 'Historial de inscripciones', adscripciones: 'Turnos y materias del personal',
   importaciones: 'Registro de importaciones', pases: 'Listas de asistencia', asistencias: 'Marcas de asistencia', salidas: 'Salidas del aula', reportes: 'Reportes',
+  cambiosAsistencia: 'Correcciones de asistencia',
 };
 
 /** Referencias internas que deben existir dentro del mismo respaldo. */
@@ -76,6 +77,8 @@ const REFERENCIAS: [TablaRespaldo, string, TablaRespaldo, boolean][] = [
   ['asistencias', 'alumnoId', 'alumnos', false],
   ['salidas', 'alumnoId', 'alumnos', false],
   ['reportes', 'alumnoId', 'alumnos', false],
+  ['cambiosAsistencia', 'paseId', 'pases', false],
+  ['cambiosAsistencia', 'alumnoId', 'alumnos', false],
 ];
 
 function convertirAlumnosAnteriores(datos: Record<string, unknown[]>): void {

@@ -796,3 +796,17 @@ main:focus { outline: none; }
 }
 .bloque-h--clase .bloque-h__estado { color: inherit; }
 .bloque-h--clase .bloque-h__estado--conflicto { background: var(--peligro-suave); color: var(--peligro); padding: 0 0.3rem; border-radius: 4px; justify-self: start; }
+
+/* ===== Fase 4: módulo docente ===== */
+.mi-dia__escuela { margin: 0.15rem 0 0; color: var(--texto-suave); font-weight: 700; }
+.etiqueta-tipo--fuera { color: var(--texto-suave); border-style: dashed; }
+.pendiente--fuera { border-color: var(--tinta); background: var(--tinta-suave); }
+.pendiente--fuera h2 { font-size: 1.05rem; }
+.siguiente__clase { margin: 0.5rem 0 0; }
+.lista__datos { margin: 0 0 0.5rem; color: var(--texto-suave); }
+.lista__buscar { margin-bottom: 0.75rem; }
+.lista__buscar input { width: 100%; }
+#estado-lista .insignia { font-size: 0.95rem; }
+.clases-hoy { display: grid; gap: 0.5rem; margin: 0 0 1rem; }
+/* El atributo hidden siempre gana sobre display de los componentes. */
+[hidden] { display: none !important; }

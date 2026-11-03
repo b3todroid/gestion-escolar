@@ -1,4 +1,11 @@
-import type { AlumnoInscrito, Asistencia, MarcaAsistencia, PaseLista, ReporteAlumno, SalidaAula, Sesion, TipoReporte } from '../models';
+import type { AlumnoInscrito, Asistencia, CambioAsistencia, EstadoIncidencia, MarcaAsistencia, PaseLista, ReporteAlumno, SalidaAula, Sesion, TipoReporte } from '../models';
+import { ESTADOS_INCIDENCIA } from '../models';
+
+/** Estructura para un futuro documento PDF de incidencias (no se genera PDF en esta fase). */
+export interface DocumentoIncidencias {
+  escuela: string; cct: string | null; ciclo: string; grupo: string; desde: string; hasta: string; generadoEn: string;
+  filas: { fecha: string; hora: string | null; alumno: string; tipo: TipoReporte; descripcion: string; docente: string | null; estado: EstadoIncidencia }[];
+}
 import { esquemaFecha, esquemaHora, esquemaMarcas, esquemaReporte, validar, type EntradaReporte } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { aMinutos } from '../domain/tiempo';
@@ -6,6 +13,20 @@ import { type Contexto, cicloEditable, metadatosActualizados, metadatosNuevos, r
 import { ServicioAlumnos, nombreAlumno } from './alumnos';
 import { DIAS_SEMANA } from './turnos';
 import { diaDeFecha } from '../utils/fechas';
+
+/**
+ * Estado del pase de lista. EN CAPTURA es sólo de la pantalla (marcas sin
+ * guardar); los demás se derivan de lo guardado.
+ */
+export type EstadoLista = 'no_iniciada' | 'en_captura' | 'guardada' | 'modificada';
+export const ETIQUETA_ESTADO_LISTA: Record<EstadoLista, string> = {
+  no_iniciada: 'NO INICIADA', en_captura: 'EN CAPTURA', guardada: 'GUARDADA', modificada: 'MODIFICADA',
+};
+export function estadoLista(pase: Pick<PaseLista, 'correcciones'> | null, hayCambiosSinGuardar = false): EstadoLista {
+  if (hayCambiosSinGuardar) return 'en_captura';
+  if (!pase) return 'no_iniciada';
+  return (pase.correcciones ?? 0) > 0 ? 'modificada' : 'guardada';
+}
 
 export interface ListaAbierta {
   sesion: Sesion;
@@ -21,6 +42,10 @@ export interface ListaAbierta {
   marcas: Map<string, Asistencia>;
   /** Salidas de esta clase y fecha. */
   salidas: SalidaAula[];
+  estado: EstadoLista;
+  /** Historial de correcciones de este pase (más reciente primero). */
+  cambios: CambioAsistencia[];
+  periodo: string;
 }
 
 export interface ResumenAlumno {
@@ -63,7 +88,9 @@ export class ServicioAsistencia {
     const marcas = new Map<string, Asistencia>();
     if (pase) for (const a of await this.ctx.repos.asistencias.listarPor('paseId', pase.id)) marcas.set(a.alumnoId, a);
     const salidas = (await this.ctx.repos.salidas.listarPor('sesionId', sesionId)).filter((s) => s.fecha === f);
+    const cambios = pase ? (await this.ctx.repos.cambiosAsistencia.listarPor('paseId', pase.id)).sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)) : [];
     return {
+      estado: estadoLista(pase), cambios, periodo: periodo.nombre,
       sesion, grupo: { id: grupo.id, nombre: `${grado?.numero ?? ''}° ${grupo.nombre}` }, materia: materia?.nombre ?? 'Materia',
       docente: docente ? `${docente.nombre} ${docente.primerApellido}` : null, fecha: f, horaInicio: periodo.horaInicio, horaFin: periodo.horaFin,
       alumnos, pase, marcas, salidas,
@@ -89,7 +116,7 @@ export class ServicioAsistencia {
    * Guarda (o corrige) el pase de lista. Quien no tenga marca queda PRESENTE:
    * no hay que marcar a cada alumno. Todo o nada.
    */
-  async guardarLista(sesionId: string, fecha: string, marcas: Record<string, MarcaAsistencia>, llegadas: Record<string, string>, hoy: string): Promise<{ pase: PaseLista; P: number; F: number; R: number }> {
+  async guardarLista(sesionId: string, fecha: string, marcas: Record<string, MarcaAsistencia>, llegadas: Record<string, string>, hoy: string, personalId: string | null = null): Promise<{ pase: PaseLista; P: number; F: number; R: number; corregidos: number }> {
     const f = validar(esquemaFecha, fecha);
     const m = validar(esquemaMarcas, marcas);
     return this.ctx.uow.ejecutar(async () => {
@@ -116,37 +143,46 @@ export class ServicioAsistencia {
       }
 
       const asig = await requerir(this.ctx.repos.asignaciones.obtener(sesion.asignacionId), 'la asignación');
-      let pase = await this.paseDe(sesionId, f);
+      const existente = await this.paseDe(sesionId, f);
       const ahoraIso = this.ctx.reloj();
-      if (!pase) {
-        pase = {
-          ...metadatosNuevos(this.ctx), escuelaId: sesion.escuelaId, cicloEscolarId: sesion.cicloEscolarId, grupoId: sesion.grupoId, sesionId,
-          asignacionId: asig.id, personalId: sesion.personalId, fecha: f, horaInicio: periodo.horaInicio, horaFin: periodo.horaFin, guardadoEn: ahoraIso,
-        };
-        await this.ctx.repos.pases.insertar(pase);
-      } else {
-        pase = { ...pase, guardadoEn: ahoraIso, ...metadatosActualizados(this.ctx, pase) };
-        await this.ctx.repos.pases.actualizar(pase);
-      }
-      const previas = new Map((await this.ctx.repos.asistencias.listarPor('paseId', pase.id)).map((a) => [a.alumnoId, a]));
+      const pase: PaseLista = existente
+        ? { ...existente, guardadoEn: ahoraIso, ...metadatosActualizados(this.ctx, existente) }
+        : {
+            ...metadatosNuevos(this.ctx), escuelaId: sesion.escuelaId, cicloEscolarId: sesion.cicloEscolarId, grupoId: sesion.grupoId, sesionId,
+            asignacionId: asig.id, personalId: sesion.personalId, fecha: f, horaInicio: periodo.horaInicio, horaFin: periodo.horaFin, guardadoEn: ahoraIso, correcciones: 0,
+          };
+      // Sólo se tocan las asistencias de ESTE pase (clase y fecha); nunca las de otros grupos o docentes.
+      const previas = new Map(existente ? (await this.ctx.repos.asistencias.listarPor('paseId', existente.id)).map((a) => [a.alumnoId, a]) : []);
       const cuenta = { P: 0, F: 0, R: 0 };
+      let corregidos = 0;
       for (const a of alumnos) {
         const marca: MarcaAsistencia = m[a.id] ?? 'P';
         cuenta[marca]++;
         const horaLlegada = marca === 'R' ? (llegadas[a.id] || null) : null;
         const previa = previas.get(a.id);
         if (previa) {
-          if (previa.marca !== marca || previa.horaLlegada !== horaLlegada) await this.ctx.repos.asistencias.actualizar({ ...previa, marca, horaLlegada, ...metadatosActualizados(this.ctx, previa) });
+          if (previa.marca !== marca || previa.horaLlegada !== horaLlegada) {
+            await this.ctx.repos.asistencias.actualizar({ ...previa, marca, horaLlegada, ...metadatosActualizados(this.ctx, previa) });
+            await this.ctx.repos.cambiosAsistencia.insertar({
+              ...metadatosNuevos(this.ctx), escuelaId: pase.escuelaId, cicloEscolarId: pase.cicloEscolarId, paseId: pase.id, grupoId: pase.grupoId, alumnoId: a.id,
+              marcaAnterior: previa.marca, marcaNueva: marca, llegadaAnterior: previa.horaLlegada, llegadaNueva: horaLlegada, personalId,
+            });
+            corregidos++;
+          }
         } else {
           await this.ctx.repos.asistencias.insertar({ ...metadatosNuevos(this.ctx), escuelaId: pase.escuelaId, cicloEscolarId: pase.cicloEscolarId, paseId: pase.id, grupoId: pase.grupoId, alumnoId: a.id, fecha: f, marca, horaLlegada });
+          if (existente) corregidos++; // alumno agregado después del primer guardado
         }
       }
-      return { pase, ...cuenta };
+      if (existente && corregidos === 0) throw new ErrorDominio('VALIDACION', 'No hay cambios que guardar.');
+      if (existente) { pase.correcciones = (existente.correcciones ?? 0) + 1; await this.ctx.repos.pases.actualizar(pase); }
+      else await this.ctx.repos.pases.insertar(pase);
+      return { pase, ...cuenta, corregidos };
     });
   }
 
   /** Salida al baño. Se registra al momento (no depende de guardar la lista). */
-  async registrarSalida(sesionId: string, fecha: string, alumnoId: string, hora: string, hoy: string): Promise<SalidaAula> {
+  async registrarSalida(sesionId: string, fecha: string, alumnoId: string, hora: string, hoy: string, personalId: string | null = null): Promise<SalidaAula> {
     const f = validar(esquemaFecha, fecha);
     const h = validar(esquemaHora, hora);
     return this.ctx.uow.ejecutar(async () => {
@@ -162,7 +198,10 @@ export class ServicioAsistencia {
       }
       const abierta = (await this.ctx.repos.salidas.listarPor('alumnoId', alumnoId)).find((s) => s.regreso === null);
       if (abierta) throw new ErrorDominio('ESTADO_NO_PERMITIDO', `${nombreAlumno(alumno)} ya está fuera del aula desde las ${abierta.salida}. Registra primero su reincorporación.`);
-      const s: SalidaAula = { ...metadatosNuevos(this.ctx), escuelaId: sesion.escuelaId, cicloEscolarId: sesion.cicloEscolarId, grupoId: sesion.grupoId, alumnoId, sesionId, fecha: f, salida: h, regreso: null };
+      const s: SalidaAula = {
+        ...metadatosNuevos(this.ctx), escuelaId: sesion.escuelaId, cicloEscolarId: sesion.cicloEscolarId, grupoId: sesion.grupoId, alumnoId, sesionId, fecha: f, salida: h, regreso: null,
+        personalId: personalId ?? sesion.personalId, periodoId: sesion.periodoId,
+      };
       await this.ctx.repos.salidas.insertar(s);
       return s;
     });
@@ -226,9 +265,10 @@ export class ServicioAsistencia {
 
   // ---------- Reportes breves ----------
 
-  async crearReporte(alumnoId: string, entrada: EntradaReporte, contexto: { personalId: string | null; sesionId: string | null; fecha: string }): Promise<ReporteAlumno> {
+  async crearReporte(alumnoId: string, entrada: EntradaReporte, contexto: { personalId: string | null; sesionId: string | null; fecha: string; hora?: string | null }): Promise<ReporteAlumno> {
     const datos = validar(esquemaReporte, entrada);
     const fecha = validar(esquemaFecha, contexto.fecha);
+    const hora = contexto.hora ? validar(esquemaHora, contexto.hora) : null;
     return this.ctx.uow.ejecutar(async () => {
       const alumno = await requerir(this.ctx.repos.alumnos.obtener(alumnoId), 'al alumno');
       // La inscripción a la que corresponde el reporte: la de la clase, o la vigente más reciente.
@@ -242,10 +282,43 @@ export class ServicioAsistencia {
       const r: ReporteAlumno = {
         ...metadatosNuevos(this.ctx), escuelaId: alumno.escuelaId, cicloEscolarId: ins.cicloEscolarId, grupoId: ins.grupoId, alumnoId,
         personalId: contexto.personalId, sesionId: contexto.sesionId, fecha, tipo: datos.tipo as TipoReporte, texto: datos.texto,
+        hora, estado: 'abierta',
       };
       await this.ctx.repos.reportes.insertar(r);
       return r;
     });
+  }
+
+  /** Incidencia abierta ↔ atendida (seguimiento). */
+  async cambiarEstadoReporte(id: string, estado: EstadoIncidencia): Promise<ReporteAlumno> {
+    if (!(ESTADOS_INCIDENCIA as readonly string[]).includes(estado)) throw new ErrorDominio('VALIDACION', 'Estado de incidencia inválido.');
+    return this.ctx.uow.ejecutar(async () => {
+      const r = await requerir(this.ctx.repos.reportes.obtener(id), 'el reporte');
+      await cicloEditable(this.ctx, r.cicloEscolarId);
+      const n: ReporteAlumno = { ...r, estado, ...metadatosActualizados(this.ctx, r) };
+      await this.ctx.repos.reportes.actualizar(n);
+      return n;
+    });
+  }
+
+  /**
+   * Datos de incidencias de un grupo, listos para un documento (PDF en una fase
+   * posterior). Sólo lectura; no genera archivos.
+   */
+  async documentoIncidencias(grupoId: string, desde: string, hasta: string): Promise<DocumentoIncidencias> {
+    const grupo = await requerir(this.ctx.repos.grupos.obtener(grupoId), 'el grupo');
+    const escuela = await requerir(this.ctx.repos.escuelas.obtener(grupo.escuelaId), 'la escuela');
+    const ciclo = await requerir(this.ctx.repos.ciclos.obtener(grupo.cicloEscolarId), 'el ciclo');
+    const grado = await this.ctx.repos.grados.obtener(grupo.gradoId);
+    const reportes = (await this.ctx.repos.reportes.listarPor('grupoId', grupoId)).filter((r) => r.fecha >= desde && r.fecha <= hasta)
+      .sort((a, b) => (a.fecha + (a.hora ?? '')).localeCompare(b.fecha + (b.hora ?? '')));
+    const filas = [];
+    for (const r of reportes) {
+      const al = await this.ctx.repos.alumnos.obtener(r.alumnoId);
+      const doc = r.personalId ? await this.ctx.repos.personal.obtener(r.personalId) : undefined;
+      filas.push({ fecha: r.fecha, hora: r.hora, alumno: al ? nombreAlumno(al) : 'Alumno eliminado', tipo: r.tipo, descripcion: r.texto, docente: doc ? `${doc.nombre} ${doc.primerApellido}` : null, estado: r.estado });
+    }
+    return { escuela: escuela.nombre, cct: escuela.cct, ciclo: ciclo.nombre, grupo: `${grado?.numero ?? ''}° ${grupo.nombre}`, desde, hasta, generadoEn: this.ctx.reloj(), filas };
   }
 
   async eliminarReporte(id: string): Promise<void> {

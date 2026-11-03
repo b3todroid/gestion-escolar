@@ -1,6 +1,15 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 3 — Sistema de horarios escolares** — completada, pendiente de revisión del usuario. No se avanza a la Fase 4 sin autorización.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 4 — Módulo docente y control de clases** — completada, pendiente de revisión del usuario. No se inicia Prefectura, PDF avanzado ni sincronización.
+
+## Fase 4 — Módulo docente y control de clases (2026-11-03, segunda etapa)
+**Auditoría inicial:** las pruebas existentes pasaban (131 unitarias, 43 funcionales) y ya existían «Mi día», pase de lista P/F/R sin guardar al abrir, salidas al baño y reportes. Faltaban: estado FUERA DE JORNADA explícito, escuela y turno en pantalla, siguiente clase, estados de la lista e historial de correcciones, docente y periodo en salidas, resolución explícita del conflicto falta ↔ salida, hora y estado en incidencias, búsqueda en la lista, pasar lista desde el grupo y preparación para PDF. Migración necesaria: v8.
+
+**Implementado:** servicio puro de actividad actual (`domain/actividadActual.ts`) con límites exactos; panel con escuela, turno, ciclo, siguiente actividad y siguiente clase, alumnos fuera del aula; pase de lista con estados NO INICIADA / EN CAPTURA / GUARDADA / MODIFICADA, fecha y hora de guardado, historial de correcciones, búsqueda rápida y resumen de quién está fuera; diálogo de resolución explícita para falta ↔ salida; salidas con docente y periodo; incidencias con hora y estado (abierta/atendida); acceso «Pasar lista» desde la pantalla del grupo; `documentoIncidencias()` para un PDF futuro.
+
+**Defectos encontrados y corregidos:** el buscador de la lista no ocultaba las filas (el estilo del componente anulaba `hidden`; ahora `[hidden]` siempre gana); guardar una lista sin cambios actualizaba la hora de guardado como si fuera una corrección; desde el grupo no había forma directa de pasar lista.
+
+**Pendientes:** el docente del dispositivo es una preferencia local (no autenticación); las incidencias no tienen catálogo propio de tipos más allá de conducta/académico/reconocimiento/otro; el PDF de incidencias queda para una fase posterior.
 
 ## Fase 3 — Sistema de horarios escolares (2026-11-03)
 **Auditoría inicial (verificada en el código, no en la documentación):** ya existían asignaciones, clases por día y periodo, vistas semanales de grupo y docente con los 5 tipos de bloque, choques por hora real entre turnos, casos especiales, SE con confirmación, horarios confirmados con bitácora e importación de horarios por columnas fijas. Faltaban: módulo de selección, reportes, conflictos pendientes, estado de validación y origen, SE por periodo, impresión, vista por día en teléfono, mapeo editable de horarios en el centro de importación y la preparación para PDF.

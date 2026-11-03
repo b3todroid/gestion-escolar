@@ -102,13 +102,17 @@ test('ABRIR → VER CLASE → ENTRAR AL GRUPO → PASAR LISTA → GUARDAR', asyn
   await page.getByRole('button', { name: 'Salida al baño de Alumna Ficticia, Ana' }).click();
   await expect(page.locator('[data-alumno]', { hasText: 'Alumna Ficticia, Ana' })).toContainText('Fuera del aula desde las 07:15');
   await expect(page.locator('.lista__contador')).toContainText('1 faltas');
-  // Ana salió: ya no se le puede poner falta
-  await expect(page.getByRole('radiogroup', { name: 'Asistencia de Alumna Ficticia, Ana' }).getByRole('radio', { name: 'Falta' })).toBeDisabled();
+  // Ana salió: marcar falta muestra el conflicto y exige una resolución explícita (cancelar no cambia nada)
+  await page.getByRole('radiogroup', { name: 'Asistencia de Alumna Ficticia, Ana' }).getByRole('radio', { name: 'Falta' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Conflicto: Alumna Ficticia, Ana salió del aula');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Asistencia de Alumna Ficticia, Ana' }).getByRole('radio', { name: 'Presente' })).toBeChecked();
   expect(await contar(page, 'pases')).toBe(0);
   // GUARDAR
   await page.getByRole('button', { name: 'Guardar lista' }).click();
   await expect(page.locator('.aviso')).toContainText('Lista guardada: 3 presentes, 1 faltas, 1 retardos');
-  await expect(page.locator('.lista__estado')).toContainText('Guardada a las 07:15');
+  await expect(page.locator('.lista__estado')).toContainText('GUARDADA');
+  await expect(page.locator('.lista__estado')).toContainText(/Guardada por primera vez el 02\/11\/2026,? 07:15/);
   expect(await contar(page, 'pases')).toBe(1);
   expect(await contar(page, 'asistencias')).toBe(5);
 

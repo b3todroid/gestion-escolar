@@ -1,5 +1,6 @@
 import type { CicloEscolar, Personal } from '../models';
-import type { Segmento } from '../domain/horarioVista';
+import type { Segmento, TipoVista } from '../domain/horarioVista';
+import { actividadEn, siguienteDesde, type EstadoActual } from '../domain/actividadActual';
 import { aMinutos } from '../domain/tiempo';
 import { type Contexto, metadatosActualizados, metadatosNuevos } from './contexto';
 import { ServicioVistas } from './vistas';
@@ -20,11 +21,17 @@ export interface BloquePanel {
 
 export interface Panel {
   persona: Personal;
+  escuela: string;
   ciclo: CicloEscolar | null;
   fecha: string;
   hora: string;
+  /** Estado en este momento: CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA o FUERA DE JORNADA. */
+  estado: EstadoActual;
+  /** Turno de la actividad actual (o los turnos en que trabaja hoy). */
+  turno: string | null;
   actual: BloquePanel | null;
   siguiente: (BloquePanel & { diaNombre: string | null }) | null;
+  siguienteClase: (BloquePanel & { diaNombre: string | null }) | null;
   hoy: BloquePanel[];
   pendientes: BloquePanel[]; // clases de hoy ya iniciadas sin lista guardada
   grupos: { grupoId: string; grupo: string; materias: string[] }[];
@@ -70,7 +77,8 @@ export class ServicioPanelDocente {
     const hora = horaLocal(ahora);
     const ciclos = await this.ctx.repos.ciclos.listarPor('escuelaId', persona.escuelaId);
     const ciclo = ciclos.find((c) => c.estado === 'activo') ?? null;
-    const vacio: Panel = { persona, ciclo, fecha, hora, actual: null, siguiente: null, hoy: [], pendientes: [], grupos: [] };
+    const escuela = (await this.ctx.repos.escuelas.obtener(persona.escuelaId))?.nombre ?? '';
+    const vacio: Panel = { persona, escuela, ciclo, fecha, hora, estado: 'fuera_de_jornada', turno: null, actual: null, siguiente: null, siguienteClase: null, hoy: [], pendientes: [], grupos: [] };
     if (!ciclo) return vacio;
 
     const { dias } = await this.vistas.semanaDocente(persona.id, ciclo.id);
@@ -78,20 +86,33 @@ export class ServicioPanelDocente {
     const min = aMinutos(hora);
     const hoySeg = dias.find((d) => d.dia === hoyDia)?.segmentos ?? [];
     const hoy = await Promise.all(hoySeg.map((s) => this.detalle(s, fecha)));
-    const actualSeg = hoy.find((b) => aMinutos(b.segmento.horaInicio) <= min && min < aMinutos(b.segmento.horaFin)) ?? null;
-    // Si hay clases simultáneas (caso especial), se prefiere una clase.
-    const actual = hoy.find((b) => b.segmento.tipo === 'clase' && aMinutos(b.segmento.horaInicio) <= min && min < aMinutos(b.segmento.horaFin)) ?? actualSeg;
+    const { estado, bloque: actual } = actividadEn(hoy, min);
 
-    let siguiente: Panel['siguiente'] = null;
-    const sigHoy = hoy.find((b) => aMinutos(b.segmento.horaInicio) > min && b.segmento.tipo !== 'sin_actividad');
-    if (sigHoy) siguiente = { ...sigHoy, diaNombre: null };
-    else {
-      for (let i = 1; i <= 7 && !siguiente; i++) {
+    // Siguiente actividad registrada (hoy o en los próximos días) y siguiente clase.
+    const buscar = async (tiposHoy: TipoVista[], tiposOtros: TipoVista[]): Promise<Panel['siguiente']> => {
+      const sigHoy = siguienteDesde(hoy, min, tiposHoy);
+      if (sigHoy) return { ...sigHoy, diaNombre: null };
+      for (let i = 1; i <= 7; i++) {
         const otra = sumarDias(fecha, i);
         const d = dias.find((x) => x.dia === diaIso(new Date(`${otra}T12:00:00`)));
-        const s = d?.segmentos.find((x) => x.tipo !== 'sin_actividad' && x.tipo !== 'receso');
-        if (s) siguiente = { ...(await this.detalle(s, otra)), diaNombre: i === 1 ? 'Mañana' : DIAS_SEMANA.find((x) => x.valor === d!.dia)!.nombre };
+        const s = d?.segmentos.find((x) => tiposOtros.includes(x.tipo));
+        if (s) return { ...(await this.detalle(s, otra)), diaNombre: i === 1 ? 'Mañana' : DIAS_SEMANA.find((x) => x.valor === d!.dia)!.nombre };
       }
+      return null;
+    };
+    const siguiente = await buscar(['clase', 'servicio', 'otra', 'receso'], ['clase', 'servicio', 'otra']);
+    const siguienteClase = siguiente?.segmento.tipo === 'clase' ? siguiente : await buscar(['clase'], ['clase']);
+
+    // Turno: el del grupo de la clase actual; si no, los turnos de las clases de hoy.
+    const turnoDeGrupo = async (grupoId: string | undefined) => {
+      const g = grupoId ? await this.ctx.repos.grupos.obtener(grupoId) : undefined;
+      return g ? (await this.ctx.repos.turnos.obtener(g.turnoId))?.nombre ?? null : null;
+    };
+    let turno = actual?.grupoId ? await turnoDeGrupo(actual.grupoId) : null;
+    if (!turno) {
+      const nombres = new Set<string>();
+      for (const b of hoy) if (b.grupoId) { const t = await turnoDeGrupo(b.grupoId); if (t) nombres.add(t); }
+      turno = [...nombres].join(', ') || null;
     }
     const pendientes = hoy.filter((b) => b.segmento.tipo === 'clase' && !b.listaGuardada && aMinutos(b.segmento.horaInicio) <= min && b !== actual);
 
@@ -108,6 +129,6 @@ export class ServicioPanelDocente {
       grupos.push({ grupoId, grupo: `${gr?.numero ?? ''}° ${g?.nombre ?? ''}`, materias: materias.sort((x, y) => x.localeCompare(y, 'es')) });
     }
     grupos.sort((a, b) => a.grupo.localeCompare(b.grupo, 'es', { numeric: true }));
-    return { persona, ciclo, fecha, hora, actual, siguiente, hoy, pendientes, grupos };
+    return { persona, escuela, ciclo, fecha, hora, estado, turno, actual, siguiente, siguienteClase, hoy, pendientes, grupos };
   }
 }

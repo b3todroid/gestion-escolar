@@ -5,6 +5,8 @@ import { MARCA, etiquetaTipo } from '../components/horarioSemanal';
 import type { Personal } from '../models';
 import type { BloquePanel, Panel } from '../services/panelDocente';
 import { nombreCompleto } from '../services/personal';
+import { nombreAlumno } from '../services/alumnos';
+import { ETIQUETA_ESTADO_ACTUAL } from '../domain/actividadActual';
 import { horaLocal } from '../utils/fechas';
 
 function fechaLarga(d: Date): string {
@@ -25,13 +27,14 @@ function botonLista(b: BloquePanel, fecha: string, grande: boolean) {
 function tarjetaAhora(p: Panel) {
   const a = p.actual;
   if (!a) {
-    return h('section', { class: 'ahora ahora--vacio', 'aria-labelledby': 'ahora-titulo' },
+    return h('section', { class: 'ahora ahora--vacio', 'aria-labelledby': 'ahora-titulo', 'data-estado': p.estado },
       h('h2', { id: 'ahora-titulo' }, 'Ahora'),
+      h('span', { class: 'etiqueta-tipo etiqueta-tipo--fuera' }, h('span', { 'aria-hidden': 'true' }, '◌'), ' ', ETIQUETA_ESTADO_ACTUAL.fuera_de_jornada),
       h('p', { class: 'ahora__principal' }, p.hoy.length ? 'Fuera de tu jornada de hoy' : 'Hoy no tienes clases ni actividades registradas'),
     );
   }
   const s = a.segmento;
-  return h('section', { class: `ahora ahora--${s.tipo}`, 'aria-labelledby': 'ahora-titulo' },
+  return h('section', { class: `ahora ahora--${s.tipo}`, 'aria-labelledby': 'ahora-titulo', 'data-estado': p.estado },
     h('h2', { id: 'ahora-titulo' }, 'Ahora'),
     tipo(a),
     s.tipo === 'clase'
@@ -55,6 +58,10 @@ function tarjetaSiguiente(p: Panel) {
           h('p', { class: 'siguiente__texto' }, n.segmento.tipo === 'clase' ? `${n.grupo}, ${n.materia}` : n.segmento.tipo === 'receso' ? 'Receso' : n.segmento.titulo),
           h('p', { class: 'siguiente__hora' }, `${n.diaNombre ? `${n.diaNombre}, ` : ''}${n.segmento.horaInicio} a ${n.segmento.horaFin}`))
       : h('p', {}, 'No hay más actividades registradas esta semana.'),
+    p.siguienteClase && p.siguienteClase !== n
+      ? h('p', { class: 'siguiente__clase', id: 'siguiente-clase' }, h('strong', {}, 'Siguiente clase: '),
+          `${p.siguienteClase.grupo}, ${p.siguienteClase.materia} — ${p.siguienteClase.diaNombre ? `${p.siguienteClase.diaNombre}, ` : ''}${p.siguienteClase.segmento.horaInicio}`)
+      : null,
   );
 }
 
@@ -78,6 +85,14 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
   }, 20_000);
 
   const nombre = nombreCompleto(persona);
+  // Alumnos fuera del aula en los grupos del docente (salidas activas: persisten al cambiar de pantalla).
+  const fuera: { nombre: string; grupo: string; salida: string; sesionId: string; fecha: string }[] = [];
+  for (const g of p.grupos) {
+    for (const s of await ctx.s.asistencia.fueraDelAula(g.grupoId)) {
+      const al = await ctx.s.alumnos.obtener(s.alumnoId);
+      fuera.push({ nombre: nombreAlumno(al), grupo: g.grupo, salida: s.salida, sesionId: s.sesionId, fecha: s.fecha });
+    }
+  }
   return {
     titulo: 'Mi día',
     contenido: h('div', { class: 'pagina mi-dia' },
@@ -85,7 +100,13 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
         h('p', { class: 'mi-dia__fecha' }, fechaLarga(ahora)),
         reloj,
         h('h1', { tabindex: '-1' }, `Hola, ${persona.nombre}`),
+        h('p', { class: 'mi-dia__escuela', id: 'mi-dia-escuela' }, p.escuela, p.turno ? ` · Turno ${p.turno}` : '', p.ciclo ? ` · Ciclo ${p.ciclo.nombre}` : ''),
       ),
+      fuera.length ? h('section', { class: 'pendiente pendiente--fuera', id: 'fuera-del-aula', 'aria-labelledby': 'fuera-titulo' },
+        h('h2', { id: 'fuera-titulo' }, `🚻 Fuera del aula (${fuera.length})`),
+        h('ul', { class: 'renglones' }, ...fuera.map((x) => h('li', { class: 'renglon' },
+          h('span', { class: 'renglon__texto' }, x.nombre, h('span', { class: 'renglon__sub' }, ` ${x.grupo}, desde las ${x.salida}`)),
+          h('a', { class: 'boton boton--chico', href: `#/lista/${x.sesionId}/${x.fecha}` }, 'Registrar regreso'))))) : null,
       respaldo.recordar ? h('div', { class: 'pendiente', role: 'status' },
         h('p', {}, icono('!'), ' Las listas y reportes de este dispositivo no tienen respaldo reciente.'),
         h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo')) : null,
@@ -109,7 +130,7 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
           h('a', { class: 'boton boton--chico boton--secundario', href: `#/alumnos/${g.grupoId}` }, 'Alumnos'),
         )))) : p.ciclo ? vacio('No tienes grupos asignados en el ciclo activo.') : null,
       h('nav', { class: 'mi-dia__enlaces', 'aria-label': 'Más opciones' },
-        h('a', { class: 'boton boton--secundario boton--chico', href: `#/personal/${persona.id}` }, 'Mi horario semanal'),
+        h('a', { class: 'boton boton--secundario boton--chico', href: p.ciclo ? `#/personal/${persona.id}/ciclo/${p.ciclo.id}` : `#/personal/${persona.id}` }, 'Mi horario semanal'),
         h('a', { class: 'boton boton--secundario boton--chico', href: '#/escuelas' }, 'Configuración escolar'),
       ),
       h('p', { class: 'ayuda mi-dia__pie' },

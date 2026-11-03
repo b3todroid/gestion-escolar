@@ -326,7 +326,24 @@ export interface PaseLista extends Metadatos {
   fecha: string; // AAAA-MM-DD
   horaInicio: string; // copia del periodo al momento de guardar
   horaFin: string;
-  guardadoEn: string;
+  guardadoEn: string; // fecha y hora del último guardado (el primero es creadoEn)
+  /** Veces que se corrigió después del primer guardado (0 = GUARDADA, > 0 = MODIFICADA). */
+  correcciones: number;
+}
+
+/** Historial de correcciones del pase de lista (una fila por alumno cuya marca cambió). */
+export interface CambioAsistencia extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  paseId: string;
+  grupoId: string;
+  alumnoId: string;
+  marcaAnterior: MarcaAsistencia;
+  marcaNueva: MarcaAsistencia;
+  llegadaAnterior: string | null;
+  llegadaNueva: string | null;
+  /** Docente configurado en el dispositivo al corregir (no es autenticación). */
+  personalId: string | null;
 }
 
 export interface Asistencia extends Metadatos {
@@ -350,6 +367,8 @@ export interface SalidaAula extends Metadatos {
   fecha: string;
   salida: string; // HH:MM
   regreso: string | null; // HH:MM; null = sigue fuera
+  personalId: string | null; // docente que registró (o el de la clase)
+  periodoId: string | null; // periodo de la clase
 }
 
 export const TIPOS_REPORTE = ['conducta', 'academico', 'reconocimiento', 'otro'] as const;
@@ -366,7 +385,12 @@ export interface ReporteAlumno extends Metadatos {
   fecha: string;
   tipo: TipoReporte;
   texto: string;
+  hora: string | null; // HH:MM; null en registros anteriores a v8
+  estado: EstadoIncidencia;
 }
+
+export const ESTADOS_INCIDENCIA = ['abierta', 'atendida'] as const;
+export type EstadoIncidencia = (typeof ESTADOS_INCIDENCIA)[number];
 
 /** Ajustes del dispositivo (p. ej. quién lo usa como docente). No es autenticación. */
 export interface Ajuste extends Metadatos {

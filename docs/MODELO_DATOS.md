@@ -108,6 +108,17 @@ Modelo relacional de horarios (todo con `escuelaId` y `cicloEscolarId`):
 
 Versión 7: sin cambios de índices; agrega `origen` (null en registros existentes). `importaciones.tipo` admite `horarios`.
 
+## Fase 4 · Módulo docente (versión 8 del esquema)
+| Tabla / campo | Descripción | Índices |
+|---|---|---|
+| `cambiosAsistencia` (nueva) | escuelaId, cicloEscolarId, paseId, grupoId, alumnoId, marcaAnterior, marcaNueva, llegadaAnterior, llegadaNueva, personalId (docente del dispositivo; no es autenticación) | `id`, `paseId`, `alumnoId`, `cicloEscolarId` |
+| `pases.correcciones` | veces que se corrigió tras el primer guardado (0 = GUARDADA, > 0 = MODIFICADA). Primer guardado = `creadoEn`; último = `guardadoEn` | — |
+| `salidas.personalId`, `salidas.periodoId` | docente que registró la salida y periodo de la clase | — |
+| `reportes.hora`, `reportes.estado` | hora de la incidencia (`null` en registros anteriores: no se inventa) y `abierta` / `atendida` | — |
+
+- El estado de la lista (NO INICIADA / EN CAPTURA / GUARDADA / MODIFICADA) se deriva: no se guarda. EN CAPTURA sólo existe en pantalla (marcas sin guardar).
+- La actividad actual (CLASE, SERVICIO, RECESO, OTRA ACTIVIDAD, SIN ACTIVIDAD REGISTRADA, FUERA DE JORNADA) se calcula al momento desde el horario (`domain/actividadActual.ts`); no se guarda.
+
 ## Entidades previstas (fases posteriores)
  Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
@@ -115,6 +126,7 @@ Versión 7: sin cambios de índices; agrega `origen` (null en registros existent
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 8 | 2026-11-03 | Agrega `cambiosAsistencia`. `upgrade()`: salidas → `personalId` y `periodoId` desde su clase; reportes → `hora: null`, `estado: 'abierta'`; pases → `correcciones: 0`. Probada v7 → v8; los respaldos anteriores se restauran con esos mismos valores. |
 | 7 | 2026-11-03 | Sin cambios de índices. `upgrade()` agrega `origen: null` a `sesiones` y `actividades` (no se inventa un origen que no se guardó). Probada v6 → v7; los respaldos de esquema 6 se restauran con `origen: null`. |
 | 6 | 2026-11-03 | Agrega `inscripciones`, `movimientos`, `adscripciones`, `importaciones`; `alumnos` pasa a índice `escuelaId`. `upgrade()`: por cada alumno anterior crea su inscripción (turno y grado tomados del grupo; estado según `activo`) y un movimiento `migracion`, y deja en `alumnos` sólo la identidad; personal → `observaciones: null`; materias → `tipo: 'materia'`, `activo: true`. Nada se borra. Probada v5 → v6 con asistencias. Los respaldos con esquema < 6 se convierten igual al restaurar (después de verificar la huella). |
 | 5 | 2026-11-03 | Sin cambios de índices. `upgrade()` completa en registros existentes: escuelas → campos del plantel en `null`; grupos → `activo: true`. Probada con datos v1 → v5. Los respaldos de esquemas anteriores se aceptan (los campos faltantes toman esos mismos valores). |

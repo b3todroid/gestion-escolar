@@ -54,3 +54,24 @@ Unitarias en `tests/unit/fase3-horarios.test.ts` (U) y funcionales en `tests/e2e
 | 13 | No alterar datos de fases anteriores (migración v6 → v7, respaldo de esquema 6) | U «13.», «13b.» + todas las pruebas anteriores |
 
 También: vista imprimible (E, `emulateMedia('print')`), vista por día en 320 px sin desplazamiento horizontal (E) y `aTablaSegura` / `resolverPeriodo` (U).
+
+## Fase 4 — Módulo docente: 15 pruebas obligatorias
+Unitarias en `tests/unit/fase4-docente.test.ts` (U) y funcionales en `tests/e2e/docente.spec.ts` (E), con reloj simulado (lunes 2 de noviembre de 2026, hora de la Ciudad de México).
+
+| # | Prueba | Dónde |
+|---|---|---|
+| 1 | Clase actual (escuela, turno, grupo, materia) | U «1–2.», E «ABRIR → …» |
+| 2 | Siguiente clase / siguiente actividad | U «1–2.», «3.» (sábado → lunes), E (fuera de jornada) |
+| 3 | Receso (y hueco sin actividad, fuera de jornada, límites exactos) | U «3.», «respeta los límites», E «actividad actual…» |
+| 4 | Hora SE confirmada como actividad actual | U «4.», E «actividad actual…» |
+| 5 | Pase de lista (abrir no guarda; NO INICIADA → EN CAPTURA) | U «5–7.», E |
+| 6 | Guardado de asistencia con fecha y hora | U «5–7.», E |
+| 7 | Retardos (R no es falta) | U «5–7.», E |
+| 8 | Correcciones (un pase, historial, MODIFICADA) | U «8.», E |
+| 9 | Salida al baño (docente, periodo, hora automática) | U «9–10.», E |
+| 10 | Reincorporación | U «9–10.», E |
+| 11 | Prevención de contradicciones (falta ⇄ salida, resolución explícita) | U «11.», E |
+| 12 | Persistencia (recargar, reabrir, cambiar de pantalla) | U «12.», E |
+| 13 | Funcionamiento móvil (320 px, búsqueda, objetivos ≥ 44 px) | E «móvil 320 px…» |
+| 14 | Separación entre escuelas | U «14.» |
+| 15 | Integridad de fases anteriores (migración v7 → v8, respaldo con historial) | U «15.», «15b.» + todas las pruebas anteriores |

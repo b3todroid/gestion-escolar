@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. **Fase 3 — Sistema de horarios** (módulo Horarios, revisión de conflictos, SE por periodo, esquema v7) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fase 3 (horarios, v7) completada. **Fase 4 — Módulo docente y control de clases** (esquema v8) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -52,6 +52,10 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Salidas al baño y reincorporación se guardan al momento (`salidas`). Reglas en `services/asistencia.ts`: F ⇄ salida en la misma clase son incompatibles; una salida abierta por alumno; regreso ≥ salida.
 - Alumnos: `#/alumnos/GRUPO`, `#/alumno/ID`. Datos mínimos (nombre y apellidos). Reportes breves ≤ 280.
 - Los servicios reciben la fecha/hora actual como parámetro (pruebas con `page.clock`).
+- Actividad actual: `domain/actividadActual.ts` (puro; [inicio, fin); FUERA DE JORNADA fuera de los bloques). El panel la deriva de `vistas.semanaDocente`: no guardar copias.
+- Esquema v8: `cambiosAsistencia` (historial de correcciones), `pases.correcciones`, `salidas.personalId/periodoId`, `reportes.hora/estado`. Estado de la lista derivado con `estadoLista()`.
+- Falta ⇄ salida: el servicio siempre lo rechaza; la interfaz pide resolución explícita (registrar regreso o anular la salida). Nunca resolver en silencio.
+- CSS: `[hidden] { display: none !important; }` — no quitarlo (los componentes con `display` anulaban `hidden`).
 
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).

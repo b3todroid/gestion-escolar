@@ -12,12 +12,11 @@ import { Dexie, type Table } from 'dexie';
 import { nuevoId } from '../utils/id';
 import type {
   Actividad, Adscripcion, Ajuste, Alumno, Asistencia, Inscripcion, MovimientoInscripcion, PaseLista, RegistroImportacion, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
-  Receso, RegistroBitacora, Sesion, Turno,
-} from '../models';
+  Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 7;
+export const VERSION_ESQUEMA = 8;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -42,6 +41,7 @@ export class BaseDatosEscolar extends Dexie {
   salidas!: Table<SalidaAula, string>;
   reportes!: Table<ReporteAlumno, string>;
   ajustes!: Table<Ajuste, string>;
+  cambiosAsistencia!: Table<CambioAsistencia, string>;
   adscripciones!: Table<Adscripcion, string>;
   inscripciones!: Table<Inscripcion, string>;
   movimientos!: Table<MovimientoInscripcion, string>;
@@ -148,7 +148,26 @@ export class BaseDatosEscolar extends Dexie {
       }
     });
 
-    // Para fases futuras: agregar this.version(8) (con .upgrade() si hay que transformar
+    // v8 (Fase 4 · módulo docente): historial de correcciones de asistencia;
+    // salidas con docente y periodo; incidencias con hora y estado; pases con
+    // contador de correcciones. Nada se borra: se completan campos.
+    this.version(8).stores({
+      cambiosAsistencia: 'id, paseId, alumnoId, cicloEscolarId',
+    }).upgrade(async (tx) => {
+      const sesiones = new Map((await tx.table('sesiones').toArray()).map((s: { id: string; personalId: string | null; periodoId: string }) => [s.id, s]));
+      await tx.table('salidas').toCollection().modify((r: Record<string, unknown>) => {
+        const s = sesiones.get(r['sesionId'] as string);
+        if (r['personalId'] === undefined) r['personalId'] = s?.personalId ?? null;
+        if (r['periodoId'] === undefined) r['periodoId'] = s?.periodoId ?? null;
+      });
+      await tx.table('reportes').toCollection().modify((r: Record<string, unknown>) => {
+        if (r['hora'] === undefined) r['hora'] = null; // no se inventa una hora que no se registró
+        if (r['estado'] === undefined) r['estado'] = 'abierta';
+      });
+      await tx.table('pases').toCollection().modify((r: Record<string, unknown>) => { if (r['correcciones'] === undefined) r['correcciones'] = 0; });
+    });
+
+    // Para fases futuras: agregar this.version(9) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }
