@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import {
-  ESTADOS_CICLO, ESTRUCTURAS_PLANTILLA, ESTADOS_INCIDENCIA, ORIGENES_HORARIO, TIPOS_REGISTRO_IMPORTACION, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
+  ESTADOS_CICLO, TIPOS_INCIDENCIA_PERSONAL, ESTADOS_INCIDENCIA_PERSONAL, ESTADOS_COBERTURA, ESTADOS_ACTIVIDAD_BANCO, ESTRUCTURAS_PLANTILLA, ESTADOS_INCIDENCIA, ORIGENES_HORARIO, TIPOS_REGISTRO_IMPORTACION, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
 } from '../models';
 
 const id = z.string().min(1).max(64);
@@ -55,6 +55,10 @@ export const ESQUEMAS_TABLA = {
   reportes: z.object({ ...enCiclo, grupoId: id, alumnoId: id, personalId: id.nullable(), sesionId: id.nullable(), fecha, tipo: z.enum(TIPOS_REPORTE), texto: texto(280), hora: hora.nullable().default(null), estado: z.enum(ESTADOS_INCIDENCIA).default('abierta') }),
   cambiosAsistencia: z.object({ ...enCiclo, paseId: id, grupoId: id, alumnoId: id, marcaAnterior: z.enum(MARCAS_ASISTENCIA), marcaNueva: z.enum(MARCAS_ASISTENCIA), llegadaAnterior: hora.nullable(), llegadaNueva: hora.nullable(), personalId: id.nullable() }),
   plantillasImportacion: z.object({ ...enEscuela, nombre: texto(80), tipo: z.enum(TIPOS_REGISTRO_IMPORTACION), estructura: z.enum(ESTRUCTURAS_PLANTILLA), columnas: z.array(z.object({ encabezado: texto(120), campo: z.string().max(40).nullable() })).max(60), umbralConfianza: z.number().min(0).max(1) }),
+  incidenciasPersonal: z.object({ ...enCiclo, personalId: id, fecha, tipo: z.enum(TIPOS_INCIDENCIA_PERSONAL), tipoOtro: opcional(60), alcance: z.enum(['jornada', 'periodos']), periodoIds: z.array(id).max(30), observaciones: opcional(300), estado: z.enum(ESTADOS_INCIDENCIA_PERSONAL), registradaPor: id.nullable(), validadaPor: id.nullable(), validadaEn: marcaTiempo.nullable(), motivoValidacion: opcional(300) }),
+  coberturas: z.object({ ...enCiclo, sesionId: id, fecha, grupoId: id, periodoId: id, docenteAusenteId: id.nullable(), incidenciaId: id.nullable(), propuestoIds: z.array(id).max(20), asignadoId: id.nullable(), actividadId: id.nullable(), actividadTexto: opcional(300), autorizadoPor: opcional(120), autorizadoEn: marcaTiempo.nullable(), estado: z.enum(ESTADOS_COBERTURA), observaciones: opcional(300) }),
+  bancoActividades: z.object({ ...enCiclo, materiaId: id.nullable(), gradoId: id.nullable(), titulo: texto(120), descripcion: texto(1000), archivo: z.object({ nombre: texto(150), tipo: texto(100), tamano: z.number().int().min(0).max(1_048_576), datos: z.string().max(1_500_000) }).nullable(), fecha, responsable: opcional(120), estado: z.enum(ESTADOS_ACTIVIDAD_BANCO) }),
+  bitacoraPrefectura: z.object({ ...enCiclo, entidad: z.enum(['incidencia', 'cobertura', 'actividad']), entidadId: id, accion: texto(40), detalle: opcional(300), personalId: id.nullable(), orden: z.number().int().min(0) }),
 } as const;
 
 export type TablaRespaldo = keyof typeof ESQUEMAS_TABLA;

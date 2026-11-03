@@ -834,3 +834,27 @@ main:focus { outline: none; }
 .rejilla__celda--incierta { background: var(--aviso-suave); outline: 2px dashed var(--lapiz); outline-offset: -2px; }
 .rejilla__aviso { display: block; font-size: 0.75rem; font-weight: 700; color: var(--aviso); padding: 0 0.3rem; }
 .rejilla__quitar { display: block; margin: 0.2rem auto 0; min-width: 44px; }
+
+/* ===== Fase 7: Prefectura ===== */
+.clase-pref--confirmado { border-left: 5px solid var(--peligro); }
+.clase-pref--posible { border-left: 5px dashed var(--lapiz); }
+.clase-pref--cobertura_asignada { border-left: 5px solid var(--tinta); }
+.clase-pref--cobertura_realizada { border-left: 5px solid var(--ok); }
+.clase-pref__motivo { margin: 0.25rem 0; font-weight: 700; }
+.periodos-pref { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+.periodos-pref__fila { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.5rem; align-items: start; border-bottom: 1px solid var(--borde); padding-bottom: 0.4rem; }
+.periodos-pref__hora { font-weight: 700; font-variant-numeric: tabular-nums; }
+.periodos-pref__grupos, .leyenda-pref { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.leyenda-pref { margin-top: 0.75rem; }
+.chip-pref { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.7rem; border-radius: 999px; border: 2px solid var(--borde); background: var(--superficie); color: var(--texto); text-decoration: none; font-weight: 700; font-size: 0.9rem; }
+.chip-pref--confirmado { border-color: var(--peligro); background: var(--peligro-suave); color: var(--peligro); }
+.chip-pref--posible { border-color: var(--lapiz); border-style: dashed; background: var(--aviso-suave); }
+.chip-pref--cobertura_asignada { border-color: var(--tinta); background: var(--tinta-suave); }
+.chip-pref--cobertura_realizada { border-color: var(--ok); background: var(--ok-suave); }
+.chip-pref--atendida { border-color: var(--ok); }
+.chip-pref--sin_informacion { color: var(--texto-suave); }
+.leyenda-pref .chip-pref { min-height: 0; padding: 0.15rem 0.6rem; font-size: 0.8rem; }
+.tabla-reporte { width: 100%; border-collapse: collapse; font-size: 0.9rem; display: block; overflow-x: auto; }
+.tabla-reporte th, .tabla-reporte td { border: 1px solid var(--borde); padding: 0.3rem 0.4rem; text-align: left; }
+@media (max-width: 30rem) { .periodos-pref__fila { grid-template-columns: 1fr; } }
+@media print { .tabla-reporte { display: table; font-size: 9pt; } .chip-pref { border-width: 1px; } }

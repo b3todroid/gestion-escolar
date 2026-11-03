@@ -9,6 +9,7 @@ import { NIVEL_ETIQUETA, formatoFecha } from './etiquetas';
 import { nombreEntidad } from '../domain/catalogos';
 import { textoDias } from './ciclo';
 import { navCatalogos } from './catalogos';
+import { fechaLocal } from '../utils/fechas';
 
 const INSIGNIA_ESTADO: Record<EstadoCiclo, [variante: 'ok' | 'aviso' | 'neutro', simbolo: string]> = {
   activo: ['ok', '●'],
@@ -123,7 +124,8 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
       ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/importar` }, 'Importar horarios desde Excel'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
       h('li', {}, h('a', { href: '#/respaldos' }, 'Respaldos'), h('span', { class: 'modulos__estado' }, 'Disponible')),
       h('li', {}, h('a', { href: '#/aplicacion' }, 'Aplicación y datos (instalar, sin conexión)'), h('span', { class: 'modulos__estado' }, 'Disponible')),
-      ...['Prefectura', 'Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
+      ciclo ? h('li', {}, h('a', { href: `#/ciclo/${ciclo.id}/prefectura/${fechaLocal(new Date()) >= ciclo.fechaInicio && fechaLocal(new Date()) <= ciclo.fechaFin ? fechaLocal(new Date()) : ciclo.fechaInicio}` }, 'Prefectura (incidencias del personal y coberturas)'), h('span', { class: 'modulos__estado' }, 'Disponible')) : null,
+      ...['Reportes de asistencia por periodo', 'Sincronización entre dispositivos'].map((m) =>
         h('li', { class: 'modulos__futuro' }, h('span', {}, m), h('span', { class: 'modulos__estado' }, 'Próximamente'))),
     ),
   );

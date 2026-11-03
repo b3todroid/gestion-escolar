@@ -22,6 +22,7 @@ import { ServicioPanelDocente } from './panelDocente';
 import { ServicioImportacionDatos } from './importacionDatos';
 import { ServicioRevisionHorarios } from './revisionHorarios';
 import { ServicioPlantillasImportacion } from './plantillasImportacion';
+import { ServicioPrefectura } from './prefectura';
 
 export interface Servicios {
   escuelas: ServicioEscuelas;
@@ -43,6 +44,7 @@ export interface Servicios {
   importacionDatos: ServicioImportacionDatos;
   revisionHorarios: ServicioRevisionHorarios;
   plantillas: ServicioPlantillasImportacion;
+  prefectura: ServicioPrefectura;
   respaldos: ServicioRespaldos;
 }
 
@@ -69,6 +71,7 @@ export function crearServiciosDesdeContexto(ctx: Contexto): Servicios {
     panel: new ServicioPanelDocente(ctx),
     revisionHorarios: new ServicioRevisionHorarios(ctx),
     plantillas: new ServicioPlantillasImportacion(ctx),
+    prefectura: new ServicioPrefectura(ctx),
     importacionDatos: new ServicioImportacionDatos(ctx),
     respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA),
   };

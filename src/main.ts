@@ -23,6 +23,7 @@ import { paginaAlumnosCiclo } from './pages/alumnosCiclo';
 import { paginaHorariosCiclo, paginaHorariosInicio } from './pages/horarios';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 import { paginaAplicacion } from './pages/aplicacion';
+import { paginaBancoActividades, paginaCobertura, paginaPrefectura, paginaPrefecturaInicio, paginaReportesPrefectura } from './pages/prefectura';
 
 const principal = document.getElementById('contenido');
 const conexion = document.getElementById('conexion');
@@ -38,6 +39,11 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/perfil', paginaPerfil)
     .ruta('/respaldos', paginaRespaldos)
     .ruta('/aplicacion', paginaAplicacion)
+    .ruta('/prefectura', paginaPrefecturaInicio)
+    .ruta('/ciclo/:id/prefectura/:fecha', paginaPrefectura)
+    .ruta('/ciclo/:id/prefectura-actividades', paginaBancoActividades)
+    .ruta('/ciclo/:id/prefectura-reportes', paginaReportesPrefectura)
+    .ruta('/cobertura/:id/:fecha', paginaCobertura)
     .ruta('/lista/:id/:fecha', paginaLista)
     .ruta('/alumnos/:id', paginaAlumnos)
     .ruta('/alumno/:id', paginaAlumno)

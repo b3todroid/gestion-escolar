@@ -150,6 +150,8 @@ export class ServicioPersonal {
       if (n > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Tiene ${n} asignación(es) registradas. Para conservar el historial, dale de baja en lugar de eliminarla.`);
       const historial = (await this.ctx.repos.actividades.contarPor('personalId', id)) + (await this.ctx.repos.pases.contarPor('personalId', id));
       if (historial > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', 'Tiene horas de servicio o listas registradas. Para conservar el historial, dale de baja.');
+      const prefectura = (await this.ctx.repos.incidenciasPersonal.contarPor('personalId', id)) + (await this.ctx.repos.coberturas.contarPor('asignadoId', id));
+      if (prefectura > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', 'Tiene incidencias o coberturas registradas en Prefectura. Para conservar el historial, dale de baja.');
       await this.ctx.repos.adscripciones.eliminarVarios((await this.ctx.repos.adscripciones.listarPor('personalId', id)).map((a) => a.id));
       await this.ctx.repos.personal.eliminar(id);
     });

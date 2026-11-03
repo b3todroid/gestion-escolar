@@ -124,6 +124,17 @@ Versión 7: sin cambios de índices; agrega `origen` (null en registros existent
 |---|---|---|
 | `plantillasImportacion` | escuelaId, nombre, tipo (alumnos, docentes, personal, materias, grupos, horarios), estructura (automatica, lista, sabana_grupo, sabana_docente), columnas [{encabezado normalizado, campo}], umbralConfianza | `id`, `escuelaId` |
 
+## Fase 7 · Prefectura (versión 10 del esquema)
+| Tabla | Campos | Índices |
+|---|---|---|
+| `incidenciasPersonal` | escuelaId, cicloEscolarId, personalId, fecha, tipo (falta, retardo, permiso, salida_anticipada, otra), tipoOtro, alcance (jornada / periodos), periodoIds, observaciones, estado (reportada, confirmada, descartada), registradaPor, validadaPor, validadaEn, motivoValidacion | `id`, `cicloEscolarId`, `personalId`, `fecha`, `escuelaId` |
+| `coberturas` | escuelaId, cicloEscolarId, sesionId, fecha, grupoId, periodoId, docenteAusenteId, incidenciaId, propuestoIds, asignadoId, actividadId, actividadTexto, autorizadoPor (texto), autorizadoEn, estado (sin_docente, propuesta, asignada, realizada, no_realizada, cancelada), observaciones | `id`, `cicloEscolarId`, `fecha`, `&[sesionId+fecha]` (una por clase y fecha), `asignadoId`, `escuelaId` |
+| `bancoActividades` | escuelaId, cicloEscolarId, materiaId, gradoId, titulo, descripcion, archivo (≤ 1 MB en base64, viaja en respaldos), fecha, responsable, estado (propuesta, validada, retirada) | `id`, `cicloEscolarId`, `escuelaId` |
+| `bitacoraPrefectura` | escuelaId, cicloEscolarId, entidad (incidencia, cobertura, actividad), entidadId, accion, detalle, personalId, orden (creciente; desempata acciones del mismo milisegundo) | `id`, `cicloEscolarId`, `entidadId`, `escuelaId` |
+
+- El **estado de cada clase** en una fecha se deriva (no se guarda) de horario, asignaciones, incidencias, coberturas y listas.
+- `registradaPor`, `validadaPor` y `personalId` son el docente configurado en el dispositivo: **no es autenticación**.
+
 ## Entidades previstas (fases posteriores)
  Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
@@ -131,6 +142,7 @@ Versión 7: sin cambios de índices; agrega `origen` (null en registros existent
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 10 | 2026-11-03 | Agrega `incidenciasPersonal`, `coberturas`, `bancoActividades`, `bitacoraPrefectura` (sólo tablas nuevas). Probada v9 → v10. |
 | 9 | 2026-11-03 | Agrega `plantillasImportacion` (sólo tabla nueva; sin `upgrade`). Probada v8 → v9 con datos. |
 | 8 | 2026-11-03 | Agrega `cambiosAsistencia`. `upgrade()`: salidas → `personalId` y `periodoId` desde su clase; reportes → `hora: null`, `estado: 'abierta'`; pases → `correcciones: 0`. Probada v7 → v8; los respaldos anteriores se restauran con esos mismos valores. |
 | 7 | 2026-11-03 | Sin cambios de índices. `upgrade()` agrega `origen: null` a `sesiones` y `actividades` (no se inventa un origen que no se guardó). Probada v6 → v7; los respaldos de esquema 6 se restauran con `origen: null`. |

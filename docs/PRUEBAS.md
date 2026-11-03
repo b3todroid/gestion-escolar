@@ -113,3 +113,21 @@ Unitarias en `tests/unit/fase6-documentos.test.ts` (U: PDF.js «legacy» y Tesse
 | 10 | Conservación de datos (migración v8 → v9; importación fallida o descartada no altera nada; todas las pruebas anteriores) | U «10.», E «10.» |
 
 También: PDF dañado / no PDF, tabla sin encabezados, plantillas (guardar, actualizar sin duplicar, aplicar por nombre de encabezado, incluidas en respaldos).
+
+## Fase 7 — Prefectura: 12 pruebas obligatorias
+Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e2e/prefectura.spec.ts` (E), con reloj fijo (lunes 2-nov-2026 07:15, Ciudad de México).
+
+| # | Prueba | Dónde |
+|---|---|---|
+| 1 | Registro de incidencia (reportada; sin duplicados; «otra» configurable) | U «1–3», E (ambas) |
+| 2 | Detección de grupo potencialmente descubierto | U «1–3», «retardo…», E |
+| 3 | Confirmación de grupo sin docente (por incidencia confirmada o en sitio) | U, E «3 y 12» |
+| 4 | Consulta de SE y candidatos (sugerir no asigna) | U «4.», E |
+| 5 | Registro de cobertura (propuesta → asignada → realizada) | U «5–7», E |
+| 6 | Prevención de asignaciones incompatibles | U «5–7», E |
+| 7 | Registro de autorización (obligatoria, con fecha y hora) | U «4.», «5–7», E |
+| 8 | Consulta de historial | U «8.», E |
+| 9 | Generación de reportes (día, semana, mes, intervalo; filtros; indicadores validados; imprimible) | U «9.», E |
+| 10 | Separación entre escuelas (y turnos) | U «10.», «turnos separados» |
+| 11 | Persistencia | U «11.», E (recarga) |
+| 12 | Integridad de datos anteriores (migración v9 → v10; respaldo con Prefectura; no se elimina personal con historial; conteos intactos) | U «12.», E «3 y 12» + todas las anteriores |

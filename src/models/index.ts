@@ -416,3 +416,90 @@ export interface PlantillaImportacion extends Metadatos {
   /** Umbral de confianza OCR (0–1) para marcar celdas inciertas. */
   umbralConfianza: number;
 }
+
+// ===================== Fase 7 · Prefectura =====================
+
+export const TIPOS_INCIDENCIA_PERSONAL = ['falta', 'retardo', 'permiso', 'salida_anticipada', 'otra'] as const;
+export type TipoIncidenciaPersonal = (typeof TIPOS_INCIDENCIA_PERSONAL)[number];
+export const ESTADOS_INCIDENCIA_PERSONAL = ['reportada', 'confirmada', 'descartada'] as const;
+export type EstadoIncidenciaPersonal = (typeof ESTADOS_INCIDENCIA_PERSONAL)[number];
+
+/**
+ * Incidencia de un docente o trabajador. Se registra como REPORTADA y sólo
+ * cuenta como hecho cuando alguien la CONFIRMA. Nunca se crea automáticamente
+ * (p. ej. por no abrir la aplicación).
+ */
+export interface IncidenciaPersonal extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  personalId: string;
+  fecha: string; // AAAA-MM-DD
+  tipo: TipoIncidenciaPersonal;
+  /** Nombre de la incidencia cuando tipo = 'otra' (configurable por la escuela). */
+  tipoOtro: string | null;
+  /** 'jornada' = todo el día; 'periodos' = sólo periodoIds. */
+  alcance: 'jornada' | 'periodos';
+  periodoIds: string[];
+  observaciones: string | null;
+  estado: EstadoIncidenciaPersonal;
+  /** Docente del dispositivo al registrar / validar (preferencia local, no autenticación). */
+  registradaPor: string | null;
+  validadaPor: string | null;
+  validadaEn: string | null;
+  motivoValidacion: string | null;
+}
+
+export const ESTADOS_COBERTURA = ['sin_docente', 'propuesta', 'asignada', 'realizada', 'no_realizada', 'cancelada'] as const;
+export type EstadoCobertura = (typeof ESTADOS_COBERTURA)[number];
+
+/** Atención de una clase (grupo + fecha + periodo) cuyo docente no está. Una por clase y fecha. */
+export interface Cobertura extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  sesionId: string;
+  fecha: string;
+  grupoId: string;
+  periodoId: string;
+  docenteAusenteId: string | null;
+  incidenciaId: string | null;
+  propuestoIds: string[];
+  asignadoId: string | null;
+  actividadId: string | null; // banco de actividades
+  actividadTexto: string | null;
+  /** Autoridad o responsable que autorizó (texto: cada escuela define quién). */
+  autorizadoPor: string | null;
+  autorizadoEn: string | null;
+  estado: EstadoCobertura;
+  observaciones: string | null;
+}
+
+export const ESTADOS_ACTIVIDAD_BANCO = ['propuesta', 'validada', 'retirada'] as const;
+export type EstadoActividadBanco = (typeof ESTADOS_ACTIVIDAD_BANCO)[number];
+
+/** Actividad disponible para grupos sin docente. Sólo las VALIDADAS se ofrecen como oficiales. */
+export interface ActividadBanco extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  materiaId: string | null;
+  gradoId: string | null;
+  titulo: string;
+  descripcion: string;
+  /** Adjunto pequeño (≤ 1 MB) en base64, para que viaje en los respaldos. */
+  archivo: { nombre: string; tipo: string; tamano: number; datos: string } | null;
+  fecha: string;
+  responsable: string | null;
+  estado: EstadoActividadBanco;
+}
+
+/** Historial de Prefectura (quién hizo qué y cuándo). */
+export interface RegistroPrefectura extends Metadatos {
+  escuelaId: string;
+  cicloEscolarId: string;
+  entidad: 'incidencia' | 'cobertura' | 'actividad';
+  entidadId: string;
+  accion: string;
+  detalle: string | null;
+  personalId: string | null;
+  /** Orden estrictamente creciente (ms × 1000 + secuencia): desempata acciones del mismo milisegundo. */
+  orden: number;
+}

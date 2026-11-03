@@ -180,3 +180,36 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - **Conflicto falta ↔ salida**: marcar F a quien salió en esa clase abre un diálogo con resolución explícita: registrar su regreso (no queda falta) o anular la salida por haberse registrado por error (entonces sí queda F). Cancelar no cambia nada. El servicio rechaza siempre la contradicción.
 - **Incidencias**: alumno, tipo, descripción (≤ 280), fecha, hora, docente, grupo y estado (abierta / atendida). `documentoIncidencias()` prepara los datos para un PDF en una fase posterior (no se genera PDF).
 - Búsqueda rápida en la lista (más de 4 alumnos), botones ≥ 44 px, confirmación visible al guardar.
+
+# Fase 7 — Prefectura
+
+## Incidencias del personal
+- Docente o trabajador, fecha, toda la jornada o periodos afectados, tipo (falta, retardo, permiso, salida anticipada u **otra** con nombre libre que queda como sugerencia para la escuela), observaciones.
+- Se registran **REPORTADAS**. Sólo cuentan como hecho cuando alguien las **CONFIRMA**; se pueden **DESCARTAR** con motivo. Una confirmada o descartada no se vuelve a validar.
+- **Nunca** se registra una falta automáticamente (p. ej. porque el docente no abrió la aplicación o no pasó lista).
+- No se duplica la misma incidencia (persona, fecha, tipo y periodos) mientras no esté descartada.
+
+## Estado de cada clase en una fecha (derivado)
+Se cruzan horario oficial, asignaciones, incidencias, coberturas y listas registradas:
+1. COBERTURA REALIZADA / COBERTURA ASIGNADA — si existe esa cobertura.
+2. GRUPO SIN DOCENTE CONFIRMADO — clase sin docente asignado en el horario; falta, permiso o salida anticipada **confirmada** que afecta el periodo; o Prefectura confirmó en sitio («Confirmar: el grupo está sin docente», con descripción); o la cobertura no se realizó.
+3. POSIBLE GRUPO SIN DOCENTE — incidencia **reportada** sin confirmar; retardo u «otra» confirmada (afecta parte del periodo); docente dado de baja.
+4. ATENDIDA — hay lista de asistencia registrada.
+5. SIN INFORMACIÓN SUFICIENTE — ninguna de las anteriores. **No** se presenta como problema.
+Las incidencias se aplican por periodo (o por hora real si el periodo es de otro turno). El panel filtra por turno; nada se mezcla entre escuelas ni ciclos.
+
+## Horas de servicio y coberturas
+- Se listan las SE **confirmadas** del día de la semana, con su estado (disponible según registro, ausente por incidencia confirmada, cubriendo otro grupo).
+- **Tener SE no autoriza automáticamente a cubrir.** La aplicación sugiere candidatos (primero SE compatible; después docentes que ese día tienen clases pero no en ese periodo, marcados «sin SE: requiere acuerdo») y **nunca asigna sola**.
+- Incompatibilidades (se rechaza proponer o asignar): persona de otra escuela o dada de baja; el docente ausente; incidencia confirmada que afecta ese horario; clase propia a la misma hora real; otra actividad a esa hora; otra cobertura asignada o realizada a esa hora.
+- Flujo: (confirmar sin docente) → **propuesta** (sugerencia) → **asignada** (requiere «Autorizó»: autoridad o responsable según la organización de cada escuela, con fecha y hora) → **realizada** / **no realizada** (motivo) / **cancelada** (motivo). Una realizada no se cancela.
+- Una cobertura por clase y fecha. Todo cambio queda en el **historial de Prefectura** con quién lo registró (docente del dispositivo).
+
+## Banco de actividades
+- Materia, grado, título, descripción, fecha, responsable y adjunto opcional (PDF, imagen, texto, Word o Excel; ≤ 1 MB).
+- Se registran como **PROPUESTA**; sólo las **VALIDADAS** se ofrecen y pueden asociarse a una cobertura. Retirar conserva el registro.
+
+## Reportes
+- Día, semana, mes o intervalo (≤ 93 días); filtros por grupo, docente, tipo de incidencia, estado de cobertura y turno.
+- **Indicadores sólo con registros validados**: incidencias confirmadas (por tipo), clases sin docente confirmadas, coberturas realizadas, porcentaje cubierto. Lo reportado sin confirmar y los «posibles» se muestran aparte y no entran en los cálculos.
+- Vista imprimible («Imprimir o guardar como PDF» del navegador) y datos en JSON. No se genera PDF propio.

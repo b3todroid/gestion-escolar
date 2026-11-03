@@ -1,6 +1,15 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 6 — Importación avanzada PDF, OCR y horarios** — completada, pendiente de revisión del usuario. No se inicia Prefectura.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 7 — Prefectura y organización escolar** — completada, pendiente de revisión del usuario. No se inicia multiusuario.
+
+## Fase 7 — Prefectura y organización escolar (2026-11-03)
+**Auditoría inicial:** pruebas en verde (165 unitarias, 54 funcionales). Existían horarios por hora real, personal con funciones (incluida prefectura), SE confirmadas por periodo e incidencias **de alumnos**; no existían incidencias del personal, coberturas ni banco de actividades. Esquema v10 (sólo tablas nuevas).
+
+**Implementado:** módulo PREFECTURA (`#/prefectura`, `#/ciclo/ID/prefectura/AAAA-MM-DD`): panel del día por turno con resumen, grupos que requieren atención, vista por periodo, incidencias del personal (reportar, confirmar, descartar), personal con SE; atención de cada clase (`#/cobertura/SESION/FECHA`): confirmación en sitio, candidatos sugeridos, propuesta, asignación con autorización e incompatibilidades, realizada / no realizada / cancelada, historial; banco de actividades con validación y adjuntos; reportes por día, semana, mes o intervalo con filtros, indicadores sólo validados, vista imprimible y JSON; historial general. Acceso desde el panel de la escuela.
+
+**Defectos encontrados y corregidos:** el historial podía desordenarse cuando dos acciones caían en el mismo milisegundo (ahora tiene un orden creciente); se podía eliminar a una persona con incidencias o coberturas (ahora se exige darla de baja para conservar el historial).
+
+**Pendientes / límites:** el «responsable que autorizó» es texto (no hay cuentas ni firmas); si se borra una clase del horario, sus coberturas pasadas siguen en el historial y la bitácora pero ya no aparecen en el panel del día; no hay notificaciones; la impresión usa el diálogo del navegador.
 
 ## Fase 6 — Importación avanzada PDF, OCR y horarios (2026-11-03)
 **Auditoría inicial:** pruebas en verde (153 unitarias, 49 funcionales). El centro de importaciones (Fase 2) y la importación de horarios con mapeo (Fase 3) ya existían; PDF sólo tenía un contrato de interfaz.

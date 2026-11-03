@@ -12,11 +12,11 @@ import { Dexie, type Table } from 'dexie';
 import { nuevoId } from '../utils/id';
 import type {
   Actividad, Adscripcion, Ajuste, Alumno, Asistencia, Inscripcion, MovimientoInscripcion, PaseLista, RegistroImportacion, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
-  Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia, PlantillaImportacion } from '../models';
+  Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia, PlantillaImportacion, IncidenciaPersonal, Cobertura, ActividadBanco, RegistroPrefectura } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 9;
+export const VERSION_ESQUEMA = 10;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -43,6 +43,10 @@ export class BaseDatosEscolar extends Dexie {
   ajustes!: Table<Ajuste, string>;
   cambiosAsistencia!: Table<CambioAsistencia, string>;
   plantillasImportacion!: Table<PlantillaImportacion, string>;
+  incidenciasPersonal!: Table<IncidenciaPersonal, string>;
+  coberturas!: Table<Cobertura, string>;
+  bancoActividades!: Table<ActividadBanco, string>;
+  bitacoraPrefectura!: Table<RegistroPrefectura, string>;
   adscripciones!: Table<Adscripcion, string>;
   inscripciones!: Table<Inscripcion, string>;
   movimientos!: Table<MovimientoInscripcion, string>;
@@ -171,7 +175,16 @@ export class BaseDatosEscolar extends Dexie {
     // v9 (Fase 6): plantillas de reconocimiento de importación por escuela. Sólo tabla nueva.
     this.version(9).stores({ plantillasImportacion: 'id, escuelaId' });
 
-    // Para fases futuras: agregar this.version(10) (con .upgrade() si hay que transformar
+    // v10 (Fase 7 · Prefectura): incidencias del personal, coberturas, banco de
+    // actividades e historial de Prefectura. Sólo tablas nuevas.
+    this.version(10).stores({
+      incidenciasPersonal: 'id, cicloEscolarId, personalId, fecha, escuelaId',
+      coberturas: 'id, cicloEscolarId, fecha, &[sesionId+fecha], asignadoId, escuelaId',
+      bancoActividades: 'id, cicloEscolarId, escuelaId',
+      bitacoraPrefectura: 'id, cicloEscolarId, entidadId, escuelaId',
+    });
+
+    // Para fases futuras: agregar this.version(11) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

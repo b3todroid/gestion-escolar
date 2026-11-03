@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. **Fase 6 — Importación PDF, OCR y horarios** (esquema v9) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -58,6 +58,12 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Falta ⇄ salida: el servicio siempre lo rechaza; la interfaz pide resolución explícita (registrar regreso o anular la salida). Nunca resolver en silencio.
 - CSS: `[hidden] { display: none !important; }` — no quitarlo (los componentes con `display` anulaban `hidden`).
 
+## Fase 7 (Prefectura, `services/prefectura.ts`, `pages/prefectura.ts`)
+- Rutas: `#/prefectura`, `#/ciclo/ID/prefectura/AAAA-MM-DD`, `#/cobertura/SESION/AAAA-MM-DD`, `#/ciclo/ID/prefectura-actividades`, `#/ciclo/ID/prefectura-reportes`.
+- Incidencias del personal: REPORTADA → CONFIRMADA / DESCARTADA. **Nunca** crear faltas automáticas. El estado de cada clase (`clasesDelDia`) se **deriva**; no se guarda. No presentar inferencias como hechos: «posible» ≠ «confirmado».
+- Coberturas: la app sugiere (`candidatos`), nunca asigna sola; `asignar` exige `autorizadoPor` y pasa por `problemas()` (incompatibilidades por hora real). SE no implica autorización.
+- Indicadores de reportes sólo con registros validados. Todo cambio va a `bitacoraPrefectura` (campo `orden` para el historial).
+
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).
 - Restaurar: verificar archivo (Zod por tabla + referencias internas + huella) **fuera** de la transacción → comparar y escribir **dentro**. Nunca hacer operaciones asíncronas ajenas a IndexedDB (p. ej. `crypto.subtle`, `fetch`) dentro de `uow.ejecutar`: Dexie cierra la transacción antes de tiempo.
@@ -91,5 +97,5 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - ExcelJS se evaluó y se descartó en la Fase 3. PDF.js 6.4.299 y Tesseract.js 7.0.0 evaluados e instalados en la Fase 6 (ver `docs/ARQUITECTURA.md`). No instalar jsPDF/pdf-lib hasta la fase que los use; antes, evaluar y documentar igual.
 
 ## Fuera de alcance hasta nuevas fases
-Prefectura, reportes por periodo, generación de PDF, sincronización multiusuario, autenticación.
+Generación de PDF propio, sincronización multiusuario, autenticación.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

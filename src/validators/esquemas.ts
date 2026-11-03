@@ -5,7 +5,7 @@
  * por lo que no se requiere escapar HTML al guardar.
  */
 import { z } from 'zod';
-import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE, TIPOS_MATERIA, TIPOS_REGISTRO_IMPORTACION, ESTRUCTURAS_PLANTILLA } from '../models';
+import { NIVELES_EDUCATIVOS, ESTADOS_CICLO, FUNCIONES_PERSONAL, TIPOS_ACTIVIDAD, MARCAS_ASISTENCIA, TIPOS_REPORTE, TIPOS_MATERIA, TIPOS_REGISTRO_IMPORTACION, ESTRUCTURAS_PLANTILLA, TIPOS_INCIDENCIA_PERSONAL } from '../models';
 import { PATRON_HORA, aMinutos, esHoraValida } from '../domain/tiempo';
 import { ErrorDominio } from '../domain/errores';
 import { CLAVES_ENTIDAD, nombreEntidad } from '../domain/catalogos';
@@ -365,3 +365,41 @@ export const esquemaPlantillaImportacion = z.object({
   umbralConfianza: z.number().min(0.3, 'El umbral mínimo es 30 %.').max(1, 'El umbral máximo es 100 %.'),
 });
 export type EntradaPlantillaImportacion = z.input<typeof esquemaPlantillaImportacion>;
+
+// ===================== Fase 7 · Prefectura =====================
+export const esquemaIncidenciaPersonal = z.object({
+  personalId: z.uuid('Selecciona a la persona.'),
+  fecha: z.iso.date('Fecha inválida (AAAA-MM-DD).'),
+  tipo: z.enum(TIPOS_INCIDENCIA_PERSONAL, 'Selecciona el tipo de incidencia.'),
+  tipoOtro: textoOpcional('El nombre de la incidencia', 60),
+  alcance: z.enum(['jornada', 'periodos'], 'Indica si afecta toda la jornada o algunos periodos.'),
+  periodoIds: z.array(z.uuid()).max(30).optional().transform((v) => [...new Set(v ?? [])]),
+  observaciones: textoOpcional('Las observaciones', 300),
+}).refine((d) => d.tipo !== 'otra' || !!d.tipoOtro, { message: 'Escribe qué tipo de incidencia es.', path: ['tipoOtro'] })
+  .refine((d) => d.alcance === 'jornada' || d.periodoIds.length > 0, { message: 'Selecciona al menos un periodo afectado.', path: ['periodoIds'] });
+export type EntradaIncidenciaPersonal = z.input<typeof esquemaIncidenciaPersonal>;
+
+export const esquemaAsignacionCobertura = z.object({
+  personalId: z.uuid('Selecciona a la persona que cubrirá.'),
+  autorizadoPor: texto('Quién autorizó', 3, 120),
+  actividadId: z.uuid().nullable().optional().transform((v) => v ?? null),
+  actividadTexto: textoOpcional('La actividad', 300),
+  observaciones: textoOpcional('Las observaciones', 300),
+});
+export type EntradaAsignacionCobertura = z.input<typeof esquemaAsignacionCobertura>;
+
+export const esquemaActividadBanco = z.object({
+  titulo: texto('El título', 3, 120),
+  descripcion: texto('La descripción', 3, 1000),
+  materiaId: z.uuid().nullable().optional().transform((v) => v ?? null),
+  gradoId: z.uuid().nullable().optional().transform((v) => v ?? null),
+  fecha: z.iso.date('Fecha inválida (AAAA-MM-DD).'),
+  responsable: textoOpcional('El responsable', 120),
+  archivo: z.object({
+    nombre: z.string().min(1).max(150),
+    tipo: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], 'Tipo de archivo no admitido (PDF, imagen, texto, Word o Excel).'),
+    tamano: z.number().int().min(1).max(1_048_576, 'El archivo supera 1 MB.'),
+    datos: z.string().max(1_500_000),
+  }).nullable().optional().transform((v) => v ?? null),
+});
+export type EntradaActividadBanco = z.input<typeof esquemaActividadBanco>;
