@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import {
-  ESTADOS_CICLO, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
+  ESTADOS_CICLO, ORIGENES_HORARIO, TIPOS_REGISTRO_IMPORTACION, ESTADOS_INSCRIPCION, FUNCIONES_PERSONAL, MARCAS_ASISTENCIA, NIVELES_EDUCATIVOS, TIPOS_ACTIVIDAD, TIPOS_MATERIA, TIPOS_REPORTE,
 } from '../models';
 
 const id = z.string().min(1).max(64);
@@ -38,8 +38,8 @@ export const ESQUEMAS_TABLA = {
   personal: z.object({ ...enEscuela, nombre: texto(60), primerApellido: texto(60), segundoApellido: opcional(60), numeroEmpleado: opcional(20), funciones: z.array(z.enum(FUNCIONES_PERSONAL)).max(15), activo: z.boolean(), observaciones: opcional(300).default(null) }),
   materias: z.object({ ...enCiclo, nombre: texto(80), abreviatura: opcional(12), tipo: z.enum(TIPOS_MATERIA).default('materia'), activo: z.boolean().default(true) }),
   asignaciones: z.object({ ...enCiclo, grupoId: id, materiaId: id, personalId: id.nullable(), horasSemana: z.number().int().min(1).max(40) }),
-  sesiones: z.object({ ...enCiclo, asignacionId: id, grupoId: id, personalId: id.nullable(), dia, periodoId: id }),
-  actividades: z.object({ ...enCiclo, tipo: z.enum(TIPOS_ACTIVIDAD), personalId: id.nullable(), grupoId: id.nullable(), periodoId: id.nullable(), dia, horaInicio: hora, horaFin: hora, descripcion: texto(120), confirmada: z.boolean(), confirmadaEn: marcaTiempo.nullable() }),
+  sesiones: z.object({ ...enCiclo, asignacionId: id, grupoId: id, personalId: id.nullable(), dia, periodoId: id, origen: z.enum(ORIGENES_HORARIO).nullable().default(null) }),
+  actividades: z.object({ ...enCiclo, tipo: z.enum(TIPOS_ACTIVIDAD), personalId: id.nullable(), grupoId: id.nullable(), periodoId: id.nullable(), dia, horaInicio: hora, horaFin: hora, descripcion: texto(120), confirmada: z.boolean(), confirmadaEn: marcaTiempo.nullable(), origen: z.enum(ORIGENES_HORARIO).nullable().default(null) }),
   excepciones: z.object({ ...enCiclo, personalId: id, dia, horaInicio: hora, horaFin: hora, motivo: texto(200) }),
   confirmaciones: z.object({ ...enCiclo, grupoId: id }),
   bitacora: z.object({ ...enCiclo, entidad: z.enum(['horario_grupo', 'actividad']), entidadId: id, accion: z.enum(['confirmar', 'reabrir', 'importar']), motivo: opcional(200), detalle: opcional(300) }),
@@ -48,7 +48,7 @@ export const ESQUEMAS_TABLA = {
   inscripciones: z.object({ ...enCiclo, alumnoId: id, turnoId: id.nullable(), gradoId: id.nullable(), grupoId: id.nullable(), estado: z.enum(ESTADOS_INSCRIPCION), numeroLista: z.number().int().min(1).max(200).nullable() }),
   movimientos: z.object({ ...enCiclo, alumnoId: id, inscripcionId: id, tipo: z.enum(['alta', 'cambio_grupo', 'baja', 'reactivacion', 'migracion']), grupoAnteriorId: id.nullable(), grupoNuevoId: id.nullable(), motivo: opcional(300) }),
   adscripciones: z.object({ ...enCiclo, personalId: id, turnoIds: z.array(id).max(20), materiaIds: z.array(id).max(200) }),
-  importaciones: z.object({ ...enCiclo, tipo: z.enum(['alumnos', 'docentes', 'personal', 'materias', 'grupos']), archivo: texto(200), hoja: opcional(100), huella: z.string().regex(/^[0-9a-f]{64}$/).nullable(), resultado: z.object({ nuevos: z.number().int().min(0), actualizados: z.number().int().min(0), omitidos: z.number().int().min(0) }) }),
+  importaciones: z.object({ ...enCiclo, tipo: z.enum(TIPOS_REGISTRO_IMPORTACION), archivo: texto(200), hoja: opcional(100), huella: z.string().regex(/^[0-9a-f]{64}$/).nullable(), resultado: z.object({ nuevos: z.number().int().min(0), actualizados: z.number().int().min(0), omitidos: z.number().int().min(0) }) }),
   pases: z.object({ ...enCiclo, grupoId: id, sesionId: id, asignacionId: id, personalId: id.nullable(), fecha, horaInicio: hora, horaFin: hora, guardadoEn: marcaTiempo }),
   asistencias: z.object({ ...enCiclo, paseId: id, grupoId: id, alumnoId: id, fecha, marca: z.enum(MARCAS_ASISTENCIA), horaLlegada: hora.nullable() }),
   salidas: z.object({ ...enCiclo, grupoId: id, alumnoId: id, sesionId: id, fecha, salida: hora, regreso: hora.nullable() }),

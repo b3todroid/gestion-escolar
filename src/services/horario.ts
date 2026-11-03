@@ -79,6 +79,17 @@ export class ServicioHorario {
           const choque = await choqueDocente(this.ctx, jornada.cicloEscolarId, s.personalId, s.dia, bloque, { excluirSesiones: propias });
           if (choque) throw new ErrorDominio('TRASLAPE', `Con ese horario, ${choque.charAt(0).toLowerCase()}${choque.slice(1)}`, [{ campo: 'horaInicio', mensaje: choque }]);
         }
+        // Las actividades ligadas al periodo (otra actividad del grupo, SE del docente) toman la hora nueva:
+        // así no quedan dos horarios distintos para el mismo periodo.
+        const ligadas = (await this.ctx.repos.actividades.listarPor('cicloEscolarId', jornada.cicloEscolarId)).filter((a) => a.periodoId === id);
+        for (const a of ligadas) {
+          if (a.grupoId) await asegurarHorarioEditable(this.ctx, a.grupoId);
+          if (a.personalId) {
+            const choque = await choqueDocente(this.ctx, jornada.cicloEscolarId, a.personalId, a.dia, bloque, { esActividad: true, excluirActividades: new Set([a.id]), excluirSesiones: propias });
+            if (choque) throw new ErrorDominio('TRASLAPE', `Con ese horario, ${choque.charAt(0).toLowerCase()}${choque.slice(1)}`, [{ campo: 'horaInicio', mensaje: choque }]);
+          }
+          await this.ctx.repos.actividades.actualizar({ ...a, horaInicio: bloque.horaInicio, horaFin: bloque.horaFin, ...metadatosActualizados(this.ctx, a) });
+        }
       }
       await this.repo(tipo).actualizar(bloque);
       return bloque;
@@ -92,6 +103,8 @@ export class ServicioHorario {
       if (tipo === 'periodo') {
         const n = await this.ctx.repos.sesiones.contarPor('periodoId', id);
         if (n > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Hay ${n} clase(s) programadas en este periodo. Quítalas del horario de los grupos primero.`);
+        const act = (await this.ctx.repos.actividades.listarPor('cicloEscolarId', actual.cicloEscolarId)).filter((a) => a.periodoId === id).length;
+        if (act > 0) throw new ErrorDominio('TIENE_DEPENDENCIAS', `Hay ${act} actividad(es) u hora(s) de servicio registradas en este periodo. Quítalas primero.`);
       }
       await this.repo(tipo).eliminar(id);
     });

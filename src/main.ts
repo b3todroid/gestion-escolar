@@ -20,6 +20,7 @@ import { paginaImportar } from './pages/importar';
 import { paginaImportarDatos } from './pages/importarDatos';
 import { paginaDocentes } from './pages/docentes';
 import { paginaAlumnosCiclo } from './pages/alumnosCiclo';
+import { paginaHorariosCiclo, paginaHorariosInicio } from './pages/horarios';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 
 const principal = document.getElementById('contenido');
@@ -47,6 +48,9 @@ if (typeof indexedDB === 'undefined') {
     .ruta('/turno/:id', paginaHorario)
     .ruta('/escuela/:id/personal', paginaPersonal)
     .ruta('/personal/:id', paginaDocente)
+    .ruta('/personal/:id/ciclo/:id', paginaDocente)
+    .ruta('/horarios', paginaHorariosInicio)
+    .ruta('/ciclo/:id/horarios', paginaHorariosCiclo)
     .ruta('/ciclo/:id/materias', paginaMaterias)
     .ruta('/ciclo/:id/importar', paginaImportar)
     .ruta('/ciclo/:id/importar-datos', paginaImportarDatos)

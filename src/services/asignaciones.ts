@@ -1,4 +1,4 @@
-import type { Asignacion, DiaSemana, Periodo, Sesion } from '../models';
+import type { Asignacion, DiaSemana, Periodo, Sesion, OrigenHorario } from '../models';
 import { esquemaAsignacion, esquemaSesion, validar, type EntradaAsignacion, type EntradaSesion } from '../validators/esquemas';
 import { ErrorDominio } from '../domain/errores';
 import { compararPorInicio } from '../domain/tiempo';
@@ -144,7 +144,7 @@ export class ServicioAsignaciones {
    * Reglas: día laborable del turno, periodo del turno del grupo, sin exceder las
    * horas semanales y sin que el docente tenga otra clase a la misma hora.
    */
-  async programar(entrada: EntradaSesion): Promise<Sesion> {
+  async programar(entrada: EntradaSesion, origen: OrigenHorario = 'manual'): Promise<Sesion> {
     const datos = validar(esquemaSesion, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const grupo = await requerir(this.ctx.repos.grupos.obtener(datos.grupoId), 'el grupo');
@@ -175,7 +175,7 @@ export class ServicioAsignaciones {
       const s: Sesion = {
         ...metadatosNuevos(this.ctx), escuelaId: grupo.escuelaId, cicloEscolarId: grupo.cicloEscolarId,
         asignacionId: asignacion.id, grupoId: grupo.id, personalId: asignacion.personalId,
-        dia: datos.dia as DiaSemana, periodoId: periodo.id,
+        dia: datos.dia as DiaSemana, periodoId: periodo.id, origen,
       };
       await this.ctx.repos.sesiones.insertar(s);
       return s;

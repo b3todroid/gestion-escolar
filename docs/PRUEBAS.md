@@ -33,3 +33,24 @@ Unitarias en `tests/unit/fase2-catalogos.test.ts` (U) y funcionales en `tests/e2
 | 18 | Fase 1 íntegra (migración v5 → v6, respaldo antiguo, configuración intacta) | U «18» (dos pruebas) + todas las e2e anteriores |
 
 Además, la prueba E «altas manuales» se ejecuta a **320 px** y verifica que no haya desplazamiento horizontal.
+
+## Fase 3 — Horarios: 13 pruebas obligatorias
+Unitarias en `tests/unit/fase3-horarios.test.ts` (U) y funcionales en `tests/e2e/horarios.spec.ts` (E).
+
+| # | Prueba | Dónde |
+|---|---|---|
+| 1 | Crear asignación (docente + materia + grupo + día + periodo, origen manual) | U «1.», E «demuestra la detección…» |
+| 2 | Editar asignación (cambio de docente reflejado en grupo y docente) | U «2.» |
+| 3 | Docente duplicado (rechazo antes de guardar; revisión de datos anteriores; entre turnos) | U «3.», «3b.», E (diálogo de captura y archivo con choques) |
+| 4 | Grupo duplicado (y periodo/materia/docente inexistentes, fuera de jornada) | U «4.», «8b.» |
+| 5 | Registrar SE (confirmada, por periodo, sin grupo; un hueco no es SE; sigue al periodo) | U «5.», E «importa un horario…» |
+| 6 | Consultar horario por grupo | U «6–7.», E (tabla semanal con estado y origen) |
+| 7 | Consultar horario por docente | U «6–7.», E (resumen del docente) |
+| 8 | Importar Excel (encabezados equivalentes, periodo por número, sin sobrescribir) | U «8.», «8b.», E |
+| 9 | Cancelar importación / archivo con conflictos no guarda nada | U «9.», E «demuestra la detección…» |
+| 10 | Mantener datos al recargar | U «10.», E (recarga) |
+| 11 | Escuelas separadas | U «11.» |
+| 12 | Ciclos separados | U «12.» |
+| 13 | No alterar datos de fases anteriores (migración v6 → v7, respaldo de esquema 6) | U «13.», «13b.» + todas las pruebas anteriores |
+
+También: vista imprimible (E, `emulateMedia('print')`), vista por día en 320 px sin desplazamiento horizontal (E) y `aTablaSegura` / `resolverPeriodo` (U).

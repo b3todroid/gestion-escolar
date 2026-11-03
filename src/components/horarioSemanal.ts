@@ -1,6 +1,6 @@
 import { h, type Hijo } from './dom';
 import type { DiaVista } from '../services/vistas';
-import type { Segmento, TipoVista } from '../domain/horarioVista';
+import { ETIQUETA_ESTADO_VALIDACION, type EstadoValidacion, type Segmento, type TipoVista } from '../domain/horarioVista';
 import { duracionMinutos, formatoDuracion } from '../domain/tiempo';
 
 /** Etiqueta + símbolo por tipo: el estado nunca depende sólo del color. */
@@ -33,7 +33,32 @@ function contenidoSegmento(s: Segmento, conHora: boolean): Hijo[] {
     conHora ? h('span', { class: 'bloque-h__hora' }, `${s.horaInicio}–${s.horaFin}`, h('span', { class: 'bloque-h__dur' }, ` ${formatoDuracion(duracionMinutos(s.horaInicio, s.horaFin))}`)) : null,
     s.tipo === 'sin_actividad' || s.tipo === 'receso' ? null : h('span', { class: 'bloque-h__titulo' }, titulo),
     s.detalle ? h('span', { class: 'bloque-h__detalle' }, s.enlaceDetalle ? h('a', { href: s.enlaceDetalle }, s.detalle) : s.detalle) : null,
+    s.estado ? h('span', { class: `bloque-h__estado bloque-h__estado--${s.estado}` }, `${SIMBOLO_ESTADO[s.estado]} ${ETIQUETA_ESTADO_VALIDACION[s.estado]}${s.origen === 'importacion' ? ' · importado' : ''}`) : null,
   ];
+}
+
+const SIMBOLO_ESTADO: Record<EstadoValidacion, string> = { confirmado: '✓', registrado: '◇', conflicto: '⚠' };
+
+/**
+ * Vista por día para teléfonos: un selector de día y una tarjeta por periodo
+ * (sin desplazamiento horizontal). En pantallas anchas e impresión se usa la tabla.
+ */
+export function vistaPorDia(dias: DiaVista[], titulo: string, id: string): HTMLElement {
+  const cont = h('div', { class: 'por-dia__lista' });
+  const mostrar = (i: number) => {
+    const d = dias[i];
+    cont.replaceChildren(h('ol', { class: 'semana-docente__lista', 'aria-label': `${titulo}, ${d?.nombre ?? ''}` },
+      ...(d?.segmentos ?? []).map((s) => h('li', { class: tipoClase(s) }, ...contenidoSegmento(s, true)))));
+  };
+  const hoy = new Date().getDay() || 7;
+  const inicial = Math.max(0, dias.findIndex((d) => d.dia === hoy));
+  const selector = h('fieldset', { class: 'dias' },
+    h('legend', { class: 'solo-lectores' }, `Día del ${titulo.toLowerCase()}`),
+    ...dias.map((d, i) => h('label', { class: 'dias__opcion' },
+      h('input', { type: 'radio', name: `dia-${id}`, value: d.dia, checked: i === inicial, onchange: () => mostrar(i) }),
+      h('span', { 'aria-hidden': 'true' }, d.nombre.slice(0, 3)), h('span', { class: 'solo-lectores' }, d.nombre))));
+  mostrar(inicial);
+  return h('div', { class: 'por-dia solo-movil', 'data-vista': 'por-dia' }, selector, cont);
 }
 
 /**
@@ -43,7 +68,7 @@ function contenidoSegmento(s: Segmento, conHora: boolean): Hijo[] {
  */
 export function tablaSemanaGrupo(dias: DiaVista[], titulo: string): HTMLElement {
   const filas = dias[0]?.segmentos.map((s) => ({ horaInicio: s.horaInicio, horaFin: s.horaFin })) ?? [];
-  return h('div', { class: 'tabla-semana', role: 'region', 'aria-label': titulo, tabindex: '0' },
+  return h('div', { class: 'tabla-semana solo-escritorio', role: 'region', 'aria-label': titulo, tabindex: '0' },
     h('table', {},
       h('caption', { class: 'solo-lectores' }, titulo),
       h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Hora'), ...dias.map((d) => h('th', { scope: 'col' }, d.nombre)))),

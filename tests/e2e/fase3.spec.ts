@@ -92,11 +92,12 @@ test('servicio confirmado, otra actividad, caso especial y horario confirmado co
   await page.getByRole('link', { name: 'Escuela Secundaria Ficticia 90' }).click();
   await page.getByRole('link', { name: 'Ver personal' }).click();
   await page.getByRole('link', { name: 'Docente Ficticio Uno' }).click();
-  await page.getByText('Registrar hora de servicio u otra actividad').click();
+  await page.getByText('Registrar horas de servicio (SE) u otra actividad').click();
   await page.locator('#f-actividad-dia').selectOption('1');
   await page.locator('#f-actividad-horaInicio').fill('07:30');
   await page.locator('#f-actividad-horaFin').fill('08:00');
   await page.locator('#f-actividad-descripcion').fill('Guardia en patio');
+  await page.locator('#f-actividad-confirmada').uncheck(); // se registra por confirmar y se confirma después
   await page.getByRole('button', { name: 'Registrar actividad' }).click();
   await expect(page.locator('#f-actividad .resumen-errores')).toContainText('ya tiene clase con 1° A');
   await page.locator('#f-actividad-horaInicio').fill('08:40');

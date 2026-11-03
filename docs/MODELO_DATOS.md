@@ -90,6 +90,24 @@ Campos nuevos en tablas existentes: `personal.observaciones`; `materias.tipo` (m
 - **Docentes** no es una tabla: es el personal con función `docente`. Funciones vigentes: docente, prefectura, dirección, subdirección académica, subdirección de gestión, orientación, trabajo social, UDEI, secretaría, asistencia escolar, biblioteca, otro. Las funciones anteriores (`directivo`, `administrativo`, `apoyo`) se conservan tal cual en registros existentes: no se convierten porque no hay forma segura de saber a cuál corresponden.
 - Materias de tipo `servicio` (horas SE) no se asignan a grupos.
 
+## Fase 3 · Horarios (versión 7 del esquema)
+Modelo relacional de horarios (todo con `escuelaId` y `cicloEscolarId`):
+
+| Concepto | Dónde vive |
+|---|---|
+| Escuela, ciclo, turno | `escuelas`, `ciclosEscolares`, `turnos` |
+| Días de la semana | `jornadas.dias` (1 = lunes … 7 = domingo), por turno |
+| Periodo | `periodos` (de la jornada del turno; recesos en `recesos`) |
+| Grupo, docente, materia | `grupos`, `personal` (función docente), `materias` |
+| Asignación de clase | `asignaciones` (grupo + materia + docente + horas por semana) |
+| Clase en el horario | `sesiones` (asignación + día + periodo; `grupoId` y `personalId` desnormalizados, mantenidos en la misma transacción) |
+| SE y otras actividades | `actividades` (`tipo` servicio/otra; del docente con `periodoId` opcional, o del grupo con periodo) |
+| Tipo de actividad | CLASE (sesión), SERVICIO / OTRA ACTIVIDAD (actividad), RECESO (receso del turno), SIN ACTIVIDAD REGISTRADA (ausencia de registro: **no se guarda**) |
+| Estado de validación | derivado: confirmaciones de grupo, `actividades.confirmada`, revisión de conflictos |
+| Origen del registro | `sesiones.origen`, `actividades.origen`: `manual` · `importacion` · `null` (anterior a v7) |
+
+Versión 7: sin cambios de índices; agrega `origen` (null en registros existentes). `importaciones.tipo` admite `horarios`.
+
 ## Entidades previstas (fases posteriores)
  Asistencia, Incidencia, SalidaAula, Cobertura. Todas con `escuelaId` y `cicloEscolarId` cuando corresponda.
 
@@ -97,6 +115,7 @@ Campos nuevos en tablas existentes: `personal.observaciones`; `materias.tipo` (m
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 7 | 2026-11-03 | Sin cambios de índices. `upgrade()` agrega `origen: null` a `sesiones` y `actividades` (no se inventa un origen que no se guardó). Probada v6 → v7; los respaldos de esquema 6 se restauran con `origen: null`. |
 | 6 | 2026-11-03 | Agrega `inscripciones`, `movimientos`, `adscripciones`, `importaciones`; `alumnos` pasa a índice `escuelaId`. `upgrade()`: por cada alumno anterior crea su inscripción (turno y grado tomados del grupo; estado según `activo`) y un movimiento `migracion`, y deja en `alumnos` sólo la identidad; personal → `observaciones: null`; materias → `tipo: 'materia'`, `activo: true`. Nada se borra. Probada v5 → v6 con asistencias. Los respaldos con esquema < 6 se convierten igual al restaurar (después de verificar la huella). |
 | 5 | 2026-11-03 | Sin cambios de índices. `upgrade()` completa en registros existentes: escuelas → campos del plantel en `null`; grupos → `activo: true`. Probada con datos v1 → v5. Los respaldos de esquemas anteriores se aceptan (los campos faltantes toman esos mismos valores). |
 | 4 | 2026-11-03 | Agrega `alumnos`, `pases`, `asistencias`, `salidas`, `reportes`, `ajustes`. Sin cambios en tablas anteriores; migración v1 → v4 probada. |

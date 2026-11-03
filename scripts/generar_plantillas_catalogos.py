@@ -73,7 +73,22 @@ libro(["Materia", "Tipo", "Abreviatura"],
 libro(["Grado", "Grupo", "Turno", "Capacidad"], [[1, "D", "Matutino", 35]],
       ["GRUPOS"] + COMUN + ["El grado y el turno deben existir en el ciclo; la importación no los inventa."]).save("public/plantilla-grupos.xlsx")
 
+libro(["Grupo", "Día", "Periodo", "Materia", "Docente"],
+      [["1A", "Lunes", 1, "Matemáticas", "Nombre Apellido Ejemplo"], ["1A", "Lunes", 2, "Español", "P-001"]],
+      ["HORARIOS (una fila por clase)"] + COMUN + [
+          "Grupo: «1A», «1° A», o usa columnas separadas Grado y Grupo. Turno: sólo si hay grupos con el mismo nombre en varios turnos.",
+          "Periodo: número (1, 2, 3…), nombre del periodo o, en su lugar, una columna «Hora de inicio» (07:00).",
+          "Docente: nombre completo o identificador interno. Grupos, materias y docentes deben existir; la importación no los crea.",
+          "No se reemplazan clases existentes ni se modifican horarios confirmados. Con un solo error o conflicto no se importa nada.",
+      ]).save("public/plantilla-horarios.xlsx")
+
 # ---------------- Archivos de prueba ----------------
+# Horario con encabezados equivalentes, una fila de título y periodo por número.
+libro(["Gpo", "Día de la semana", "Módulo", "Asignatura", "Profesor"],
+      [["1A", "Lunes", 1, "Matemáticas", "Docente Ficticio Uno"],
+       ["1° A", "Martes", "2", "Español", "Docente Ficticia Dos"],
+       ["1B", "Lunes", "1", "Español", "Docente Ficticia Dos"]],
+      None, titulo="HORARIO FICTICIO 2026", hoja="Horario").save("tests/fixtures/horario-sinonimos.xlsx")
 # Encabezados equivalentes (sinónimos), con títulos antes y una segunda hoja.
 libro(["Apellido paterno", "Apellido materno", "Nombre", "Gr.", "Gpo", "No. lista", "Matrícula"],
       [["Ficticia", "Prueba", "Ana", 1, "A", 1, "M-100"],
@@ -95,4 +110,6 @@ with open("tests/fixtures/personal.csv", "w", encoding="utf-8", newline="") as f
     f.write('Ejemplo;Dos;Rosa;P-003;Astronauta;\r\n')
 with open("tests/fixtures/materias-1252.csv", "w", encoding="cp1252", newline="") as f:
     f.write('Materia,Tipo,Abreviatura\r\nEspañol,Materia,ESP\r\nMatemáticas,,MAT\r\nTutoría,Tutoría,TUT\r\nHoras de servicio,SE,SE\r\n')
+with open("tests/fixtures/horario-conflicto.csv", "w", encoding="utf-8", newline="") as f:
+    f.write('Grupo;Dia;Periodo;Materia;Docente\r\n1A;Miércoles;3;Matemáticas;Docente Ficticio Uno\r\n1B;Miércoles;3;Matemáticas;Docente Ficticio Uno\r\n1A;Sábado;1;Matemáticas;Docente Ficticio Uno\r\n1A;Jueves;9;Matemáticas;Docente Ficticio Uno\r\n')
 print("ok")

@@ -80,6 +80,7 @@ export class ServicioImportacionDatos {
   }
 
   async analizar(cicloId: string, tipo: TipoImportacion, cuerpo: string[][], mapeo: Mapeo, huella: string | null = null, primeraFila = 2): Promise<AnalisisDatos> {
+    if (tipo === 'horarios') throw new ErrorDominio('VALIDACION', 'Los horarios se analizan con el servicio de importación de horarios.');
     const ciclo = await cicloEditable(this.ctx, cicloId);
     const p = problemasMapeo(mapeo, tipo);
     if (p.length) throw new ErrorDominio('VALIDACION', p[0]!);

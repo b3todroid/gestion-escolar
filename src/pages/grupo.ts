@@ -3,7 +3,7 @@ import { h, icono } from '../components/dom';
 import { alEnviar, botonEnviar, campo, ejecutar, formulario, numero, selector, texto } from '../components/formulario';
 import { botonAccion, desplegable, encabezado, insignia, migas, seccion, vacio } from '../components/piezas';
 import { confirmar, elegir, pedirTexto } from '../components/dialogo';
-import { leyenda, tablaSemanaGrupo, MARCA } from '../components/horarioSemanal';
+import { leyenda, tablaSemanaGrupo, vistaPorDia, MARCA } from '../components/horarioSemanal';
 import { avisar } from '../components/avisos';
 import type { Materia, Personal } from '../models';
 import type { AsignacionDetalle } from '../services/asignaciones';
@@ -56,6 +56,8 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
   const semana = await ctx.s.vistas.semanaGrupo(grupoId);
   const actividadesGrupo = await ctx.s.actividades.listarGrupo(grupoId);
   const nombreGrupo = `${grado?.numero ?? ''}° ${grupo.nombre}`;
+  const conflictos = await ctx.s.revisionHorarios.conflictos(ciclo.id).then((l) => l.filter((c) => c.grupoId === grupoId || c.sesionIds.some((id) => semana.some((d) => d.segmentos.some((s) => s.id === id)))));
+  const sinInformacion = await ctx.s.revisionHorarios.sinInformacion(grupoId);
 
   const diasTurno = DIAS_SEMANA.filter((d) => jornada.dias.includes(d.valor));
   let dia = diaPorGrupo.get(grupoId) ?? diasTurno[0]?.valor ?? 1;
@@ -68,7 +70,10 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
   const libres = materias.filter((m) => !asignadas.has(m.id));
   const cont = h('div', {});
   const panel = desplegable('Asignar materia', editable && asignaciones.length === 0 && libres.length > 0, cont);
-  const alta = () => cont.replaceChildren(formularioAsignacion(ctx, grupoId, ciclo.id, libres, docentes, null, alta));
+  // Sin materias libres el panel sigue existiendo: ahí se abre el formulario de edición.
+  const alta = () => cont.replaceChildren(libres.length
+    ? formularioAsignacion(ctx, grupoId, ciclo.id, libres, docentes, null, alta)
+    : h('p', { class: 'ayuda' }, 'Todas las materias del ciclo ya están asignadas a este grupo. Usa «Editar» en una materia para cambiar su docente u horas.'));
   alta();
 
   const totalHoras = asignaciones.reduce((s, a) => s + a.horasSemana, 0);
@@ -137,8 +142,16 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
         if (desc) await guardar(async () => { await ctx.s.actividades.crearGrupo(grupoId, dia, periodo.id, desc); return 'Actividad registrada. Guardado en este dispositivo.'; });
         return;
       }
-      if (r === '') await guardar(async () => { await ctx.s.asignaciones.quitarSesion(sesion!.id); return 'Periodo liberado.'; });
-      else if (r !== sesion?.asignacionId) await guardar(async () => { await ctx.s.asignaciones.programar({ grupoId, asignacionId: r, dia, periodoId: periodo.id }); return 'Clase programada. Guardado en este dispositivo.'; });
+      if (r === '') {
+        if (!(await confirmar({ titulo: '¿Dejar libre este periodo?', mensaje: `${nombreDia}, ${periodo.horaInicio} a ${periodo.horaFin}: se quitará ${a?.materia ?? 'la clase'}${a?.docente ? ` (${a.docente})` : ''}. El periodo quedará como «sin actividad registrada».`, textoConfirmar: 'Dejar libre', peligro: true }))) return;
+        await guardar(async () => { await ctx.s.asignaciones.quitarSesion(sesion!.id); return 'Periodo liberado.'; });
+        return;
+      }
+      if (sesion && r !== sesion.asignacionId) {
+        const nueva = porId.get(r);
+        if (!(await confirmar({ titulo: '¿Reemplazar la clase?', mensaje: `${nombreDia}, ${periodo.horaInicio} a ${periodo.horaFin}: ${a?.materia ?? 'la clase actual'} se cambiará por ${nueva?.materia ?? 'otra materia'}.`, textoConfirmar: 'Reemplazar' }))) return;
+      }
+      if (r !== sesion?.asignacionId) await guardar(async () => { await ctx.s.asignaciones.programar({ grupoId, asignacionId: r, dia, periodoId: periodo.id }); return 'Clase programada. Guardado en este dispositivo.'; });
     };
     const quitarActividad = async () => {
       if (act && await confirmar({ titulo: `¿Quitar «${act.descripcion}»?`, mensaje: `${nombreDia}, ${periodo.horaInicio} a ${periodo.horaFin}. El periodo quedará sin actividad registrada.`, textoConfirmar: 'Quitar', peligro: true })) {
@@ -151,7 +164,7 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
       h('span', { class: 'celda__cuerpo' },
         h('span', { class: 'celda__tipo' }, h('span', { 'aria-hidden': 'true' }, MARCA[tipo].simbolo), ' ', MARCA[tipo].etiqueta),
         a ? h('span', { class: 'celda__materia' }, a.materia) : act ? h('span', { class: 'celda__materia' }, act.descripcion) : null,
-        a ? h('span', { class: 'celda__docente' }, a.docente ?? 'Docente pendiente') : null,
+        a ? h('span', { class: 'celda__docente' }, a.docente && a.personalId ? h('a', { href: `#/personal/${a.personalId}/ciclo/${ciclo.id}` }, a.docente) : 'Docente pendiente') : null,
       ),
       act
         ? h('button', { type: 'button', class: 'boton boton--chico boton--peligro', 'aria-label': `Quitar actividad ${nombreDia} ${periodo.horaInicio}`, onclick: quitarActividad }, 'Quitar')
@@ -188,14 +201,24 @@ export async function paginaGrupo(ctx: ContextoPagina, grupoId: string): Promise
       h('a', { class: 'boton boton--secundario', href: `#/alumnos/${grupoId}` }, `Alumnos y asistencia de ${nombreGrupo}`),
       seccion('materias-grupo', `Materias (${totalHoras} horas por semana)`,
         listaAsignaciones,
-        editable && libres.length ? panel : null,
+        editable && (libres.length || asignaciones.length) ? panel : null,
         editable && !materias.length ? h('a', { class: 'boton boton--secundario', href: `#/ciclo/${ciclo.id}/materias` }, 'Registrar materias del ciclo') : null,
         editable && !docentes.length ? h('p', { class: 'ayuda' }, icono('ℹ'), ' No hay docentes activos. ', h('a', { href: `#/escuela/${escuela.id}/personal` }, 'Registra al personal'), ' para asignarlos.') : null,
       ),
       seccion('horario-grupo', 'Horario semanal',
+        h('p', { class: 'datos-impresion' }, `${escuela.nombre}${escuela.cct ? ` (${escuela.cct})` : ''} · Ciclo ${ciclo.nombre} · Turno ${turno.nombre}`),
         barraConfirmacion,
+        conflictos.length ? h('div', { class: 'mensaje mensaje--error', role: 'alert', id: 'conflictos-grupo' },
+          h('p', {}, icono('⚠'), ` ${conflictos.length} conflicto(s) pendiente(s) en este horario:`),
+          h('ul', {}, ...conflictos.map((c) => h('li', {}, c.mensaje)))) : null,
         semana.length && celdas.length ? tablaSemanaGrupo(semana, `Horario semanal de ${nombreGrupo}`) : vacio('El turno no tiene periodos de clase. Configúralos primero.'),
+        // En teléfono, si se puede editar, la vista por día es la de «Editar por día» (no se duplica).
+        semana.length && celdas.length && !editable ? vistaPorDia(semana, `Horario de ${nombreGrupo}`, 'grupo') : null,
         semana.length ? leyenda(['clase', 'receso', 'otra', 'sin_actividad']) : null,
+        semana.length ? h('p', { class: 'ayuda', id: 'sin-informacion-grupo' }, `${sinInformacion.length} periodo(s) sin actividad registrada en la semana.`) : null,
+        semana.length ? h('div', { class: 'acciones acciones--izq no-imprimir' },
+          h('button', { type: 'button', class: 'boton boton--secundario', onclick: () => window.print() }, 'Imprimir horario'),
+          h('a', { class: 'boton boton--secundario', href: `#/ciclo/${ciclo.id}/horarios` }, 'Todos los horarios del ciclo')) : null,
       ),
       editable && celdas.length ? seccion('editar-horario', 'Editar por día',
         diasTurno.length ? elegirDia : null,

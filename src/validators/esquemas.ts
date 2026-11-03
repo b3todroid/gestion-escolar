@@ -293,6 +293,10 @@ export const esquemaActividadDocente = conRangoHoras(z.object({
   horaInicio: hora('La hora de inicio'),
   horaFin: hora('La hora de fin'),
   descripcion: texto('La descripción', 3, 120),
+  /** Periodo del turno (opcional): si se indica, las horas se toman de él. */
+  periodoId: z.uuid('Selecciona un periodo válido.').nullable().optional().transform((v) => v ?? null),
+  /** Registrar ya confirmada (horas SE confirmadas por quien captura). */
+  confirmada: z.boolean().optional().transform((v) => v ?? false),
 }));
 
 export const esquemaExcepcion = conRangoHoras(z.object({

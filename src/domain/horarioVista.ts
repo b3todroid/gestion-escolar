@@ -27,7 +27,16 @@ export interface Segmento extends Intervalo {
   /** Enlace del detalle (p. ej. el nombre del docente). */
   enlaceDetalle?: string;
   id?: string;
+  /** Estado de validación (derivado, no se guarda): confirmado, registrado sin confirmar o con conflicto. */
+  estado?: EstadoValidacion;
+  /** Origen del registro: captura manual, importación o registro anterior (null). */
+  origen?: 'manual' | 'importacion' | null;
 }
+
+export type EstadoValidacion = 'confirmado' | 'registrado' | 'conflicto';
+export const ETIQUETA_ESTADO_VALIDACION: Record<EstadoValidacion, string> = {
+  confirmado: 'Confirmado', registrado: 'Sin confirmar', conflicto: 'Con conflicto',
+};
 
 /**
  * Ordena los bloques ocupados, agrega recesos que no estén cubiertos por

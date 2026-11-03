@@ -165,6 +165,10 @@ export interface Asignacion extends Metadatos {
   horasSemana: number;
 }
 
+/** Origen de un registro de horario. null = registro anterior a la versión 7 (origen no guardado). */
+export const ORIGENES_HORARIO = ['manual', 'importacion'] as const;
+export type OrigenHorario = (typeof ORIGENES_HORARIO)[number];
+
 /** Una celda del horario semanal: una asignación en un día y periodo. */
 export interface Sesion extends Metadatos {
   escuelaId: string;
@@ -174,6 +178,7 @@ export interface Sesion extends Metadatos {
   personalId: string | null; // desnormalizado para detectar choques del docente
   dia: DiaSemana;
   periodoId: string;
+  origen: OrigenHorario | null;
 }
 
 // ===================== Fase 3 =====================
@@ -201,6 +206,7 @@ export interface Actividad extends Metadatos {
   descripcion: string;
   confirmada: boolean;
   confirmadaEn: string | null;
+  origen: OrigenHorario | null;
 }
 
 /**
@@ -291,10 +297,12 @@ export interface AlumnoInscrito extends Alumno {
 }
 
 /** Registro de cada importación aplicada (origen, fecha, tipo y resultado). */
+export const TIPOS_REGISTRO_IMPORTACION = ['alumnos', 'docentes', 'personal', 'materias', 'grupos', 'horarios'] as const;
+
 export interface RegistroImportacion extends Metadatos {
   escuelaId: string;
   cicloEscolarId: string;
-  tipo: 'alumnos' | 'docentes' | 'personal' | 'materias' | 'grupos';
+  tipo: (typeof TIPOS_REGISTRO_IMPORTACION)[number];
   archivo: string;
   hoja: string | null;
   huella: string | null; // SHA-256 del archivo, para advertir reimportaciones

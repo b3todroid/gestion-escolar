@@ -1,6 +1,23 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 2 — Catálogos escolares e importación inteligente** — completada, pendiente de revisión del usuario. No se avanza a la Fase 3 sin autorización.
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 3 — Sistema de horarios escolares** — completada, pendiente de revisión del usuario. No se avanza a la Fase 4 sin autorización.
+
+## Fase 3 — Sistema de horarios escolares (2026-11-03)
+**Auditoría inicial (verificada en el código, no en la documentación):** ya existían asignaciones, clases por día y periodo, vistas semanales de grupo y docente con los 5 tipos de bloque, choques por hora real entre turnos, casos especiales, SE con confirmación, horarios confirmados con bitácora e importación de horarios por columnas fijas. Faltaban: módulo de selección, reportes, conflictos pendientes, estado de validación y origen, SE por periodo, impresión, vista por día en teléfono, mapeo editable de horarios en el centro de importación y la preparación para PDF.
+
+**Implementado:**
+- Esquema v7: `origen` (manual / importación / registro anterior) en clases y actividades; migración sin pérdida.
+- Módulo **Horarios** (`#/horarios`, `#/ciclo/ID/horarios`): escuela → ciclo → turno → grupo o docente; resumen (horas asignadas, clases en el horario, SE confirmadas, periodos sin información, conflictos pendientes), horas por grupo y por docente, imprimible. Acceso desde el panel («Horarios»).
+- Horario por grupo: cuadrícula periodos × días con materia, docente, tipo, estado de validación y origen; conflictos del grupo; periodos sin información; imprimir; en teléfono vista por día con tarjetas. Dejar libre o reemplazar una clase pide confirmación.
+- Horario por docente (`#/personal/ID/ciclo/ID`): docente, escuela, ciclo, turnos, días, periodos, grupos, materias, horas SE, actividades; clases por grupo y materia; conflictos; imprimir; ciclo seleccionable.
+- SE por periodo y confirmada al registrarse (opcional por confirmar).
+- Revisión de conflictos de sólo lectura (`services/revisionHorarios.ts`).
+- Horarios en «Importar información» con mapeo editable, periodo por número/nombre/hora, registro de origen y aviso de reimportación; plantilla `plantilla-horarios.xlsx`.
+- Interfaces para futura importación PDF (`domain/importacion/fuentes.ts`), sin OCR ni bibliotecas nuevas.
+
+**Defectos encontrados y corregidos:** cambiar la hora de un periodo dejaba con la hora anterior las «otras actividades» del grupo en ese periodo (dos horarios distintos para lo mismo); se podía eliminar un periodo con actividades registradas; «Dejar libre» quitaba la clase sin confirmar; la vista semanal obligaba a desplazamiento horizontal en teléfono; no existía estilo de impresión.
+
+**Pendientes:** el asistente sigue creando un solo turno; no hay edición en lote de un horario completo (se captura celda por celda o se importa); la importación de horarios es todo o nada (no hay decisión por fila, a propósito); PDF/OCR fuera de alcance; la impresión usa el diálogo del navegador (no genera PDF propio).
 
 ## Fase 2 — Catálogos escolares e importación (2026-11-03)
 **Implementado:**

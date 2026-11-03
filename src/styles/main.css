@@ -764,3 +764,35 @@ main:focus { outline: none; }
 .campo--compacto select { max-width: 100%; }
 .totales--importacion { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); }
 .resumen-decisiones { font-weight: 700; margin: 0.75rem 0; }
+
+/* ===== Fase 3: horarios ===== */
+.bloque-h__estado { font-size: 0.78rem; font-weight: 700; }
+.bloque-h__estado--confirmado { color: var(--ok); }
+.bloque-h__estado--registrado { color: var(--texto-suave); }
+.bloque-h__estado--conflicto { color: var(--peligro); }
+.renglon--conflicto { border-left: 5px solid var(--peligro); }
+.tarjetas--compactas { grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.filtros .campo .boton { margin-top: 0.4rem; width: 100%; }
+.datos-impresion { display: none; }
+.solo-movil { display: block; }
+.solo-escritorio { display: none; }
+@media (min-width: 48rem) {
+  .solo-movil { display: none; }
+  .solo-escritorio { display: block; }
+}
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .barra, .migas, .subnav, .no-imprimir, .boton, button, details, form, .avisos, .aviso, #editar-horario, .leyenda + .ayuda { display: none !important; }
+  .solo-movil { display: none !important; }
+  .solo-escritorio { display: block !important; }
+  .datos-impresion { display: block; font-weight: 700; }
+  .pagina, main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  .seccion { border: 0 !important; box-shadow: none !important; padding: 0 !important; break-inside: avoid-page; }
+  .tabla-semana { overflow: visible; border: 0; }
+  .tabla-semana table { min-width: 0; font-size: 9pt; }
+  .bloque-h { border: 1px solid #555 !important; background: #fff !important; color: #000 !important; }
+  a { color: #000; text-decoration: none; }
+}
+.bloque-h--clase .bloque-h__estado { color: inherit; }
+.bloque-h--clase .bloque-h__estado--conflicto { background: var(--peligro-suave); color: var(--peligro); padding: 0 0.3rem; border-radius: 4px; justify-self: start; }

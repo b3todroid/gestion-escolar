@@ -12,36 +12,62 @@ import { formatoDuracion } from '../domain/tiempo';
 const DIAS = DIAS_SEMANA.map((d) => ({ valor: String(d.valor), texto: d.nombre }));
 const nombreDia = (n: number) => DIAS_SEMANA.find((d) => d.valor === n)?.nombre ?? '';
 
-function formularioActividad(ctx: ContextoPagina, ciclo: CicloEscolar, p: Personal, actual: Actividad | null, alCancelar: () => void): HTMLFormElement {
+interface OpcionPeriodo { valor: string; texto: string; horaInicio: string; horaFin: string; dias: number[] }
+
+function formularioActividad(ctx: ContextoPagina, ciclo: CicloEscolar, p: Personal, periodos: OpcionPeriodo[], actual: Actividad | null, alCancelar: () => void): HTMLFormElement {
   const f = 'f-actividad';
   const form = formulario(f, actual ? 'Editar actividad' : null,
-    selector(f, { nombre: 'tipo', etiqueta: 'Tipo', requerido: true, valor: actual?.tipo ?? 'servicio', opciones: [{ valor: 'servicio', texto: 'Hora de servicio' }, { valor: 'otra', texto: 'Otra actividad' }] }),
+    selector(f, { nombre: 'tipo', etiqueta: 'Tipo', requerido: true, valor: actual?.tipo ?? 'servicio', opciones: [{ valor: 'servicio', texto: 'Horas de servicio (SE)' }, { valor: 'otra', texto: 'Otra actividad' }] }),
     selector(f, { nombre: 'dia', etiqueta: 'Día', requerido: true, valor: String(actual?.dia ?? 1), opciones: DIAS }),
+    periodos.length ? selector(f, { nombre: 'periodoId', etiqueta: 'Periodo', valor: actual?.periodoId ?? '', opciones: periodos }) : null,
+    periodos.length ? h('p', { class: 'ayuda' }, 'Elige el periodo del turno, o deja «Selecciona…» y escribe un horario libre.') : null,
     h('div', { class: 'fila' },
       campo(f, { nombre: 'horaInicio', etiqueta: 'Inicio', tipo: 'time', valor: actual?.horaInicio ?? '', requerido: true }),
       campo(f, { nombre: 'horaFin', etiqueta: 'Fin', tipo: 'time', valor: actual?.horaFin ?? '', requerido: true }),
     ),
     campo(f, { nombre: 'descripcion', etiqueta: 'Descripción', valor: actual?.descripcion, requerido: true, maxlength: 120, ayuda: 'Por ejemplo: guardia en patio, apoyo en biblioteca, reunión de academia.' }),
+    h('label', { class: 'casilla' }, h('input', { type: 'checkbox', name: 'confirmada', id: 'f-actividad-confirmada', checked: actual ? actual.confirmada : true }),
+      h('span', {}, 'Registrar como confirmada (la persona responsable ya la validó)')),
     h('div', { class: 'acciones' }, actual ? botonAccion('Cancelar', alCancelar) : null, botonEnviar(actual ? 'Guardar cambios' : 'Registrar actividad')),
   );
+  // Al elegir un periodo, las horas se toman de él.
+  const selPeriodo = form.querySelector<HTMLSelectElement>('[name="periodoId"]');
+  const inIni = form.querySelector<HTMLInputElement>('[name="horaInicio"]')!;
+  const inFin = form.querySelector<HTMLInputElement>('[name="horaFin"]')!;
+  const sincronizar = () => {
+    const op = periodos.find((x) => x.valor === selPeriodo?.value);
+    inIni.readOnly = inFin.readOnly = !!op;
+    if (op) { inIni.value = op.horaInicio; inFin.value = op.horaFin; }
+  };
+  selPeriodo?.addEventListener('change', sincronizar);
+  sincronizar();
   return alEnviar(form, async () => {
-    const entrada = { tipo: texto(form, 'tipo') as TipoActividad, dia: numero(form, 'dia') ?? Number.NaN, horaInicio: texto(form, 'horaInicio'), horaFin: texto(form, 'horaFin'), descripcion: texto(form, 'descripcion') };
+    const entrada = {
+      tipo: texto(form, 'tipo') as TipoActividad, dia: numero(form, 'dia') ?? Number.NaN, horaInicio: texto(form, 'horaInicio'), horaFin: texto(form, 'horaFin'),
+      descripcion: texto(form, 'descripcion'), periodoId: texto(form, 'periodoId') || null, confirmada: form.querySelector<HTMLInputElement>('[name="confirmada"]')!.checked,
+    };
     if (actual) { await ctx.s.actividades.actualizarDocente(actual.id, entrada); await ctx.recargar(); }
     else { await ctx.s.actividades.crearDocente(ciclo.id, p.id, entrada); await ctx.recargar('#f-actividad-tipo'); } // sigue abierto para la siguiente
-    return entrada.tipo === 'servicio' ? 'Hora de servicio registrada (falta confirmarla).' : 'Actividad registrada.';
+    const tipo = entrada.tipo === 'servicio' ? 'Hora de servicio (SE)' : 'Actividad';
+    return entrada.confirmada ? `${tipo} registrada y confirmada.` : `${tipo} registrada (falta confirmarla).`;
   });
 }
 
-export async function paginaDocente(ctx: ContextoPagina, personalId: string): Promise<Vista> {
+export async function paginaDocente(ctx: ContextoPagina, personalId: string, cicloId?: string): Promise<Vista> {
   const p = await ctx.s.personal.obtener(personalId);
   const escuela = await ctx.s.escuelas.obtener(p.escuelaId);
   const ciclos = await ctx.s.ciclos.listar(escuela.id);
-  const ciclo = ciclos.find((c) => c.estado === 'activo') ?? ciclos.find((c) => c.estado === 'planeacion') ?? ciclos[0];
+  const ciclo = (cicloId ? ciclos.find((c) => c.id === cicloId) : undefined)
+    ?? ciclos.find((c) => c.estado === 'activo') ?? ciclos.find((c) => c.estado === 'planeacion') ?? ciclos[0];
   const nombre = nombreCompleto(p);
+  const selCiclo = ciclos.length > 1 && ciclo ? h('div', { class: 'campo no-imprimir' }, h('label', { for: 'ciclo-docente' }, 'Ciclo escolar'),
+    h('select', { id: 'ciclo-docente', onchange: (ev: Event) => ctx.ir(`#/personal/${p.id}/ciclo/${(ev.currentTarget as HTMLSelectElement).value}`) },
+      ...ciclos.map((c) => h('option', { value: c.id, selected: c.id === ciclo.id }, `Ciclo ${c.nombre}`)))) : null;
   const base = [
     migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombre, href: `#/escuela/${escuela.id}` }, { texto: 'Personal', href: `#/escuela/${escuela.id}/personal` }, { texto: nombre }]),
     encabezado(nombre, p.funciones.map((x) => ETIQUETA_FUNCION[x]).join(', ')),
     p.activo ? null : h('p', {}, insignia('Dado(a) de baja', 'neutro', '■')),
+    selCiclo,
   ];
   if (!ciclo) return { titulo: nombre, contenido: h('div', { class: 'pagina' }, ...base, vacio('La escuela aún no tiene ciclos escolares.')) };
 
@@ -49,11 +75,27 @@ export async function paginaDocente(ctx: ContextoPagina, personalId: string): Pr
   const actividades = await ctx.s.actividades.listarDocente(p.id, ciclo.id);
   const excepciones = await ctx.s.actividades.listarExcepciones(p.id, ciclo.id);
   const editable = ciclo.estado !== 'cerrado' && p.activo;
+  const reporte = (await ctx.s.revisionHorarios.reporte(ciclo.id)).docentes.find((x) => x.personalId === p.id);
+  const conflictos = (await ctx.s.revisionHorarios.conflictos(ciclo.id)).filter((c) => c.personalId === p.id);
+  const clases = await ctx.s.asignaciones.horarioDocente(p.id, ciclo.id);
+  const porGrupoMateria = new Map<string, { grupo: string; materia: string; n: number; grupoId: string }>();
+  for (const c of clases) { const k = `${c.grupoId}|${c.materia}`; const x = porGrupoMateria.get(k); if (x) x.n++; else porGrupoMateria.set(k, { grupo: c.grupo, materia: c.materia, n: 1, grupoId: c.grupoId }); }
+
+  // Periodos de los turnos del ciclo, para SE por periodo.
+  const turnos = await ctx.s.turnos.listar(ciclo.id);
+  const periodos: OpcionPeriodo[] = [];
+  for (const t of turnos) {
+    const r = await ctx.s.horario.resumen(t.jornada.id);
+    for (const b of r.bloques.filter((x) => x.tipo === 'periodo')) {
+      periodos.push({ valor: b.id, texto: `${turnos.length > 1 ? `${t.turno.nombre} · ` : ''}${b.nombre} (${b.horaInicio}–${b.horaFin})`, horaInicio: b.horaInicio, horaFin: b.horaFin, dias: t.jornada.dias });
+    }
+  }
+  const diasTrabajo = [...new Set(dias.filter((d) => d.segmentos.some((s) => s.tipo !== 'sin_actividad' && s.tipo !== 'receso')).map((d) => d.nombre))];
 
   // --- Actividades
   const cont = h('div', {});
-  const panel = desplegable('Registrar hora de servicio u otra actividad', false, cont);
-  const alta = () => cont.replaceChildren(formularioActividad(ctx, ciclo, p, null, alta));
+  const panel = desplegable('Registrar horas de servicio (SE) u otra actividad', false, cont);
+  const alta = () => cont.replaceChildren(formularioActividad(ctx, ciclo, p, periodos, null, alta));
   alta();
   const listaActividades = actividades.length
     ? h('ul', { class: 'renglones' }, ...actividades.map((a) => h('li', { class: 'renglon renglon--bloque' },
@@ -71,7 +113,7 @@ export async function paginaDocente(ctx: ContextoPagina, personalId: string): Pr
                 a.tipo === 'servicio' ? botonAccion('Confirmar', async () => {
                   if (await ejecutar(async () => { await ctx.s.actividades.confirmar(a.id); return 'Hora de servicio confirmada.'; })) await ctx.recargar();
                 }, 'principal', `Confirmar ${a.descripcion}`) : null,
-                botonAccion('Editar', () => { cont.replaceChildren(formularioActividad(ctx, ciclo, p, a, alta)); panel.open = true; cont.querySelector('select')?.focus(); }, 'secundario', `Editar ${a.descripcion}`),
+                botonAccion('Editar', () => { cont.replaceChildren(formularioActividad(ctx, ciclo, p, periodos, a, alta)); panel.open = true; cont.querySelector('select')?.focus(); }, 'secundario', `Editar ${a.descripcion}`),
                 botonAccion('Eliminar', async () => {
                   if (await confirmar({ titulo: `¿Eliminar «${a.descripcion}»?`, mensaje: 'Ese tiempo quedará como «sin actividad registrada».', textoConfirmar: 'Eliminar', peligro: true })
                     && await ejecutar(async () => { await ctx.s.actividades.eliminar(a.id); return 'Actividad eliminada.'; })) await ctx.recargar();
@@ -103,6 +145,27 @@ export async function paginaDocente(ctx: ContextoPagina, personalId: string): Pr
   return {
     titulo: nombre,
     contenido: h('div', { class: 'pagina' }, ...base,
+      seccion('resumen-docente', 'Resumen del horario',
+        h('dl', { class: 'datos', id: 'datos-docente' },
+          h('dt', {}, 'Docente'), h('dd', {}, nombre),
+          h('dt', {}, 'Escuela'), h('dd', {}, `${escuela.nombre}${escuela.cct ? ` (${escuela.cct})` : ''}`),
+          h('dt', {}, 'Ciclo'), h('dd', {}, ciclo.nombre),
+          h('dt', {}, 'Turnos'), h('dd', {}, reporte?.turnos.join(', ') || 'Sin clases registradas'),
+          h('dt', {}, 'Días'), h('dd', {}, diasTrabajo.join(', ') || 'Ninguno'),
+          h('dt', {}, 'Periodos de clase'), h('dd', {}, String(reporte?.horasClase ?? 0)),
+          h('dt', {}, 'Grupos'), h('dd', {}, reporte?.grupos.join(', ') || 'Ninguno'),
+          h('dt', {}, 'Materias'), h('dd', {}, reporte?.materias.join(', ') || 'Ninguna'),
+          h('dt', {}, 'Horas SE'), h('dd', {}, `${reporte?.seConfirmadas ?? 0} confirmada(s)${reporte?.sePorConfirmar ? `, ${reporte.sePorConfirmar} por confirmar` : ''}`),
+          h('dt', {}, 'Otras actividades'), h('dd', {}, String(reporte?.otrasActividades ?? 0)),
+        ),
+        porGrupoMateria.size ? h('ul', { class: 'renglones', 'aria-label': 'Clases por grupo y materia' }, ...[...porGrupoMateria.values()].sort((a, b) => a.grupo.localeCompare(b.grupo, 'es', { numeric: true })).map((x) =>
+          h('li', { class: 'renglon' }, h('span', { class: 'renglon__texto' }, h('a', { href: `#/grupo/${x.grupoId}` }, x.grupo), ` ${x.materia}`), h('strong', {}, `${x.n} h/sem`)))) : null,
+        conflictos.length ? h('div', { class: 'mensaje mensaje--error', role: 'alert', id: 'conflictos-docente' },
+          h('p', {}, icono('⚠'), ` ${conflictos.length} conflicto(s) pendiente(s):`), h('ul', {}, ...conflictos.map((c) => h('li', {}, c.mensaje)))) : null,
+        h('div', { class: 'acciones acciones--izq no-imprimir' },
+          h('button', { type: 'button', class: 'boton boton--secundario', onclick: () => window.print() }, 'Imprimir horario'),
+          h('a', { class: 'boton boton--secundario', href: `#/ciclo/${ciclo.id}/horarios` }, 'Todos los horarios del ciclo')),
+      ),
       seccion('semana-docente', `Horario en el ciclo ${ciclo.nombre}`,
         h('dl', { class: 'totales totales--5' },
           h('div', {}, h('dt', {}, '● Clase'), h('dd', {}, formatoDuracion(totales.clase))),
@@ -114,7 +177,8 @@ export async function paginaDocente(ctx: ContextoPagina, personalId: string): Pr
         minutosTotales || dias.length ? columnasSemanaDocente(dias) : vacio(p.funciones.includes('docente') ? 'Sin clases ni actividades. Las clases se programan desde la pantalla de cada grupo.' : 'Esta persona no tiene clases ni actividades registradas.'),
         dias.length ? leyenda() : null,
       ),
-      seccion('actividades', 'Horas de servicio y otras actividades', listaActividades, editable ? panel : null),
+      seccion('actividades', 'Horas de servicio (SE) y otras actividades', listaActividades, editable ? panel : null,
+        h('p', { class: 'ayuda' }, icono('ℹ'), ' Las horas SE se registran explícitamente; un periodo vacío nunca cuenta como servicio.')),
       p.funciones.includes('docente') ? seccion('excepciones', 'Casos especiales',
         excepciones.length
           ? h('ul', { class: 'renglones' }, ...excepciones.map((e) => h('li', { class: 'renglon' },

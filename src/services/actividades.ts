@@ -1,4 +1,4 @@
-import type { Actividad, DiaSemana, Excepcion } from '../models';
+import type { Actividad, DiaSemana, Excepcion, OrigenHorario } from '../models';
 import {
   esquemaActividadDocente, esquemaDescripcion, esquemaExcepcion, esquemaMotivo, validar,
   type EntradaActividadDocente, type EntradaExcepcion,
@@ -23,19 +23,27 @@ export class ServicioActividades {
       .sort((a, b) => a.dia - b.dia || a.horaInicio.localeCompare(b.horaInicio));
   }
 
-  async crearDocente(cicloId: string, personalId: string, entrada: EntradaActividadDocente): Promise<Actividad> {
+  /**
+   * Hora de servicio (SE) u otra actividad del docente. Con `periodoId`, queda
+   * ligada a ese periodo del turno y toma su horario (si el periodo cambia de hora,
+   * la actividad se ajusta). Con `confirmada`, se registra ya confirmada (queda en bitácora).
+   */
+  async crearDocente(cicloId: string, personalId: string, entrada: EntradaActividadDocente, origen: OrigenHorario = 'manual'): Promise<Actividad> {
     const datos = validar(esquemaActividadDocente, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const ciclo = await cicloEditable(this.ctx, cicloId);
       const p = await requerir(this.ctx.repos.personal.obtener(personalId), 'a la persona');
       if (p.escuelaId !== ciclo.escuelaId || !p.activo) throw new ErrorDominio('VALIDACION', 'La persona no está activa en esta escuela.');
-      const choque = await choqueDocente(this.ctx, cicloId, personalId, datos.dia, datos, { esActividad: true });
-      if (choque) throw new ErrorDominio('TRASLAPE', choque, [{ campo: 'horaInicio', mensaje: choque }]);
+      const horas = await this.horasDelPeriodo(cicloId, datos);
+      const choque = await choqueDocente(this.ctx, cicloId, personalId, datos.dia, horas, { esActividad: true });
+      if (choque) throw new ErrorDominio('TRASLAPE', choque, [{ campo: datos.periodoId ? 'periodoId' : 'horaInicio', mensaje: choque }]);
       const a: Actividad = {
-        ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, personalId, grupoId: null, periodoId: null,
-        ...datos, dia: datos.dia as DiaSemana, confirmada: false, confirmadaEn: null,
+        ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, personalId, grupoId: null,
+        tipo: datos.tipo, descripcion: datos.descripcion, periodoId: datos.periodoId, ...horas, dia: datos.dia as DiaSemana,
+        confirmada: datos.confirmada, confirmadaEn: datos.confirmada ? this.ctx.reloj() : null, origen,
       };
       await this.ctx.repos.actividades.insertar(a);
+      if (a.confirmada) await this.registrar(a, 'confirmar', null);
       return a;
     });
   }
@@ -44,12 +52,32 @@ export class ServicioActividades {
     const datos = validar(esquemaActividadDocente, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtenerEditable(id);
-      const choque = await choqueDocente(this.ctx, actual.cicloEscolarId, actual.personalId!, datos.dia, datos, { esActividad: true, excluirActividades: new Set([id]) });
-      if (choque) throw new ErrorDominio('TRASLAPE', choque, [{ campo: 'horaInicio', mensaje: choque }]);
-      const a: Actividad = { ...actual, ...datos, dia: datos.dia as DiaSemana, ...metadatosActualizados(this.ctx, actual) };
+      const horas = await this.horasDelPeriodo(actual.cicloEscolarId, datos);
+      const choque = await choqueDocente(this.ctx, actual.cicloEscolarId, actual.personalId!, datos.dia, horas, { esActividad: true, excluirActividades: new Set([id]) });
+      if (choque) throw new ErrorDominio('TRASLAPE', choque, [{ campo: datos.periodoId ? 'periodoId' : 'horaInicio', mensaje: choque }]);
+      const a: Actividad = {
+        ...actual, tipo: datos.tipo, descripcion: datos.descripcion, periodoId: datos.periodoId, ...horas, dia: datos.dia as DiaSemana,
+        confirmada: datos.confirmada, confirmadaEn: datos.confirmada ? this.ctx.reloj() : null, ...metadatosActualizados(this.ctx, actual),
+      };
       await this.ctx.repos.actividades.actualizar(a);
+      if (a.confirmada) await this.registrar(a, 'confirmar', null);
       return a;
     });
+  }
+
+  /** Horario efectivo: el del periodo (debe ser de un turno del ciclo con ese día laborable) o el escrito. */
+  private async horasDelPeriodo(cicloId: string, d: { periodoId: string | null; dia: number; horaInicio: string; horaFin: string }) {
+    if (!d.periodoId) return { horaInicio: d.horaInicio, horaFin: d.horaFin };
+    const periodo = await this.ctx.repos.periodos.obtener(d.periodoId);
+    const jornada = periodo ? await this.ctx.repos.jornadas.obtener(periodo.jornadaId) : undefined;
+    if (!periodo || !jornada || periodo.cicloEscolarId !== cicloId) {
+      throw new ErrorDominio('VALIDACION', 'El periodo no existe en este ciclo.', [{ campo: 'periodoId', mensaje: 'El periodo no existe en este ciclo.' }]);
+    }
+    if (!jornada.dias.includes(d.dia as DiaSemana)) {
+      const m = 'Ese día no es laborable en el turno del periodo.';
+      throw new ErrorDominio('VALIDACION', m, [{ campo: 'dia', mensaje: m }]);
+    }
+    return { horaInicio: periodo.horaInicio, horaFin: periodo.horaFin };
   }
 
   async confirmar(id: string): Promise<Actividad> {
@@ -120,7 +148,7 @@ export class ServicioActividades {
       const a: Actividad = {
         ...metadatosNuevos(this.ctx), escuelaId: grupo.escuelaId, cicloEscolarId: grupo.cicloEscolarId, tipo: 'otra',
         personalId: null, grupoId, periodoId, dia: dia as DiaSemana, horaInicio: periodo.horaInicio, horaFin: periodo.horaFin,
-        descripcion: d, confirmada: false, confirmadaEn: null,
+        descripcion: d, confirmada: false, confirmadaEn: null, origen: 'manual',
       };
       await this.ctx.repos.actividades.insertar(a);
       return a;

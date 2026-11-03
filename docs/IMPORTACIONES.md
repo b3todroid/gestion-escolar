@@ -5,7 +5,7 @@ Hay dos importadores independientes:
 | Pantalla | Ruta | Qué importa | Servicio |
 |---|---|---|---|
 | Importar horarios (Fase 3) | `#/ciclo/ID/importar` | Clases del horario | `services/importacion.ts` (todo o nada) |
-| **Importar información** (Fase 2 catálogos) | `#/ciclo/ID/importar-datos` | Alumnos, docentes, personal, materias y grupos | `services/importacionDatos.ts` |
+| **Importar información** | `#/ciclo/ID/importar-datos` | Alumnos, docentes, personal, materias, grupos y **horarios** | `services/importacionDatos.ts`; horarios: `ServicioImportacion.analizarMapeado/aplicarMapeado` |
 
 ## Formatos
 - **.xlsx**: lector propio (`domain/importacion/zip.ts` + `tabla.ts`), sin dependencias. Sólo lee valores; **no ejecuta macros ni fórmulas** (.xlsm/.xls no se aceptan). Libros con varias hojas: se elige la hoja. Los números de fila mostrados son los reales de la hoja.
@@ -35,5 +35,10 @@ Hay dos importadores independientes:
 - **Materias**: tipo por nombre (Materia, Campo formativo, Taller, Tutoría, Actividad especial, Servicio/SE); vacío = Materia.
 - **Grupos**: grado y turno existentes (si hay un solo turno, puede omitirse). No crea grados ni turnos.
 
+- **Horarios** (Fase 3): una fila por clase. Campos: Grado (opcional si el grupo viene como «1A» o «1° A»), Grupo, Turno (sólo si hay ambigüedad), Día, Periodo (número, nombre u hora «07:50» / «07:50-08:40») **o** Hora de inicio, Materia (nombre o abreviatura), Docente (nombre completo o identificador; vacío = pendiente). Sinónimos: «Gpo», «Día de la semana», «Módulo», «Asignatura», «Profesor»… Estados: NUEVA, YA EXISTE (se omite), ERROR, CONFLICTO. **Todo o nada**: con cualquier error o conflicto no se guarda nada (un horario a medias sería engañoso). Nunca reemplaza celdas ocupadas ni toca horarios confirmados. Las clases importadas quedan con `origen: 'importacion'` y la importación en `importaciones` (tipo `horarios`).
+
+## Preparación para PDF (sin OCR)
+`src/domain/importacion/fuentes.ts` define el contrato `ExtractorTabla` (secciones → tabla con celdas, confianza y marca de ambigüedad) y `aTablaSegura()`, que convierte lo extraído a la tabla de texto que usa el análisis: **las celdas ambiguas o con confianza < 0.9 quedan vacías y se informan**, para que la fila termine en ERROR en lugar de adivinar. No hay biblioteca de PDF instalada; la interfaz indica que la importación desde PDF todavía no está disponible.
+
 ## Plantillas
-`public/plantilla-{alumnos,docentes,personal,materias,grupos}.xlsx` (hoja de datos con un ejemplo ficticio + hoja «Instrucciones»). Se generan con `python3 scripts/generar_plantillas_catalogos.py` (openpyxl), que también crea los archivos de prueba de `tests/fixtures/`.
+`public/plantilla-{alumnos,docentes,personal,materias,grupos,horarios}.xlsx` (hoja de datos con un ejemplo ficticio + hoja «Instrucciones»). Se generan con `python3 scripts/generar_plantillas_catalogos.py` (openpyxl), que también crea los archivos de prueba de `tests/fixtures/`.

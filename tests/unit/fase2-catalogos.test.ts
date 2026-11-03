@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { Dexie } from 'dexie';
-import { BaseDatosEscolar } from '../../src/database/db';
+import { BaseDatosEscolar, VERSION_ESQUEMA } from '../../src/database/db';
 import { crearServicios, type Servicios } from '../../src/services';
 import { leerTabla, hojasXlsx, leerCsv } from '../../src/domain/importacion/tabla';
 import { detectarEncabezado, problemasMapeo, sugerirMapeo } from '../../src/domain/importacion/mapeo';
@@ -211,7 +211,7 @@ describe('15–18. Persistencia y separación', () => {
     v5.close();
     const v6 = new BaseDatosEscolar(nombre);
     await v6.open();
-    expect(v6.verno).toBe(6);
+    expect(v6.verno).toBe(VERSION_ESQUEMA); // migra hasta la versión vigente
     expect(await v6.alumnos.get('a1')).toEqual({ ...m, id: 'a1', escuelaId: 'e1', nombre: 'Ana', primerApellido: 'Ficticia', segundoApellido: null, matricula: null, curp: null, observaciones: null });
     const ins = (await v6.inscripciones.toArray()).sort((x, y) => x.alumnoId.localeCompare(y.alumnoId));
     expect(ins.map((i) => [i.alumnoId, i.grupoId, i.gradoId, i.turnoId, i.estado])).toEqual([['a1', 'g1', 'gr1', 't1', 'inscrito'], ['a2', 'g1', 'gr1', 't1', 'baja']]);

@@ -1,5 +1,6 @@
 import type { DiaSemana, Jornada } from '../models';
-import { construirDia, type Segmento } from '../domain/horarioVista';
+import { construirDia, type EstadoValidacion, type Segmento } from '../domain/horarioVista';
+import { ServicioRevisionHorarios } from './revisionHorarios';
 import { compararPorInicio, duracionMinutos, type Intervalo } from '../domain/tiempo';
 import type { Contexto } from './contexto';
 import { requerir } from './contexto';
@@ -37,6 +38,9 @@ export class ServicioVistas {
     const recesos = await this.ctx.repos.recesos.listarPor('jornadaId', jornada.id);
     const sesiones = await this.ctx.repos.sesiones.listarPor('grupoId', grupoId);
     const actividades = await this.ctx.repos.actividades.listarPor('grupoId', grupoId);
+    const confirmado = (await this.ctx.repos.confirmaciones.listarPor('grupoId', grupoId)).length > 0;
+    const enConflicto = await new ServicioRevisionHorarios(this.ctx).idsEnConflicto(grupo.cicloEscolarId);
+    const estado = (id: string) => (enConflicto.has(id) ? 'conflicto' : confirmado ? 'confirmado' : 'registrado') as EstadoValidacion;
     const r: DiaVista[] = [];
     for (const d of DIAS_SEMANA.filter((x) => jornada.dias.includes(x.valor))) {
       const ocupados: Segmento[] = [];
@@ -47,9 +51,9 @@ export class ServicioVistas {
           const asig = await this.ctx.repos.asignaciones.obtener(s.asignacionId);
           const materia = asig ? await this.ctx.repos.materias.obtener(asig.materiaId) : undefined;
           const docente = s.personalId ? await this.ctx.repos.personal.obtener(s.personalId) : undefined;
-          ocupados.push({ tipo: 'clase', titulo: materia?.nombre ?? 'Clase', detalle: docente ? `${docente.nombre} ${docente.primerApellido}` : 'Docente pendiente', horaInicio: p.horaInicio, horaFin: p.horaFin, id: s.id, enlaceDetalle: docente ? `#/personal/${docente.id}` : undefined });
+          ocupados.push({ tipo: 'clase', titulo: materia?.nombre ?? 'Clase', detalle: docente ? `${docente.nombre} ${docente.primerApellido}` : 'Docente pendiente', horaInicio: p.horaInicio, horaFin: p.horaFin, id: s.id, enlaceDetalle: docente ? `#/personal/${docente.id}` : undefined, estado: estado(s.id), origen: s.origen ?? null });
         } else if (a) {
-          ocupados.push({ tipo: 'otra', titulo: a.descripcion, horaInicio: p.horaInicio, horaFin: p.horaFin, id: a.id });
+          ocupados.push({ tipo: 'otra', titulo: a.descripcion, horaInicio: p.horaInicio, horaFin: p.horaFin, id: a.id, estado: estado(a.id), origen: a.origen ?? null });
         } else {
           ocupados.push({ tipo: 'sin_actividad', titulo: 'Sin actividad registrada', horaInicio: p.horaInicio, horaFin: p.horaFin });
         }
@@ -62,6 +66,8 @@ export class ServicioVistas {
   async semanaDocente(personalId: string, cicloId: string): Promise<{ dias: DiaVista[]; totales: TotalesDocente }> {
     const sesiones = (await this.ctx.repos.sesiones.listarPor('personalId', personalId)).filter((s) => s.cicloEscolarId === cicloId);
     const actividades = (await this.ctx.repos.actividades.listarPor('personalId', personalId)).filter((a) => a.cicloEscolarId === cicloId);
+    const enConflicto = await new ServicioRevisionHorarios(this.ctx).idsEnConflicto(cicloId);
+    const confirmados = new Set((await this.ctx.repos.confirmaciones.listarPor('cicloEscolarId', cicloId)).map((c) => c.grupoId));
 
     // Jornadas de los turnos donde da clases: definen su rango de trabajo y sus recesos.
     const jornadas = new Map<string, Jornada>();
@@ -76,7 +82,7 @@ export class ServicioVistas {
       }
       const asig = await this.ctx.repos.asignaciones.obtener(s.asignacionId);
       const materia = asig ? await this.ctx.repos.materias.obtener(asig.materiaId) : undefined;
-      clases.push({ tipo: 'clase', titulo: `${await this.nombreGrupo(s.grupoId)} ${materia?.nombre ?? ''}`.trim(), horaInicio: p.horaInicio, horaFin: p.horaFin, dia: s.dia, jornadaId: p.jornadaId, enlace: `#/grupo/${s.grupoId}`, id: s.id });
+      clases.push({ tipo: 'clase', titulo: `${await this.nombreGrupo(s.grupoId)} ${materia?.nombre ?? ''}`.trim(), horaInicio: p.horaInicio, horaFin: p.horaFin, dia: s.dia, jornadaId: p.jornadaId, enlace: `#/grupo/${s.grupoId}`, id: s.id, estado: enConflicto.has(s.id) ? 'conflicto' : confirmados.has(s.grupoId) ? 'confirmado' : 'registrado', origen: s.origen ?? null });
     }
     // Marca clases simultáneas (sólo posibles con caso especial).
     for (const c of clases) c.simultanea = clases.some((o) => o !== c && o.dia === c.dia && o.horaInicio < c.horaFin && c.horaInicio < o.horaFin);
@@ -93,7 +99,8 @@ export class ServicioVistas {
         ...clases.filter((c) => c.dia === d.valor),
         ...actividades.filter((a) => a.dia === d.valor).map((a): Segmento => ({
           tipo: a.tipo === 'servicio' ? 'servicio' : 'otra', titulo: a.descripcion, horaInicio: a.horaInicio, horaFin: a.horaFin,
-          confirmada: a.confirmada, id: a.id,
+          confirmada: a.confirmada, id: a.id, origen: a.origen ?? null,
+          estado: enConflicto.has(a.id) ? 'conflicto' : a.confirmada ? 'confirmado' : 'registrado',
         })),
       ];
       const recesos = delDia.flatMap((j) => recesosPorJornada.get(j.id) ?? []);

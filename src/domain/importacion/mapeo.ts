@@ -5,7 +5,7 @@
  */
 import { normalizarTexto } from '../texto';
 
-export const TIPOS_IMPORTACION = ['alumnos', 'docentes', 'personal', 'materias', 'grupos'] as const;
+export const TIPOS_IMPORTACION = ['alumnos', 'docentes', 'personal', 'materias', 'grupos', 'horarios'] as const;
 export type TipoImportacion = (typeof TIPOS_IMPORTACION)[number];
 
 export interface CampoImportable {
@@ -58,6 +58,16 @@ export const CAMPOS: Record<TipoImportacion, CampoImportable[]> = {
     { clave: 'turno', etiqueta: 'Turno', alias: ['turno'] },
     { clave: 'capacidad', etiqueta: 'Capacidad', alias: ['capacidad', 'cupo', 'lugares'] },
   ],
+  horarios: [
+    { clave: 'grado', etiqueta: 'Grado', alias: ['grado', 'gr', 'gdo'] },
+    { clave: 'grupo', etiqueta: 'Grupo (o «1A», «1° A»)', obligatorio: true, alias: ['grupo', 'gpo', 'grp', 'seccion', 'sección', 'grado y grupo', 'salon', 'salón'] },
+    { clave: 'turno', etiqueta: 'Turno', alias: ['turno'] },
+    { clave: 'dia', etiqueta: 'Día', obligatorio: true, alias: ['dia', 'día', 'dias', 'días', 'dia de la semana'] },
+    { clave: 'periodo', etiqueta: 'Periodo (número o nombre)', alias: ['periodo', 'período', 'modulo', 'módulo', 'no periodo', 'num periodo', 'numero de periodo', 'sesion', 'sesión', 'clase'] },
+    { clave: 'inicio', etiqueta: 'Hora de inicio', alias: ['inicio', 'hora', 'hora inicio', 'hora de inicio', 'entrada', 'horario'] },
+    { clave: 'materia', etiqueta: 'Materia', obligatorio: true, alias: ['materia', 'asignatura', 'disciplina'] },
+    { clave: 'docente', etiqueta: 'Docente (nombre completo o identificador)', alias: ['docente', 'profesor', 'profesora', 'maestro', 'maestra', 'titular', 'numero de empleado', 'número de empleado', 'identificador'] },
+  ],
 };
 
 /** Mapeo: índice de columna → clave de campo (o null para ignorarla). */
@@ -105,6 +115,7 @@ export function problemasMapeo(mapeo: Mapeo, tipo: TipoImportacion): string[] {
   const repetidos = usados.filter((x, i) => usados.indexOf(x) !== i);
   for (const r of new Set(repetidos)) p.push(`«${CAMPOS[tipo].find((c) => c.clave === r)?.etiqueta}» está asignado a más de una columna.`);
   for (const c of CAMPOS[tipo].filter((x) => x.obligatorio)) if (!usados.includes(c.clave)) p.push(`Asigna una columna a «${c.etiqueta}».`);
+  if (tipo === 'horarios' && !usados.includes('periodo') && !usados.includes('inicio')) p.push('Asigna una columna a «Periodo» o a «Hora de inicio».');
   if (tipo === 'alumnos' || tipo === 'docentes' || tipo === 'personal') {
     const separado = usados.includes('nombre') && usados.includes('primerApellido');
     if (!separado && !usados.includes('nombreCompleto')) p.push('Asigna columnas a «Nombre(s)» y «Primer apellido», o a «Nombre completo».');

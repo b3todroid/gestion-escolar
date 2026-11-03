@@ -17,7 +17,7 @@ import type {
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 6;
+export const VERSION_ESQUEMA = 7;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -139,7 +139,16 @@ export class BaseDatosEscolar extends Dexie {
       });
     });
 
-    // Para fases futuras: agregar this.version(7) (con .upgrade() si hay que transformar
+    // v7 (Fase 3 · horarios): origen de cada clase y actividad (manual / importación).
+    // Sin cambios de índices. Los registros anteriores quedan con origen null
+    // («registro anterior»): no se inventa un origen que no se guardó.
+    this.version(7).stores({}).upgrade(async (tx) => {
+      for (const t of ['sesiones', 'actividades']) {
+        await tx.table(t).toCollection().modify((r: Record<string, unknown>) => { if (r['origen'] === undefined) r['origen'] = null; });
+      }
+    });
+
+    // Para fases futuras: agregar this.version(8) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

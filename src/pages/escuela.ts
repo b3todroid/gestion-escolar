@@ -95,6 +95,7 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
       turnos.length === 1 ? h('a', { class: 'boton', href: `#/turno/${turnos[0]!.turno.id}` }, 'Administrar periodos')
         : ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}` }, 'Administrar periodos') : null,
       ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}` }, 'Administrar grupos') : null,
+      ciclo ? h('a', { class: 'boton', href: `#/ciclo/${ciclo.id}/horarios` }, 'Horarios') : null,
     ),
   );
   // ---------- Resumen de catálogos (conteos reales del ciclo vigente) ----------

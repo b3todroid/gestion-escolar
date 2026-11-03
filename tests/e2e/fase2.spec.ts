@@ -100,8 +100,10 @@ test('asigna materias y arma el horario sin choques de docentes; todo persiste',
   await expect(page.locator('.semana-docente__dia', { hasText: 'Lunes' })).toContainText('1° B');
 
   // Dejar libre
-  await page.getByRole('link', { name: '1° A' }).click();
+  await page.getByRole('link', { name: '1° A', exact: true }).first().click();
   await page.getByRole('button', { name: 'Cambiar Lunes 07:00' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Dejar libre' }).click();
+  await expect(page.getByRole('dialog')).toContainText('¿Dejar libre este periodo?'); // pide confirmación
   await page.getByRole('dialog').getByRole('button', { name: 'Dejar libre' }).click();
   await expect(page.locator('[data-periodo]').first()).toContainText('SIN ACTIVIDAD REGISTRADA');
 });

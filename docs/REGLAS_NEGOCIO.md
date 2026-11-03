@@ -109,7 +109,10 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Cuando hay varios choques, se informa el más temprano.
 
 ## Horas de servicio
-- Se registran explícitamente (día, inicio, fin, descripción). Se confirman con «Confirmar».
+- Se registran explícitamente (día, periodo o inicio/fin, descripción). Pertenecen a un docente y no requieren grupo.
+- **Por omisión se registran confirmadas** (casilla «Registrar como confirmada»; queda en bitácora). Se pueden registrar por confirmar y confirmar después con «Confirmar».
+- Ligadas a un periodo: toman su horario; si el periodo cambia de hora, la SE se ajusta (y se valida que no choque). No se elimina un periodo con SE u otras actividades.
+- Datos listos para consultas futuras de Prefectura: docente, día, periodo, horario, confirmada y fecha de confirmación.
 - Confirmadas: no se editan ni eliminan; primero hay que quitar la confirmación con motivo (≥ 5 caracteres), que queda en la bitácora.
 
 ## Horarios confirmados
@@ -126,6 +129,17 @@ Implementación: reglas puras en `src/domain/reglas.ts` y `src/domain/tiempo.ts`
 - Antes de guardar se muestran los ajustes (materias que se asignarán, horas que aumentarán).
 - **Todo o nada**: si hay cualquier error o conflicto no se guarda nada; al aplicar se vuelve a validar dentro de la transacción.
 - Límites: 5 MB, 3 000 filas, 20 MB descomprimido; sólo la primera hoja; .xls (97-2003) no compatible.
+- Desde «Importar información» (tipo Horarios): encabezados equivalentes y mapeo editable; el grupo puede venir como «1A»/«1° A»; el periodo por número («3», «3°», «Periodo 3»), nombre u hora de inicio. Si periodo y hora no coinciden, ERROR (no se adivina). Se registra el origen (archivo, hoja, huella) y se avisa al reimportar el mismo archivo.
+
+## Módulo Horarios (Fase 3 · 2026-11)
+- Selección escuela → ciclo → turno → grupo o docente (`#/horarios`, `#/ciclo/ID/horarios`). Una edición sólo afecta a su escuela y ciclo.
+- **Una sola fuente**: los horarios por grupo y por docente se derivan de las mismas asignaciones, clases y actividades. La única copia desnormalizada (`sesiones.personalId`) se actualiza en la misma transacción al cambiar el docente; si alguna vez no coincide, la revisión lo informa como «dato inconsistente».
+- **Estado de validación** de cada bloque (derivado, no guardado): Confirmado (horario de grupo confirmado o SE confirmada), Sin confirmar, Con conflicto.
+- **Origen** de cada clase y actividad: manual, importación, o «registro anterior» (null) para lo capturado antes del esquema 7.
+- Dejar libre un periodo y reemplazar una clase piden confirmación.
+- **Conflictos pendientes** (revisión de sólo lectura, nunca corrige por su cuenta): docente en dos lugares a la vez; incompatibilidad entre turnos (choque en hora real entre turnos o periodo de otro turno); grupo con dos cosas en el mismo periodo; periodo, materia o docente inexistente (o docente dado de baja / sin función docente); fuera de jornada (día no laborable u horario fuera de la jornada); asignación duplicada o con más clases que horas asignadas; dato inconsistente. La captura y la importación impiden crearlos; la revisión cubre datos anteriores o restaurados.
+- Reportes: horas asignadas y en el horario por grupo, periodos sin información, horas por docente (clases, grupos, materias), SE confirmadas y por confirmar, conflictos. Vistas imprimibles (`@media print`).
+- Importación PDF: sólo preparada (`domain/importacion/fuentes.ts`); lo ambiguo o poco confiable se deja vacío y produce error, nunca una suposición.
 
 # Fase 4
 

@@ -7,6 +7,7 @@ import { choqueDocente, hayExcepcion } from './conflictos';
 import { ServicioAsignaciones } from './asignaciones';
 import { DIAS_SEMANA } from './turnos';
 import { nombreCompleto } from './personal';
+import { problemasMapeo, valor, type Mapeo } from '../domain/importacion/mapeo';
 
 export type EstadoFila = 'nueva' | 'existente' | 'error' | 'conflicto';
 
@@ -19,6 +20,7 @@ export interface ResultadoFila {
 }
 
 export interface Analisis {
+  advertencias: string[];
   filas: ResultadoFila[];
   nuevas: number;
   existentes: number;
@@ -38,6 +40,30 @@ const COLUMNAS = {
   docente: ['docente', 'profesor', 'profesora', 'maestro', 'maestra'],
 } as const;
 const OBLIGATORIAS = ['grado', 'grupo', 'dia', 'inicio', 'materia'] as const;
+
+interface ValoresFila { grado: string; grupo: string; turno: string; dia: string; inicio: string; periodo: string; materia: string; docente: string }
+
+/**
+ * Periodo por número («3», «3°», «Periodo 3», «3a hora»), por nombre exacto, o por
+ * hora («07:50» o «07:50-08:40»). Devuelve un mensaje si no hay uno solo que coincida.
+ */
+export function resolverPeriodo(texto: string, propios: Periodo[]): Periodo | string {
+  const t = normalizarTexto(texto);
+  const porNombre = propios.filter((p) => normalizarTexto(p.nombre) === t);
+  if (porNombre.length === 1) return porNombre[0]!;
+  const hora = /^(\d{1,2}:\d{2})(?:\s*(?:-|–|a)\s*\d{1,2}:\d{2})?$/.exec(texto.trim());
+  if (hora) {
+    const h = normalizarHora(hora[1]!);
+    const p = propios.find((x) => x.horaInicio === h);
+    return p ?? `El turno no tiene un periodo que inicie a las ${h ?? hora[1]}. Inicios válidos: ${propios.map((x) => x.horaInicio).join(', ') || 'ninguno'}.`;
+  }
+  const num = /^(?:periodo|modulo|hora|sesion)?\s*(\d{1,2})\s*(?:°|º|o|a|er|do|ro|to|vo|no)?\s*(?:periodo|modulo|hora)?$/.exec(t);
+  if (num) {
+    const n = Number(num[1]);
+    return propios[n - 1] ?? `El turno tiene ${propios.length} periodo(s); no existe el periodo ${n}.`;
+  }
+  return `No se reconoce el periodo «${texto}». Usa el número de periodo (1, 2, 3…), su nombre o la hora de inicio.`;
+}
 
 function normalizarHora(v: string): string | null {
   const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(v.trim());
@@ -78,7 +104,32 @@ export class ServicioImportacion {
       throw new ErrorDominio('VALIDACION', `Faltan columnas en el encabezado: ${faltan.map((c) => `«${c === 'dia' ? 'Día' : c.charAt(0).toUpperCase() + c.slice(1)}»`).join(', ')}. Usa la plantilla.`);
     }
     const celda = (f: string[], c: keyof typeof COLUMNAS) => (pos[c] === undefined ? '' : (f[pos[c]!] ?? '').trim());
+    const entradas = cuerpo.map((f, i) => ({ fila: i + 2, v: { grado: celda(f, 'grado'), grupo: celda(f, 'grupo'), turno: celda(f, 'turno'), dia: celda(f, 'dia'), inicio: celda(f, 'inicio'), periodo: '', materia: celda(f, 'materia'), docente: celda(f, 'docente') } }));
+    return this.analizarValores(ciclo.id, ciclo.escuelaId, entradas, false);
+  }
 
+  /**
+   * Análisis desde el centro «Importar información»: columnas según el mapeo
+   * elegido por la persona (encabezados equivalentes). El periodo puede venir
+   * como número de periodo, nombre del periodo u hora de inicio.
+   */
+  async analizarMapeado(cicloId: string, cuerpo: string[][], mapeo: Mapeo, primeraFila = 2, huella: string | null = null): Promise<Analisis> {
+    const ciclo = await cicloEditable(this.ctx, cicloId);
+    const p = problemasMapeo(mapeo, 'horarios');
+    if (p.length) throw new ErrorDominio('VALIDACION', p[0]!);
+    const entradas = cuerpo.map((f, i) => ({ fila: primeraFila + i, f })).filter(({ f }) => f.some((c) => c.trim() !== ''))
+      .map(({ fila, f }) => ({ fila, v: { grado: valor(f, mapeo, 'grado'), grupo: valor(f, mapeo, 'grupo'), turno: valor(f, mapeo, 'turno'), dia: valor(f, mapeo, 'dia'), inicio: valor(f, mapeo, 'inicio'), periodo: valor(f, mapeo, 'periodo'), materia: valor(f, mapeo, 'materia'), docente: valor(f, mapeo, 'docente') } }));
+    if (!entradas.length) throw new ErrorDominio('VALIDACION', 'No hay filas de horario debajo de los encabezados.');
+    if (entradas.length > 3000) throw new ErrorDominio('VALIDACION', 'El archivo tiene más de 3000 filas. Divídelo en varios archivos.');
+    const a = await this.analizarValores(ciclo.id, ciclo.escuelaId, entradas, true);
+    if (huella) {
+      const previa = (await this.ctx.repos.importaciones.listarPor('escuelaId', ciclo.escuelaId)).find((r) => r.huella === huella);
+      if (previa) a.advertencias.push(`Este mismo archivo ya se importó el ${new Date(previa.creadoEn).toLocaleString('es-MX')} (${previa.resultado.nuevos} clase(s)). Revisa antes de importarlo otra vez.`);
+    }
+    return a;
+  }
+
+  private async analizarValores(cicloId: string, escuelaId: string, entradas: { fila: number; v: ValoresFila }[], flexible: boolean): Promise<Analisis> {
     // --- Contexto del ciclo (lectura única) ---
     const r = this.ctx.repos;
     const grados = await r.grados.listarPor('cicloEscolarId', cicloId);
@@ -87,25 +138,27 @@ export class ServicioImportacion {
     const jornadas = await r.jornadas.listarPor('cicloEscolarId', cicloId);
     const periodos = await r.periodos.listarPor('cicloEscolarId', cicloId);
     const materias = await r.materias.listarPor('cicloEscolarId', cicloId);
-    const personal = (await r.personal.listarPor('escuelaId', ciclo.escuelaId)).filter((p) => p.activo && p.funciones.includes('docente'));
+    const personal = (await r.personal.listarPor('escuelaId', escuelaId)).filter((p) => p.activo && p.funciones.includes('docente'));
     const asignaciones = await r.asignaciones.listarPor('cicloEscolarId', cicloId);
     const sesiones = await r.sesiones.listarPor('cicloEscolarId', cicloId);
     const actividades = await r.actividades.listarPor('cicloEscolarId', cicloId);
     const confirmados = new Set((await r.confirmaciones.listarPor('cicloEscolarId', cicloId)).map((c) => c.grupoId));
     const nombreGrupo = (id: string) => { const g = grupos.find((x) => x.id === id); const gr = grados.find((x) => x.id === g?.gradoId); return `${gr?.numero ?? ''}° ${g?.nombre ?? ''}`; };
 
-    const filas: ResultadoFila[] = cuerpo.map((f, i) => {
-      const fila = i + 2;
-      const v = { grado: celda(f, 'grado'), grupo: celda(f, 'grupo'), turno: celda(f, 'turno'), dia: celda(f, 'dia'), inicio: celda(f, 'inicio'), materia: celda(f, 'materia'), docente: celda(f, 'docente') };
-      const resumen = [`${v.grado}° ${v.grupo}`.trim(), v.turno, v.dia, v.inicio, v.materia, v.docente || 'sin docente'].filter(Boolean).join(', ');
+    const filas: ResultadoFila[] = entradas.map(({ fila, v: original }) => {
+      const v = { ...original };
+      // «1A», «1° A», «1-A» en la columna de grupo cuando no hay columna de grado.
+      if (flexible && !v.grado) { const m = /^(\d{1,2})\s*[°º]?\s*-?\s*([A-Za-zÑñ]{1,3})$/.exec(v.grupo); if (m) { v.grado = m[1]!; v.grupo = m[2]!; } }
+      const resumen = [`${v.grado}${v.grado ? '° ' : ''}${v.grupo}`.trim(), v.turno, v.dia, v.periodo ? `periodo ${v.periodo}` : v.inicio, v.materia, v.docente || 'sin docente'].filter(Boolean).join(', ');
       const mensajes: string[] = [];
-      for (const c of OBLIGATORIAS) if (!v[c]) mensajes.push(`Falta «${c === 'dia' ? 'Día' : c}».`);
+      for (const c of OBLIGATORIAS) if (c !== 'inicio' && !v[c]) mensajes.push(`Falta «${{ grado: 'Grado', grupo: 'Grupo', dia: 'Día', materia: 'Materia' }[c]}».`);
+      if (!v.inicio && !v.periodo) mensajes.push(flexible ? 'Falta el periodo (número, nombre u hora de inicio).' : 'Falta «Inicio».');
       if (mensajes.length) return { fila, resumen, estado: 'error', mensajes };
 
       const dia = normalizarDia(v.dia);
       if (!dia) mensajes.push(`«${v.dia}» no es un día válido (Lunes a Domingo).`);
-      const hora = normalizarHora(v.inicio);
-      if (!hora) mensajes.push(`«${v.inicio}» no es una hora válida (HH:MM).`);
+      const hora = v.inicio ? normalizarHora(v.inicio) : null;
+      if (v.inicio && !hora) mensajes.push(`«${v.inicio}» no es una hora válida (HH:MM).`);
 
       const grado = grados.find((g) => String(g.numero) === v.grado.replace(/[°º]/g, '').trim());
       let candidatos = grado ? grupos.filter((g) => g.gradoId === grado.id && normalizarTexto(g.nombre) === normalizarTexto(v.grupo)) : [];
@@ -128,12 +181,21 @@ export class ServicioImportacion {
       }
 
       let periodo: Periodo | undefined;
-      if (grupo && dia && hora) {
+      if (grupo && dia && (hora || v.periodo)) {
         const jornada = jornadas.find((j) => j.turnoId === grupo.turnoId);
-        if (jornada && !jornada.dias.includes(dia)) mensajes.push(`El ${DIAS_SEMANA.find((d) => d.valor === dia)?.nombre.toLowerCase()} no es laborable en el turno del grupo.`);
+        if (jornada && !jornada.dias.includes(dia)) mensajes.push(`El ${DIAS_SEMANA.find((d) => d.valor === dia)?.nombre.toLowerCase()} no es laborable en el turno del grupo (fuera de jornada).`);
         const propios = periodos.filter((p) => p.jornadaId === jornada?.id).sort(compararPorInicio);
-        periodo = propios.find((p) => p.horaInicio === hora);
-        if (!periodo) mensajes.push(`El turno no tiene un periodo que inicie a las ${hora}. Inicios válidos: ${propios.map((p) => p.horaInicio).join(', ') || 'ninguno'}.`);
+        if (hora) {
+          periodo = propios.find((p) => p.horaInicio === hora);
+          if (!periodo) mensajes.push(`El turno no tiene un periodo que inicie a las ${hora}. Inicios válidos: ${propios.map((p) => p.horaInicio).join(', ') || 'ninguno'}.`);
+        } else {
+          const r = resolverPeriodo(v.periodo, propios);
+          if (typeof r === 'string') mensajes.push(r); else periodo = r;
+        }
+        if (hora && v.periodo && periodo) {
+          const otro = resolverPeriodo(v.periodo, propios);
+          if (typeof otro !== 'string' && otro.id !== periodo.id) { mensajes.push(`El periodo «${v.periodo}» no coincide con la hora de inicio ${hora}. No se adivina cuál es el correcto.`); periodo = undefined; }
+        }
       }
       if (mensajes.length || !grupo || !materia || !dia || !periodo) return { fila, resumen, estado: 'error', mensajes };
       return { fila, resumen, estado: 'nueva', mensajes, resuelta: { grupoId: grupo.id, materiaId: materia.id, personalId, dia, periodo } };
@@ -194,13 +256,30 @@ export class ServicioImportacion {
     const errores = cuenta('error');
     const conflictos = cuenta('conflicto');
     const nuevas = cuenta('nueva');
-    return { filas, nuevas, existentes: cuenta('existente'), errores, conflictos, ajustes, puedeImportar: errores === 0 && conflictos === 0 && nuevas > 0 };
+    return { advertencias: [], filas, nuevas, existentes: cuenta('existente'), errores, conflictos, ajustes, puedeImportar: errores === 0 && conflictos === 0 && nuevas > 0 };
   }
 
   /** Vuelve a analizar dentro de la transacción y guarda todo o nada. */
   async aplicar(cicloId: string, tabla: string[][]): Promise<{ clases: number; asignacionesNuevas: number }> {
+    return this.ctx.uow.ejecutar(async () => this.guardar(cicloId, await this.analizar(cicloId, tabla)));
+  }
+
+  /** Igual que aplicar, desde el centro de importación; además registra el origen (archivo, hoja, huella). */
+  async aplicarMapeado(cicloId: string, cuerpo: string[][], mapeo: Mapeo, origen: { archivo: string; hoja: string | null; huella: string | null }, primeraFila = 2): Promise<{ clases: number; asignacionesNuevas: number; existentes: number }> {
     return this.ctx.uow.ejecutar(async () => {
-      const a = await this.analizar(cicloId, tabla);
+      const a = await this.analizarMapeado(cicloId, cuerpo, mapeo, primeraFila);
+      const r = await this.guardar(cicloId, a);
+      const ciclo = await cicloEditable(this.ctx, cicloId);
+      await this.ctx.repos.importaciones.insertar({
+        ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, tipo: 'horarios',
+        archivo: origen.archivo.slice(0, 200), hoja: origen.hoja, huella: origen.huella, resultado: { nuevos: r.clases, actualizados: 0, omitidos: a.existentes },
+      });
+      return { ...r, existentes: a.existentes };
+    });
+  }
+
+  private async guardar(cicloId: string, a: Analisis): Promise<{ clases: number; asignacionesNuevas: number }> {
+    {
       if (!a.puedeImportar) {
         throw new ErrorDominio('VALIDACION', a.nuevas === 0 && a.errores + a.conflictos === 0
           ? 'No hay clases nuevas que importar.'
@@ -224,13 +303,13 @@ export class ServicioImportacion {
           if (necesarias > existente.horasSemana) await this.ctx.repos.asignaciones.actualizar({ ...existente, horasSemana: necesarias, ...metadatosActualizados(this.ctx, existente) });
         }
         // programar() vuelve a validar cada clase (choques, horas, día, periodo).
-        for (const f of lista) await this.asignaciones.programar({ grupoId, asignacionId, dia: f.resuelta!.dia, periodoId: f.resuelta!.periodo.id });
+        for (const f of lista) await this.asignaciones.programar({ grupoId, asignacionId, dia: f.resuelta!.dia, periodoId: f.resuelta!.periodo.id }, 'importacion');
       }
       await this.ctx.repos.bitacora.insertar({
         ...metadatosNuevos(this.ctx), escuelaId: ciclo.escuelaId, cicloEscolarId: cicloId, entidad: 'horario_grupo', entidadId: cicloId,
         accion: 'importar', motivo: null, detalle: `${nuevas.length} clase(s) importadas`,
       });
       return { clases: nuevas.length, asignacionesNuevas };
-    });
+    }
   }
 }

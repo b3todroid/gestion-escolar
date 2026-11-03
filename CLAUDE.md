@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. **Fase 2 — Catálogos e importación inteligente** — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. **Fase 3 — Sistema de horarios** (módulo Horarios, revisión de conflictos, SE por periodo, esquema v7) — completada, pendiente de revisión del usuario. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -40,6 +40,11 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Horarios confirmados (`confirmaciones`): todo cambio pasa por `asegurarHorarioEditable`; reabrir exige motivo (queda en `bitacora`).
 - Importación (`services/importacion.ts`): analizar → aplicar (todo o nada; no crea entidades, no reemplaza celdas, no toca confirmados). Lector .xlsx/.csv propio sin dependencias (`domain/importacion/`). Plantilla y archivos de prueba: `scripts/generar_plantillas.py` (openpyxl).
 - Rutas nuevas: `#/ciclo/ID/importar`.
+- Módulo Horarios (esquema v7): `#/horarios`, `#/ciclo/ID/horarios`, `#/personal/ID/ciclo/ID`. Horarios de grupo y docente se **derivan** de asignaciones/sesiones/actividades: no guardar copias; `sesiones.personalId` se actualiza en la misma transacción que la asignación.
+- `services/revisionHorarios.ts` (conflictos pendientes y reportes) es **sólo lectura**: nunca corrige horarios por su cuenta. Estado de validación (confirmado / sin confirmar / con conflicto) se deriva, no se guarda.
+- `origen` en sesiones y actividades: `manual` | `importacion` | `null` (anterior a v7). `programar(..., origen)` y `crearDocente(..., origen)`.
+- Actividades con `periodoId` toman la hora del periodo; al cambiar un periodo se actualizan en la misma transacción.
+- PDF: sólo el contrato de `domain/importacion/fuentes.ts`; lo ambiguo queda vacío (nunca se adivina).
 
 ## Fase 4 (módulo docente)
 - `#/` muestra **Mi día** si el dispositivo tiene docente elegido (`#/perfil`, tabla `ajustes`); si no, las escuelas (`#/escuelas`). **No es autenticación**: decirlo así en la interfaz.

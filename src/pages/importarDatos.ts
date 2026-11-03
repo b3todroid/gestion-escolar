@@ -7,6 +7,7 @@ import { hojasXlsx, leerTabla } from '../domain/importacion/tabla';
 import { ErrorArchivo } from '../domain/importacion/zip';
 import { CAMPOS, TIPOS_IMPORTACION, detectarEncabezado, problemasMapeo, sugerirMapeo, type Mapeo, type TipoImportacion } from '../domain/importacion/mapeo';
 import { esErrorDominio } from '../domain/errores';
+import type { Analisis, EstadoFila } from '../services/importacion';
 import { ETIQUETA_ESTADO_FILA, type AnalisisDatos, type Decision, type EstadoFilaDatos, type FilaAnalizada } from '../services/importacionDatos';
 import { navCatalogos } from './catalogos';
 
@@ -16,6 +17,11 @@ const TIPO: Record<TipoImportacion, { titulo: string; descripcion: string }> = {
   personal: { titulo: 'Personal', descripcion: 'Cualquier función (prefectura, dirección, orientación…); opcionales identificador y turnos.' },
   materias: { titulo: 'Materias y actividades', descripcion: 'Nombre y tipo (materia, campo formativo, taller, tutoría, actividad especial o servicio).' },
   grupos: { titulo: 'Grupos', descripcion: 'Grado, grupo, turno y capacidad. Los grados y turnos deben existir.' },
+  horarios: { titulo: 'Horarios', descripcion: 'Una fila por clase: grupo, día, periodo (número u hora), materia y docente. No reemplaza clases existentes ni toca horarios confirmados.' },
+};
+
+const ESTADO_HORARIO: Record<EstadoFila, [string, 'ok' | 'aviso' | 'neutro', string]> = {
+  nueva: ['NUEVA', 'ok', '＋'], existente: ['YA EXISTE (SE OMITE)', 'neutro', '='], error: ['ERROR', 'aviso', '⚠'], conflicto: ['CONFLICTO', 'aviso', '✕'],
 };
 
 const VARIANTE: Record<EstadoFilaDatos, ['ok' | 'aviso' | 'neutro', string]> = {
@@ -45,6 +51,7 @@ interface Estado {
   encabezado: number; // índice (0 = primera fila)
   mapeo: Mapeo;
   analisis: AnalisisDatos | null;
+  analisisHorario: Analisis | null;
   decisiones: Record<number, Decision>;
 }
 
@@ -54,7 +61,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
   const historial = await ctx.s.importacionDatos.historial(cicloId);
   const editable = ciclo.estado !== 'cerrado';
 
-  const e: Estado = { tipo: null, archivo: null, hojas: [], hoja: null, filas: [], encabezado: 0, mapeo: [], analisis: null, decisiones: {} };
+  const e: Estado = { tipo: null, archivo: null, hojas: [], hoja: null, filas: [], encabezado: 0, mapeo: [], analisis: null, analisisHorario: null, decisiones: {} };
 
   const zonaArchivo = h('div', {});
   const zonaColumnas = h('div', { 'aria-live': 'polite' });
@@ -63,7 +70,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
 
   const reiniciar = (desde: 'tipo' | 'archivo' | 'columnas') => {
     if (desde !== 'columnas') { e.mapeo = []; reemplazar(zonaColumnas); }
-    e.analisis = null; e.decisiones = {};
+    e.analisis = null; e.analisisHorario = null; e.decisiones = {};
     reemplazar(zonaRevision);
     if (desde === 'tipo') { e.archivo = null; e.hojas = []; e.hoja = null; e.filas = []; dibujarArchivo(); }
   };
@@ -168,7 +175,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
           sel);
       })),
       problemas,
-      tipo !== 'materias' && tipo !== 'grupos' ? h('p', { class: 'ayuda' }, icono('ℹ'), ' Si el archivo trae el nombre completo en una sola columna, sólo se separa cuando viene como «Apellidos, Nombre(s)». En otro caso la fila se marca con error: no se adivina qué palabras son apellidos.') : null,
+      tipo === 'alumnos' || tipo === 'docentes' || tipo === 'personal' ? h('p', { class: 'ayuda' }, icono('ℹ'), ' Si el archivo trae el nombre completo en una sola columna, sólo se separa cuando viene como «Apellidos, Nombre(s)». En otro caso la fila se marca con error: no se adivina qué palabras son apellidos.') : null,
       h('div', { class: 'acciones acciones--izq' }, h('button', { type: 'button', class: 'boton', id: 'analizar', onclick: analizar }, 'Analizar archivo')),
     );
     actualizarProblemas();
@@ -181,6 +188,12 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
     if (p.length) { avisar(p[0]!, 'error'); return; }
     reemplazar(zonaRevision, h('p', {}, 'Analizando… (todavía no se guarda nada)'));
     try {
+      if (e.tipo === 'horarios') {
+        e.analisisHorario = await ctx.s.importacion.analizarMapeado(cicloId, e.filas.slice(e.encabezado + 1), e.mapeo, e.encabezado + 2, e.archivo.huella);
+        dibujarRevisionHorario();
+        document.getElementById('paso-revision-titulo')?.scrollIntoView({ block: 'start' });
+        return;
+      }
       e.analisis = await ctx.s.importacionDatos.analizar(cicloId, e.tipo, e.filas.slice(e.encabezado + 1), e.mapeo, e.archivo.huella, e.encabezado + 2);
       e.decisiones = Object.fromEntries(e.analisis.filas.map((f) => [f.fila, f.decision]));
       dibujarRevision();
@@ -228,6 +241,59 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
         h('button', { type: 'button', class: 'boton boton--secundario', id: 'cancelar-importacion', onclick: cancelar }, 'Cancelar importación'),
         editable ? boton : null),
     );
+  }
+
+  /** Horarios: todo o nada. Sólo se guarda si no hay errores ni conflictos; nunca reemplaza clases existentes. */
+  function dibujarRevisionHorario() {
+    const a = e.analisisHorario;
+    if (!a) return;
+    const orden: EstadoFila[] = ['error', 'conflicto', 'nueva', 'existente'];
+    const filas = [...a.filas].sort((x, y) => orden.indexOf(x.estado) - orden.indexOf(y.estado) || x.fila - y.fila);
+    reemplazar(zonaRevision,
+      h('h3', {}, `Revisión de «${e.archivo?.nombre ?? ''}»${e.hoja && e.hojas.length > 1 ? `, hoja «${e.hoja}»` : ''}`),
+      h('dl', { class: 'totales totales--importacion' },
+        ...([['Filas leídas', a.filas.length], ['Clases nuevas', a.nuevas], ['Ya existentes', a.existentes], ['Conflictos', a.conflictos], ['Errores', a.errores]] as const)
+          .map(([k, v]) => h('div', {}, h('dt', {}, k), h('dd', {}, String(v))))),
+      ...a.advertencias.map((x) => h('p', { class: 'mensaje mensaje--aviso', role: 'alert' }, icono('⚠'), ' ', x)),
+      a.puedeImportar
+        ? h('p', { class: 'mensaje' }, icono('✓'), ` Sin errores ni conflictos. Al confirmar se agregarán ${a.nuevas} clase(s); las existentes no se modifican.`)
+        : h('p', { class: 'mensaje mensaje--error', role: 'alert', id: 'horario-no-importable' }, icono('⚠'), a.errores + a.conflictos
+          ? ` No se puede importar: hay ${a.errores} error(es) y ${a.conflictos} conflicto(s). Los horarios se importan completos o no se importan, para no dejar un horario a medias. Corrige el archivo o la correspondencia de columnas. No se guardó nada.`
+          : ' No hay clases nuevas que importar.'),
+      a.ajustes.length ? h('div', {}, h('h4', {}, 'Cambios que se harán en las asignaciones'), h('ul', {}, ...a.ajustes.map((x) => h('li', {}, x)))) : null,
+      h('ol', { class: 'filas-importacion' }, ...filas.slice(0, 500).map((f) => {
+        const [t, v, s] = ESTADO_HORARIO[f.estado];
+        return h('li', { class: `fila-imp fila-imp--${f.estado === 'nueva' ? 'nuevo' : f.estado === 'existente' ? 'omitido' : f.estado}`, 'data-fila': f.fila },
+          h('span', { class: 'fila-imp__cabeza' }, h('span', { class: 'fila-imp__num' }, `Fila ${f.fila}`), insignia(t, v, s)),
+          h('span', { class: 'fila-imp__resumen' }, f.resumen),
+          f.mensajes.length ? h('ul', { class: 'fila-imp__mensajes' }, ...f.mensajes.map((m) => h('li', {}, m))) : null);
+      })),
+      h('div', { class: 'acciones acciones--izq' },
+        h('button', { type: 'button', class: 'boton boton--secundario', id: 'cancelar-importacion', onclick: cancelar }, 'Cancelar importación'),
+        editable && a.puedeImportar ? h('button', { type: 'button', class: 'boton', id: 'confirmar-importacion', onclick: guardarHorario }, `Confirmar e importar (${a.nuevas})`) : null),
+    );
+  }
+
+  async function guardarHorario(ev: Event) {
+    const b = ev.currentTarget as HTMLButtonElement;
+    if (!e.archivo || !e.analisisHorario || b.disabled) return;
+    b.disabled = true; const original = b.textContent; b.textContent = 'Guardando…';
+    try {
+      const r = await ctx.s.importacion.aplicarMapeado(cicloId, e.filas.slice(e.encabezado + 1), e.mapeo, { archivo: e.archivo.nombre, hoja: e.hojas.length ? e.hoja : null, huella: e.archivo.huella }, e.encabezado + 2);
+      reemplazar(zonaRevision,
+        h('div', { class: 'mensaje mensaje--exito', role: 'status', id: 'resultado-importacion' },
+          h('p', {}, icono('✓'), ' Importación terminada. Guardado en este dispositivo.'),
+          h('ul', {}, h('li', {}, `${r.clases} clase(s) nueva(s)`), h('li', {}, `${r.asignacionesNuevas} asignación(es) nueva(s)`), h('li', {}, `${r.existentes} ya existían y no se modificaron`))),
+        h('div', { class: 'acciones acciones--izq' },
+          h('a', { class: 'boton', href: `#/ciclo/${cicloId}/horarios` }, 'Ver horarios'),
+          h('button', { type: 'button', class: 'boton boton--secundario', onclick: () => void ctx.recargar() }, 'Importar otro archivo')),
+      );
+      avisar(`Se importaron ${r.clases} clase(s).`, 'exito');
+    } catch (err) {
+      avisar(esErrorDominio(err) ? err.message : 'No se pudo importar. No se guardó nada.', 'error');
+      if (!esErrorDominio(err)) console.error(err);
+      if (b.isConnected) { b.disabled = false; b.textContent = original; }
+    }
   }
 
   const filaRevision = (f: FilaAnalizada, alCambiar: () => void) => {
@@ -298,7 +364,7 @@ export async function paginaImportarDatos(ctx: ContextoPagina, cicloId: string):
               h('span', { class: 'renglon__texto' }, `${new Date(r.creadoEn).toLocaleString('es-MX')}: ${TIPO[r.tipo].titulo}`),
               h('span', { class: 'renglon__meta' }, `«${r.archivo}»${r.hoja ? `, hoja «${r.hoja}»` : ''}. ${r.resultado.nuevos} nuevo(s), ${r.resultado.actualizados} actualizado(s), ${r.resultado.omitidos} omitido(s).`))))
           : vacio('Todavía no se ha importado información en este ciclo.')),
-      h('p', { class: 'ayuda' }, icono('ℹ'), ' Para horarios usa ', h('a', { href: `#/ciclo/${cicloId}/importar` }, 'Importar horarios'), '.'),
+      h('p', { class: 'ayuda' }, icono('ℹ'), ' También sigue disponible ', h('a', { href: `#/ciclo/${cicloId}/importar` }, 'la importación de horarios con columnas fijas'), '. Importación desde PDF: todavía no disponible.'),
     ),
   };
 }
