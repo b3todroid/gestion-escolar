@@ -143,3 +143,7 @@ Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e
 - `servidor/pruebas/comandos.test.ts` (16): comandos por HTTP con sesiones reales, idempotencia, reglas de la app en el servidor, delegación, columnas sensibles y auditoría.
 - Datos ficticios completos por escuela: `servidor/pruebas/semilla.ts`.
 - `npm run test:e2e:servidor` usa el servidor **compilado** (`dist-servidor/`).
+
+## Fase 8D — sincronización
+- `servidor/pruebas/dispositivos.test.ts` (12): dispositivos simulados (fake-indexeddb + sesión real + misma app) contra el servidor: sin conexión, cola, conflictos de versión y de clave natural, rechazos, idempotencia, bajas, revocación, bloqueo de restauración.
+- `tests/e2e-servidor/sincronizacion.spec.ts`: navegador real, sin conexión → indicador → reconexión → sincronizado.

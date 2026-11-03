@@ -56,7 +56,7 @@ export function conCliente<R>(cliente: PoolClient, fn: () => Promise<R>): Promis
 
 type Columnas = Map<string, string>; // columna → tipo de dato
 
-class RepositorioPg<T extends Metadatos> implements Repositorio<T> {
+export class RepositorioPg<T extends Metadatos> implements Repositorio<T> {
   private readonly tabla: string;
   private readonly columnas: Columnas;
   constructor(tabla: string, columnas: Columnas) {
@@ -119,6 +119,19 @@ class RepositorioPg<T extends Metadatos> implements Repositorio<T> {
   }
   async eliminar(id: string) {
     await consultar(clienteActual(), `DELETE FROM ${this.tabla} WHERE id = $1`, [id]);
+  }
+  /** Sincronización: actualiza sólo si existe y las políticas lo permiten (nunca inserta). Devuelve filas afectadas. */
+  async actualizarExistente(entidad: T): Promise<number> {
+    const { columnas, valores } = this.aFila(entidad);
+    const posId = columnas.indexOf('id');
+    const asignaciones = columnas.map((c, i) => `${c} = $${i + 1}`).filter((_, i) => i !== posId);
+    const r = await consultar(clienteActual(), `UPDATE ${this.tabla} SET ${asignaciones.join(', ')} WHERE id = $${posId + 1}`, valores);
+    return r.rowCount ?? 0;
+  }
+  /** Sincronización: borra y devuelve filas afectadas (0 si las políticas no lo permiten). */
+  async eliminarContando(id: string): Promise<number> {
+    const r = await consultar(clienteActual(), `DELETE FROM ${this.tabla} WHERE id = $1`, [id]);
+    return r.rowCount ?? 0;
   }
   async eliminarVarios(ids: string[]) {
     if (ids.length) await consultar(clienteActual(), `DELETE FROM ${this.tabla} WHERE id = ANY($1::uuid[])`, [ids]);

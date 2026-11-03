@@ -174,3 +174,7 @@ Una prueba verifica que el espejo coincide campo por campo con `validators/respa
   - Llaves foráneas verificadas al confirmar la transacción.
   - Disparadores: misma escuela, ciclo cerrado, confirmar/autorizar/validar, historiales de sólo agregar.
   - Tabla `acceso.operaciones` para la idempotencia de comandos.
+- `0005_sincronizacion` (Fase 8D, `docs/SINCRONIZACION.md`): `sincronizacion.cambios` (seq, escuela, tabla, registro, eliminado, usuario) con disparador en las 31 tablas y candado por escuela; lectura por escuela para `gestion_app`; D14 (administrador escribe grupos, materias, asignaciones, sesiones, actividades, excepciones, confirmaciones y bitácora).
+
+## Local v11 (Fase 8D)
+`pendientes` (cola de cambios por enviar: `++orden, &opId, escuelaId, estado, [tabla+registroId]`) y `vinculos` (escuelas sincronizadas: `escuelaId`). Sólo tablas nuevas; propias del dispositivo, no van en los respaldos. Los repositorios Dexie encolan en la misma transacción los cambios de escuelas vinculadas.

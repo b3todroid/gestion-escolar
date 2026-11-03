@@ -78,6 +78,6 @@ Sin el servidor en marcha, `#/cuenta` indica «Modo local» y todo lo demás fun
 - **Despliegue** en la nube elegida (D11): servidor, PostgreSQL gestionado, HTTPS, proxy inverso con IP de cliente confiable, respaldos y monitoreo.
 - **Envío por SMTP**: el servidor se niega a arrancar en producción sin él.
 - **Registro de Google y Microsoft** con las cuentas del administrador (D8).
-- ~~8C~~ hecho (ver `docs/PERMISOS.md`).
-- **8D**: sincronización. **8E**: migración de datos reales, sólo con autorización.
+- ~~8C~~ hecho (ver `docs/PERMISOS.md`). ~~8D~~ hecho (ver `docs/SINCRONIZACION.md`).
+- **8E**: migración de datos reales, sólo con autorización.
 - **Aviso de privacidad por escuela** (D2) y retención de 1 ciclo (D7).

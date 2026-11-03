@@ -17,6 +17,7 @@ import type { EnviadorCorreo } from './correo.ts';
 import { ErrorApi } from './errores.ts';
 import { DatosEscolares, type Actor } from './datosEscolares.ts';
 import { ejecutarComando, esquemaPeticionComando } from './comandos.ts';
+import { Sincronizacion } from './sincronizacion.ts';
 
 export { ErrorApi };
 
@@ -62,9 +63,11 @@ export class ApiEscolar {
   private readonly auth: Auth;
   private readonly correo: EnviadorCorreo;
   private readonly datos: DatosEscolares;
+  private readonly sinc: Sincronizacion;
   constructor(cfg: Configuracion, bd: Pool, auth: Auth, correo: EnviadorCorreo) {
     this.cfg = cfg; this.bd = bd; this.auth = auth; this.correo = correo;
     this.datos = new DatosEscolares(bd, cfg.ZONA_HORARIA);
+    this.sinc = new Sincronizacion(bd, this.datos);
   }
 
   async atender(p: Peticion): Promise<Respuesta> {
@@ -84,6 +87,8 @@ export class ApiEscolar {
     if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/membresias\/([^/]+)\/delegaciones$/))) return this.delegar(p, m[1]!, m[2]!);
     if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/comandos$/))) return this.comando(p, m[1]!);
     if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/tablas\/([A-Za-z]+)$/))) return this.leerTabla(p, m[1]!, m[2]!);
+    if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/sincronizacion$/))) return this.recibirCambios(p, m[1]!);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/sincronizacion$/))) return this.enviarCambios(p, m[1]!);
     throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ruta no disponible.');
   }
 
@@ -309,6 +314,22 @@ export class ApiEscolar {
     const ciclo = p.consulta.get('ciclo');
     if (ciclo !== null && !uuid.safeParse(ciclo).success) throw new ErrorApi(400, 'VALIDACION', 'Ciclo inválido.');
     return { estado: 200, cuerpo: await this.datos.leerTabla(actor, tabla, ciclo) };
+  }
+
+  // ---------- Fase 8D: sincronización ----------
+
+  private async recibirCambios(p: Peticion, escuelaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    const actor = this.actor(ctx, escuelaId);
+    const desde = Number(p.consulta.get('desde') ?? '0');
+    if (!Number.isSafeInteger(desde) || desde < 0) throw new ErrorApi(400, 'VALIDACION', 'Secuencia inválida.');
+    return { estado: 200, cuerpo: await this.sinc.recibir(actor, desde) };
+  }
+
+  private async enviarCambios(p: Peticion, escuelaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    const actor = this.actor(ctx, escuelaId);
+    return { estado: 200, cuerpo: await this.sinc.enviar(actor, p.cuerpo) };
   }
 
   /** Vincula la membresía con la ficha de personal de la escuela (define los grupos de un docente). */

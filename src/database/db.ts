@@ -10,13 +10,14 @@
  */
 import { Dexie, type Table } from 'dexie';
 import { nuevoId } from '../utils/id';
+import type { CambioPendiente, VinculoServidor } from '../repositories/tipos';
 import type {
   Actividad, Adscripcion, Ajuste, Alumno, Asistencia, Inscripcion, MovimientoInscripcion, PaseLista, RegistroImportacion, ReporteAlumno, SalidaAula, Asignacion, CicloEscolar, ConfirmacionHorario, Escuela, Excepcion, Grado, Grupo, Jornada, Materia, Periodo, Personal,
   Receso, RegistroBitacora, Sesion, Turno, CambioAsistencia, PlantillaImportacion, IncidenciaPersonal, Cobertura, ActividadBanco, RegistroPrefectura } from '../models';
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 10;
+export const VERSION_ESQUEMA = 11;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -51,6 +52,9 @@ export class BaseDatosEscolar extends Dexie {
   inscripciones!: Table<Inscripcion, string>;
   movimientos!: Table<MovimientoInscripcion, string>;
   importaciones!: Table<RegistroImportacion, string>;
+  /** Fase 8D: cola de cambios por enviar y escuelas vinculadas con el servidor (propias del dispositivo). */
+  pendientes!: Table<CambioPendiente, number>;
+  vinculos!: Table<VinculoServidor, string>;
 
   constructor(nombre: string = NOMBRE_BD) {
     super(nombre);
@@ -184,7 +188,14 @@ export class BaseDatosEscolar extends Dexie {
       bitacoraPrefectura: 'id, cicloEscolarId, entidadId, escuelaId',
     });
 
-    // Para fases futuras: agregar this.version(11) (con .upgrade() si hay que transformar
+    // v11 (Fase 8D · sincronización): cola de cambios por enviar y escuelas vinculadas con el
+    // servidor. Sólo tablas nuevas, propias del dispositivo (no van en los respaldos).
+    this.version(11).stores({
+      pendientes: '++orden, &opId, escuelaId, estado, [tabla+registroId]',
+      vinculos: 'escuelaId',
+    });
+
+    // Para fases futuras: agregar this.version(12) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

@@ -1,6 +1,23 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8C — Permisos y aislamiento** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8D sin autorización. Esquema local sin cambios (sigue v10).
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8D — Sincronización sin conexión** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8E sin autorización. Esquema local v11 (sólo tablas nuevas).
+
+## Fase 8D — Sincronización sin conexión (2026-11-03)
+**Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 86 del servidor, 2 con servidor real). Decisiones: D13 se mantiene; D14 sí (el administrador modifica grupos y horarios).
+
+**Implementado (detalle en `docs/SINCRONIZACION.md`):**
+- Cola local de cambios en la misma transacción que el dato (esquema local v11).
+- Registro de cambios del servidor con secuencia y candado por escuela (migración 0005).
+- Envío por grupos atómicos con control de versión, claves naturales, RLS, Zod e idempotencia; recepción con fotografía inicial e incremental.
+- Conflictos y rechazos visibles con comparación campo por campo y decisiones explícitas.
+- Indicador honesto en la barra; sincronización automática; «Usar en este dispositivo» y «Quitar del dispositivo».
+- Restauración de respaldos bloqueada para escuelas vinculadas. D14 aplicada.
+
+**Defectos encontrados y corregidos:**
+- Las pruebas de atomicidad sustituyen métodos de tabla y los repositorios usaban otra referencia de tabla.
+- Resolver un conflicto de clave natural dejaba la lista local equivocada: ahora se resuelve todo el grupo y se vuelve a descargar la fotografía.
+
+**Pendientes / límites:** base local separada por persona, grupos de más de 2000 cambios, depuración del registro de cambios (D7) y reglas entre tablas no recalculadas al sincronizar registros (ver documento).
 
 ## Fase 8C — Permisos y aislamiento (2026-11-03)
 **Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 35 del servidor, 2 con servidor real). Los servicios dependen de interfaces de repositorio genéricas, lo que permite reutilizarlos en el servidor.

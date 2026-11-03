@@ -200,6 +200,8 @@ async function panelCuenta(ctx: ContextoPagina, yo: Yo): Promise<(Node | null)[]
   };
 
   const sesiones = await ctx.s.cuenta.sesiones().catch(() => null);
+  const vinculadas = new Set((await ctx.s.sincronizacion.estados()).map((e) => e.escuelaId));
+  const yaVistas = new Set<string>(); // una persona con varios roles en la escuela: un solo botón
   const administradas = yo.membresias.filter((m) => m.rol === 'administrador');
 
   return [
@@ -218,9 +220,17 @@ async function panelCuenta(ctx: ContextoPagina, yo: Yo): Promise<(Node | null)[]
         ? h('ul', { class: 'renglones', id: 'lista-accesos' }, ...yo.membresias.map((m) => h('li', { class: 'renglon' },
             h('span', { class: 'renglon__texto' }, m.escuela, h('span', { class: 'renglon__sub' }, ` ${m.cct ?? ''} · ${m.etiquetaRol}`)),
             m.rol === 'administrador' ? h('a', { class: 'boton boton--chico boton--secundario', href: `#/cuenta/escuela/${m.escuelaId}` }, 'Administrar accesos') : null,
+            vinculadas.has(m.escuelaId)
+              ? h('a', { class: 'boton boton--chico', href: `#/escuela/${m.escuelaId}` }, 'Abrir en este dispositivo')
+              : yaVistas.has(m.escuelaId) ? null : (yaVistas.add(m.escuelaId), h('button', { type: 'button', class: 'boton boton--chico', 'data-unirse': m.escuelaId, onclick: async (ev: Event) => {
+                  const b = ev.currentTarget as HTMLButtonElement; b.disabled = true; b.textContent = 'Descargando…';
+                  if (await ejecutar(async () => { const r = await ctx.s.sincronizacion.unirse(m.escuelaId, yo.usuario.id); return `Escuela lista en este dispositivo (${r.registros} registros). Puedes trabajar sin conexión.`; })) ctx.ir(`#/escuela/${m.escuelaId}`);
+                  else { b.disabled = false; b.textContent = 'Usar en este dispositivo'; }
+                } }, 'Usar en este dispositivo')),
           )))
         : vacio('No tienes accesos vigentes.'),
-      h('p', { class: 'ayuda' }, 'Estas escuelas están en el servidor escolar. Todavía no se vinculan con las escuelas guardadas en este dispositivo (eso será en una fase posterior, con autorización).'),
+      h('p', { class: 'ayuda' }, '«Usar en este dispositivo» descarga lo que tu rol te permite ver para trabajar también sin conexión; los cambios se envían al servidor al sincronizar. Las escuelas que ya tenías guardadas sólo en este dispositivo no se mezclan (unirlas con el servidor es la migración, fase posterior).'),
+      vinculadas.size ? h('a', { class: 'boton boton--secundario', href: '#/sincronizacion' }, 'Ver sincronización') : null,
     ),
     seccion('verificacion', 'Verificación en dos pasos',
       h('p', { id: 'estado-segundo-factor' }, sf.activo ? insignia('Activa', 'ok', '✓') : sf.requerido ? insignia('Obligatoria para tu rol y aún no activa', 'aviso', '!') : insignia('No activa (opcional para tu rol)', 'neutro', '○')),

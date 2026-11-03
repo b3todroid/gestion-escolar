@@ -1,6 +1,9 @@
 import { BaseDatosEscolar, VERSION_ESQUEMA } from '../database/db';
 import { ServicioRespaldos } from './respaldos';
-import { crearRepositoriosDexie, crearUnidadDeTrabajoDexie } from '../repositories/dexie';
+import { crearAlmacenSincronizacionDexie, crearRepositoriosDexie, crearUnidadDeTrabajoDexie } from '../repositories/dexie';
+import type { AlmacenSincronizacion } from '../repositories/tipos';
+import { ServicioSincronizacion } from './sincronizacion';
+import { ErrorDominio } from '../domain/errores';
 import { relojSistema, type Reloj } from '../utils/reloj';
 import type { Contexto } from './contexto';
 import { ServicioCiclos } from './ciclos';
@@ -50,9 +53,15 @@ export interface Servicios {
   respaldos: ServicioRespaldos;
   /** Cuenta en el servidor escolar (Fase 8B). No toca los datos locales. */
   cuenta: ServicioCuenta;
+  /** Sincronización con el servidor escolar (Fase 8D). */
+  sincronizacion: ServicioSincronizacion;
 }
 
-export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServidor = new ClienteServidorHttp()): Servicios {
+/** En el servidor no hay cola local: cualquier uso es un error de programación. */
+const sinAlmacen = new Proxy({}, { get: () => () => Promise.reject(new ErrorDominio('ESTADO_NO_PERMITIDO', 'Sincronización no disponible aquí.')) }) as AlmacenSincronizacion;
+
+export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServidor = new ClienteServidorHttp(), almacen: AlmacenSincronizacion = sinAlmacen): Servicios {
+  const sincronizacion = new ServicioSincronizacion(almacen, servidor, ctx.repos, ctx.reloj);
   const base = {
     escuelas: new ServicioEscuelas(ctx),
     ciclos: new ServicioCiclos(ctx),
@@ -77,16 +86,17 @@ export function crearServiciosDesdeContexto(ctx: Contexto, servidor: ClienteServ
     plantillas: new ServicioPlantillasImportacion(ctx),
     prefectura: new ServicioPrefectura(ctx),
     importacionDatos: new ServicioImportacionDatos(ctx),
-    respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA),
+    respaldos: new ServicioRespaldos(ctx, VERSION_ESQUEMA, (id) => sincronizacion.estaVinculada(id)),
     cuenta: new ServicioCuenta(servidor),
+    sincronizacion,
   };
 }
 
 /** Punto único de composición: BD local + repositorios Dexie + servicios. */
-export function crearServicios(db: BaseDatosEscolar = new BaseDatosEscolar(), reloj: Reloj = relojSistema): Servicios {
+export function crearServicios(db: BaseDatosEscolar = new BaseDatosEscolar(), reloj: Reloj = relojSistema, servidor: ClienteServidor = new ClienteServidorHttp()): Servicios {
   return crearServiciosDesdeContexto({
     repos: crearRepositoriosDexie(db),
     uow: crearUnidadDeTrabajoDexie(db),
     reloj,
-  });
+  }, servidor, crearAlmacenSincronizacionDexie(db));
 }

@@ -24,6 +24,8 @@ import { paginaHorariosCiclo, paginaHorariosInicio } from './pages/horarios';
 import { iniciarIndicadorConexion, iniciarPWA } from './pwa';
 import { paginaAplicacion } from './pages/aplicacion';
 import { paginaAccesosEscuela, paginaCuenta } from './pages/cuenta';
+import { paginaSincronizacion } from './pages/sincronizacion';
+import { iniciarSincronizacion } from './sincronizador';
 import { paginaBancoActividades, paginaCobertura, paginaPrefectura, paginaPrefecturaInicio, paginaReportesPrefectura } from './pages/prefectura';
 
 const principal = document.getElementById('contenido');
@@ -34,13 +36,17 @@ if (!principal || !conexion) throw new Error('Estructura de index.html incomplet
 if (typeof indexedDB === 'undefined') {
   principal.textContent = 'Este navegador no permite guardar datos locales (IndexedDB). Usa un navegador actualizado y evita el modo privado.';
 } else {
-  new Aplicacion(crearServicios(), principal)
+  const servicios = crearServicios();
+  const indicadorSinc = document.getElementById('sincronizacion') as HTMLAnchorElement | null;
+  if (indicadorSinc) iniciarSincronizacion(servicios, indicadorSinc);
+  new Aplicacion(servicios, principal)
     .ruta('/', paginaRaiz)
     .ruta('/escuelas', paginaInicio)
     .ruta('/perfil', paginaPerfil)
     .ruta('/respaldos', paginaRespaldos)
     .ruta('/aplicacion', paginaAplicacion)
     .ruta('/cuenta', paginaCuenta)
+    .ruta('/sincronizacion', paginaSincronizacion)
     .ruta('/cuenta/escuela/:id', paginaAccesosEscuela)
     .ruta('/prefectura', paginaPrefecturaInicio)
     .ruta('/ciclo/:id/prefectura/:fecha', paginaPrefectura)

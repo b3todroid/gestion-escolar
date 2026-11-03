@@ -128,7 +128,7 @@ export const COMANDOS = {
     async ejecutar(c, d) { return c.s.prefectura.cambiarEstadoActividad(d.id, d.estado, c.personalId); },
   }),
 
-  // ---------- Dirección y Subdirección ----------
+  // ---------- Dirección, Subdirección y administrador (D14: también modifica grupos y horarios) ----------
   'personal.crear': definir({
     roles: ['administrador', 'direccion'],
     esquema: z.object({ entrada: z.record(z.string(), z.unknown()) }),
@@ -140,12 +140,12 @@ export const COMANDOS = {
     async ejecutar(c, d) { return c.s.alumnos.inscribirNuevo(d.cicloId, d.entrada as never, d.inscripcion as never); },
   }),
   'confirmacion.confirmar': definir({
-    roles: ['direccion'],
+    roles: ['direccion', 'administrador'],
     esquema: z.object({ grupoId: uuid }),
     async ejecutar(c, d) { return c.s.confirmacion.confirmar(d.grupoId); },
   }),
   'confirmacion.reabrir': definir({
-    roles: ['direccion'],
+    roles: ['direccion', 'administrador'],
     esquema: z.object({ grupoId: uuid, motivo: z.string() }),
     async ejecutar(c, d) { await c.s.confirmacion.reabrir(d.grupoId, d.motivo); return { reabierto: true }; },
   }),

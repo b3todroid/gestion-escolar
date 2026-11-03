@@ -18,18 +18,20 @@ import type { Configuracion } from './config.ts';
 import type { BuzonDesarrollo, EnviadorCorreo } from './correo.ts';
 
 const LIMITE_CUERPO = 64 * 1024;
+/** Los lotes de sincronización pueden traer registros completos (p. ej. adjuntos del banco de actividades ≤ 1 MB). */
+const LIMITE_SINCRONIZACION = 4 * 1024 * 1024;
 
 export interface ServidorEscolar { servidor: Server; cerrar(): Promise<void> }
 
-function leerCuerpo(req: IncomingMessage): Promise<Buffer> {
+function leerCuerpo(req: IncomingMessage, limite = LIMITE_CUERPO): Promise<Buffer> {
   return new Promise((resolver, rechazar) => {
     const demasiado = () => new ErrorApi(413, 'DEMASIADO_GRANDE', 'La petición es demasiado grande.');
-    if (Number(req.headers['content-length'] ?? 0) > LIMITE_CUERPO) { req.resume(); rechazar(demasiado()); return; }
+    if (Number(req.headers['content-length'] ?? 0) > limite) { req.resume(); rechazar(demasiado()); return; }
     const partes: Buffer[] = []; let total = 0; let excedido = false;
     req.on('data', (c: Buffer) => {
       if (excedido) return; // se descarta el resto sin guardarlo
       total += c.length;
-      if (total > LIMITE_CUERPO) { excedido = true; partes.length = 0; rechazar(demasiado()); return; }
+      if (total > limite) { excedido = true; partes.length = 0; rechazar(demasiado()); return; }
       partes.push(c);
     });
     req.on('end', () => resolver(Buffer.concat(partes)));
@@ -84,7 +86,7 @@ export function crearServidorHttp(cfg: Configuracion, bd: Pool, auth: Auth, corr
         return;
       }
 
-      const cuerpoCrudo = metodo === 'POST' ? await leerCuerpo(req) : Buffer.alloc(0);
+      const cuerpoCrudo = metodo === 'POST' ? await leerCuerpo(req, url.pathname.endsWith('/sincronizacion') ? LIMITE_SINCRONIZACION : LIMITE_CUERPO) : Buffer.alloc(0);
       if (metodo === 'POST') {
         const o = req.headers.origin;
         if (o !== origen) throw new ErrorApi(403, 'ORIGEN', 'Origen no permitido.');

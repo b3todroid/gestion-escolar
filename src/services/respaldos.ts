@@ -138,7 +138,7 @@ async function sha256(texto: string): Promise<string | null> {
  * salvo el archivo que la persona descarga. Restaurar es todo o nada.
  */
 export class ServicioRespaldos {
-  constructor(private readonly ctx: Contexto, private readonly versionEsquema: number) {}
+  constructor(private readonly ctx: Contexto, private readonly versionEsquema: number, private readonly vinculada: (escuelaId: string) => Promise<boolean> = async () => false) {}
 
   private repo(t: TablaRespaldo): Repositorio<Metadatos> {
     return this.ctx.repos[t] as unknown as Repositorio<Metadatos>;
@@ -353,6 +353,9 @@ export class ServicioRespaldos {
       if (a.errores.length) throw new ErrorDominio('VALIDACION', `No se restauró nada: ${a.errores[0]}`);
       const elegidas = a.escuelas.filter((e) => escuelaIds.includes(e.id));
       if (!elegidas.length) throw new ErrorDominio('VALIDACION', 'Selecciona al menos una escuela del respaldo.');
+      // Una escuela que se sincroniza con el servidor no se restaura desde archivo: se mezclarían
+      // versiones sin control de conflictos (Fase 8D). Su copia de referencia es el servidor.
+      for (const e of elegidas) if (await this.vinculada(e.id)) throw new ErrorDominio('ESTADO_NO_PERMITIDO', `«${e.nombre}» se sincroniza con el servidor escolar: no se restaura desde un respaldo en este dispositivo.`);
       const bloqueada = elegidas.find((e) => e.accion === 'bloqueado');
       if (bloqueada) throw new ErrorDominio('ESTADO_NO_PERMITIDO', bloqueada.motivo ?? 'No se puede restaurar esa escuela.');
       let registros = 0;

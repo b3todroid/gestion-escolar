@@ -27,11 +27,11 @@ Alcance: **E** = toda la escuela · **G** = grupos donde imparte (y sus alumnos)
 | Tabla | Administrador | Dirección | Subdirección | Prefectura | Docente | Apoyo |
 |---|---|---|---|---|---|---|
 | Escuela, ciclos, turnos, jornadas, periodos, recesos, grados, personal | E / E | E / E | E / — | E / — | E / — | E / — |
-| Grupos, asignaciones, sesiones, actividades | E / — | E / E | E / E | E / — | G / — | E / — |
-| Materias | E / — | E / E | E / E | E / — | E / — | E / — |
-| Excepciones (simultaneidad) | E / — | E / E | E / E | E / — | P / — | — |
-| Confirmaciones de horario | E / — | E / E | E / — | E / — | G / — | E / — |
-| Bitácora de horarios | E / — | E / E | E / E | — | — | — |
+| Grupos, asignaciones, sesiones, actividades | E / E | E / E | E / E | E / — | G / — | E / — |
+| Materias | E / E | E / E | E / E | E / — | E / — | E / — |
+| Excepciones (simultaneidad) | E / E | E / E | E / E | E / — | P / — | — |
+| Confirmaciones de horario | E / E | E / E | E / — | E / — | G / — | E / — |
+| Bitácora de horarios | E / E | E / E | E / E | — | — | — |
 | Adscripciones | E / E | E / E | E / E | E / — | P / — | — |
 | Alumnos, inscripciones, movimientos | E / — | E / E | E / E | E / — | G / — | E / — |
 | Importaciones y plantillas | E / E | E / E | E / E | — | — | — |
@@ -56,7 +56,7 @@ Alcance: **E** = toda la escuela · **G** = grupos donde imparte (y sus alumnos)
 | Confirmar o descartar incidencias | Administrador; Dirección o Subdirección sólo con delegación expresa |
 | Autorizar coberturas | Administrador; Dirección o Subdirección sólo con delegación expresa |
 | Validar o retirar actividades del banco | Administración, Dirección o Subdirección |
-| Confirmar o reabrir horarios | Dirección |
+| Confirmar o reabrir horarios | Dirección o administrador (D14) |
 
 La delegación se administra en `#/cuenta/escuela/ID`, en «Ficha y permisos».
 
@@ -106,5 +106,7 @@ Lectura: `GET /api/escuelas/ID/tablas/TABLA?ciclo=ID` devuelve las filas visible
 ## Decisiones pendientes
 | # | Decisión | Propuesta |
 |---|---|---|
+**Decididas (2026-11-03):** D13 se mantiene como está; D14 sí: el administrador modifica grupos y horarios (migración 0005).
+
 | D13 | Alcance de **Personal de apoyo** (Orientación, Trabajo social…): hoy lee alumnos, inscripciones, salidas y reportes de **toda** la escuela; el diseño hablaba de «sus casos», que aún no existen en el modelo | Mantenerlo así hasta definir «casos», o restringirlo a nada |
 | D14 | El **administrador** lee, pero no modifica grupos ni horarios (así venía en la matriz de 8A) | Confirmar o darle escritura |

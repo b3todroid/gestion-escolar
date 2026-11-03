@@ -863,3 +863,10 @@ main:focus { outline: none; }
 .campo > .casilla { border-radius: var(--r-medio); align-items: flex-start; }
 .codigos-respaldo { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.3rem; padding-left: 1.2rem; }
 #clave-totp { word-break: break-all; }
+
+/* Fase 8D: indicador de sincronización (texto + símbolo, no sólo color) */
+.barra__sinc { margin-left: auto; margin-right: 0.75rem; font-size: 0.85rem; color: #f3f6f4; text-decoration: none; padding: 0.35rem 0.6rem; border-radius: var(--r-medio); border: 1px solid #cfe0d6; min-height: 44px; display: inline-flex; align-items: center; }
+.barra__sinc[data-estado='problema'] { background: var(--aviso-suave); color: var(--aviso); border-color: var(--aviso); font-weight: 700; }
+.barra__sinc:focus-visible { outline: 3px solid var(--acento, #f2c14e); }
+.tabla-comparacion { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0.5rem 0; }
+.tabla-comparacion th, .tabla-comparacion td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--borde); overflow-wrap: anywhere; }

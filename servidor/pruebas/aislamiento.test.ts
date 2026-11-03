@@ -24,8 +24,8 @@ let doble: string; // persona con rol de administrador en A y en B
 const ESPEC: Record<string, [string, string]> = {
   escuelas: ['eeeeee', 'eennnn'], ciclos: ['eeeeee', 'eennnn'], turnos: ['eeeeee', 'eennnn'], jornadas: ['eeeeee', 'eennnn'],
   periodos: ['eeeeee', 'eennnn'], recesos: ['eeeeee', 'eennnn'], grados: ['eeeeee', 'eennnn'], personal: ['eeeeee', 'eennnn'],
-  grupos: ['eeeege', 'neennn'], materias: ['eeeeee', 'neennn'], asignaciones: ['eeeege', 'neennn'], sesiones: ['eeeege', 'neennn'],
-  actividades: ['eeeege', 'neennn'], excepciones: ['eeeepn', 'neennn'], confirmaciones: ['eeeege', 'nennnn'], bitacora: ['eeennn', 'neennn'],
+  grupos: ['eeeege', 'eeennn'], materias: ['eeeeee', 'eeennn'], asignaciones: ['eeeege', 'eeennn'], sesiones: ['eeeege', 'eeennn'],
+  actividades: ['eeeege', 'eeennn'], excepciones: ['eeeepn', 'eeennn'], confirmaciones: ['eeeege', 'eennnn'], bitacora: ['eeennn', 'eeennn'],
   adscripciones: ['eeeepn', 'eeennn'], alumnos: ['eeeege', 'neennn'], inscripciones: ['eeeege', 'neennn'], movimientos: ['eeeege', 'neennn'],
   importaciones: ['eeennn', 'eeennn'], plantillas_importacion: ['eeennn', 'eeennn'], pases: ['eeeegn', 'nnnnpn'], asistencias: ['eeeegn', 'nnnngn'],
   cambios_asistencia: ['eeeegn', 'nnnngn'], salidas: ['eeeege', 'nnnegn'], reportes: ['eeeege', 'nnnegn'], incidencias_personal: ['eeeepn', 'eeeenn'],
@@ -259,10 +259,11 @@ describe('Límites adicionales', () => {
     await expect(validar(usuarios.A.subdireccion)).resolves.toBeTruthy();
   });
 
-  test('sólo Dirección confirma o reabre horarios', async () => {
+  test('sólo Dirección o el administrador (D14) confirman o reabren horarios', async () => {
     const reabrir = (u: string) => como(u, A.escuelaId, (c) => c.query(`DELETE FROM escolar.confirmaciones WHERE grupo_id = $1`, [A.g1]));
     expect((await reabrir(usuarios.A.subdireccion)).rowCount).toBe(0); // la política ni siquiera se la muestra para borrar
     expect((await reabrir(usuarios.A.direccion)).rowCount).toBe(1);
+    expect((await reabrir(usuarios.A.administrador)).rowCount).toBe(1);
   });
 
   test('los historiales sólo se agregan desde la API', async () => {

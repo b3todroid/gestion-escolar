@@ -8,6 +8,7 @@
 import type { Pool, PoolClient } from 'pg';
 import { crearServiciosDesdeContexto, type Servicios } from '../../src/services';
 import type { ClienteServidor } from '../../src/remoto/servidorEscolar';
+import type { Repositorios } from '../../src/repositories/tipos';
 import { esErrorDominio } from '../../src/domain/errores';
 import { relojSistema } from '../../src/utils/reloj';
 import { auditar, type Membresia, type Rol } from './acceso.ts';
@@ -27,6 +28,8 @@ export interface Actor {
 
 export interface ContextoComando {
   s: Servicios;
+  /** Repositorios PostgreSQL (bajo RLS) de esta transacción. */
+  repos: Repositorios;
   actor: Actor;
   roles: Set<Rol>;
   /** Ficha de personal vinculada (para docentes y prefectura). */
@@ -74,18 +77,20 @@ export class DatosEscolares {
    * Ejecuta `fn` con los permisos del usuario en la escuela. Al terminar, con el rol
    * del dueño, registra la auditoría (y la operación, si se pidió) en la MISMA transacción.
    */
-  async ejecutar<R>(actor: Actor, fn: (c: ContextoComando) => Promise<R>, despues?: (c: PoolClient, resultado: R) => Promise<void>): Promise<R> {
+  async ejecutar<R>(actor: Actor, fn: (c: ContextoComando) => Promise<R>, despues?: (c: PoolClient, resultado: R) => Promise<void>, opciones: { soloLectura?: boolean } = {}): Promise<R> {
     this.columnas ??= await leerColumnas(this.bd);
-    const s = crearServiciosDesdeContexto({ repos: crearRepositoriosPg(this.columnas), uow: unidadDeTrabajoPg, reloj: relojSistema }, sinServidor);
+    const repos = crearRepositoriosPg(this.columnas);
+    const s = crearServiciosDesdeContexto({ repos, uow: unidadDeTrabajoPg, reloj: relojSistema }, sinServidor);
     const cliente = await this.bd.connect();
     try {
-      await cliente.query('BEGIN');
+      // Lectura de sincronización: una sola fotografía coherente (secuencia y filas a la vez).
+      await cliente.query(opciones.soloLectura ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN');
       await cliente.query('SET LOCAL ROLE gestion_app');
       await cliente.query(`SELECT set_config('app.usuario_id', $1, true), set_config('app.escuela_id', $2, true)`, [actor.usuarioId, actor.escuelaId]);
       const { hoy, hora } = ahoraEnZona(this.zona);
       const deEscuela = actor.membresias.filter((m) => m.escuelaId === actor.escuelaId);
       const ctx: ContextoComando = {
-        s, actor, cliente, hoy, hora,
+        s, repos, actor, cliente, hoy, hora,
         roles: new Set(deEscuela.map((m) => m.rol)),
         personalId: deEscuela.find((m) => m.personalId)?.personalId ?? null,
         permisosDelegados: new Set(deEscuela.flatMap((m) => m.permisosDelegados)),

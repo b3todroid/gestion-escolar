@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`) completada. **Fase 8C — permisos y aislamiento** (`docs/PERMISOS.md`, sólo local) — completada, pendiente de revisión; **no iniciar 8D ni desplegar sin autorización**. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`) completada. **Fase 8C — permisos y aislamiento** (`docs/PERMISOS.md`) completada. **Fase 8D — sincronización sin conexión** (`docs/SINCRONIZACION.md`, sólo local, esquema local v11) — completada, pendiente de revisión; **no iniciar 8E (migración) ni desplegar sin autorización**. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -79,6 +79,12 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Toda tabla nueva del esquema `escolar` necesita fila en `acceso.matriz`, políticas RLS y disparador de misma escuela (la migración 0004 falla si hay tablas sin RLS). Agregar la tabla a la especificación de `aislamiento.test.ts`.
 - Comandos: definir en `comandos.ts` con roles, Zod y servicio de la app; los datos de quien actúa los pone el servidor.
 
+## Fase 8D (sincronización, `docs/SINCRONIZACION.md`)
+- Los repositorios Dexie encolan en `pendientes` (misma transacción) los cambios de escuelas en `vinculos`. Nunca escribir datos de escuelas vinculadas por fuera de los repositorios; lo recibido del servidor se aplica con `AlmacenSincronizacion` (no se re-encola).
+- Servidor: versión base obligatoria; conflicto ≠ sobrescribir; grupos todo o nada; claves naturales = conflicto. Nada se resuelve en silencio: la persona decide en `#/sincronizacion`.
+- El indicador se deriva de la cola real; nunca mostrar «Sincronizado» con pendientes.
+- Toda tabla escolar nueva: entrada en `TABLA_LOCAL` (dexie.ts), en el respaldo y disparador `registrar_cambio` en el servidor.
+
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).
 - Restaurar: verificar archivo (Zod por tabla + referencias internas + huella) **fuera** de la transacción → comparar y escribir **dentro**. Nunca hacer operaciones asíncronas ajenas a IndexedDB (p. ej. `crypto.subtle`, `fetch`) dentro de `uow.ejecutar`: Dexie cierra la transacción antes de tiempo.
@@ -112,5 +118,5 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - ExcelJS se evaluó y se descartó en la Fase 3. PDF.js 6.4.299 y Tesseract.js 7.0.0 evaluados e instalados en la Fase 6 (ver `docs/ARQUITECTURA.md`). No instalar jsPDF/pdf-lib hasta la fase que los use; antes, evaluar y documentar igual.
 
 ## Fuera de alcance hasta nuevas fases
-Generación de PDF propio, sincronización multiusuario (8D), migración de datos (8E), despliegue en la nube.
+Generación de PDF propio, migración de datos locales al servidor (8E), despliegue en la nube.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.
