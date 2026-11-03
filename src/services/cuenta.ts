@@ -22,7 +22,13 @@ export const ETIQUETA_PROVEEDOR: Record<Proveedor, string> = {
 };
 
 export interface ConfiguracionServidor { disponible: boolean; proveedores: Proveedor[]; buzonDesarrollo: boolean; motivo: string | null }
-export interface MembresiaPropia { id: string; escuelaId: string; escuela: string; cct: string | null; rol: RolServidor; etiquetaRol: string }
+export interface MembresiaPropia { id: string; escuelaId: string; escuela: string; cct: string | null; rol: RolServidor; etiquetaRol: string; personalId: string | null; permisosDelegados: PermisoDelegable[] }
+
+export const PERMISOS_DELEGABLES = ['confirmar_incidencias', 'autorizar_coberturas'] as const;
+export type PermisoDelegable = (typeof PERMISOS_DELEGABLES)[number];
+export const ETIQUETA_PERMISO: Record<PermisoDelegable, string> = { confirmar_incidencias: 'Confirmar o descartar incidencias del personal', autorizar_coberturas: 'Autorizar coberturas de grupos' };
+/** Ficha de personal guardada en el servidor (sólo nombre: lo demás lo decide el servidor por rol). */
+export interface FichaServidor { id: string; nombre: string; primerApellido: string; segundoApellido: string | null; activo: boolean }
 export interface Yo {
   usuario: { id: string; nombre: string; correo: string };
   segundoFactor: { activo: boolean; verificado: boolean; requerido: boolean };
@@ -34,6 +40,7 @@ export interface Miembro {
   estado: 'invitada' | 'activa' | 'revocada'; caducada: boolean; tipoCorreo: 'institucional' | 'personal';
   invitadaEn: string | null; expiraEn: string | null; aceptadaEn: string | null; revocadaEn: string | null;
   motivoRevocacion: string | null; segundoFactorActivo: boolean; esUsted: boolean;
+  personalId: string | null; permisosDelegados: PermisoDelegable[];
 }
 export interface EventoAuditoria { ocurridoEn: string; accion: string; entidad: string | null; detalle: Record<string, unknown>; quien: string | null }
 export interface ActivacionSegundoFactor { uri: string; secreto: string; codigosRespaldo: string[] }
@@ -154,6 +161,22 @@ export class ServicioCuenta {
     return this.c.pedir('POST', `/api/escuelas/${encodeURIComponent(escuelaId)}/membresias/${encodeURIComponent(membresiaId)}/restablecer-segundo-factor`, d);
   }
 
+  /** Delegación del administrador (D5) a Dirección o Subdirección. */
+  async delegar(escuelaId: string, membresiaId: string, permisos: PermisoDelegable[]): Promise<void> {
+    const d = validar(z.object({ permisos: z.array(z.enum(PERMISOS_DELEGABLES)).max(2) }), { permisos });
+    await this.c.pedir('POST', `/api/escuelas/${encodeURIComponent(escuelaId)}/membresias/${encodeURIComponent(membresiaId)}/delegaciones`, d);
+  }
+
+  async vincularPersonal(escuelaId: string, membresiaId: string, personalId: string | null): Promise<void> {
+    const d = validar(z.object({ personalId: z.uuid('Elige una ficha de personal.').nullable() }), { personalId });
+    await this.c.pedir('POST', `/api/escuelas/${encodeURIComponent(escuelaId)}/membresias/${encodeURIComponent(membresiaId)}/vincular-personal`, d);
+  }
+
+  /** Fichas de personal de la escuela EN EL SERVIDOR (vacío hasta la migración de datos, Fase 8E). */
+  fichasServidor(escuelaId: string): Promise<FichaServidor[]> {
+    return this.c.pedir<FichaServidor[]>('GET', `/api/escuelas/${encodeURIComponent(escuelaId)}/tablas/personal`);
+  }
+
   auditoria(escuelaId: string): Promise<EventoAuditoria[]> {
     return this.c.pedir<EventoAuditoria[]>('GET', `/api/escuelas/${encodeURIComponent(escuelaId)}/auditoria`);
   }
@@ -165,4 +188,10 @@ export const ETIQUETA_ACCION_AUDITORIA: Record<string, string> = {
   invitacion_renovada: 'Invitación renovada',
   membresia_revocada: 'Acceso revocado',
   segundo_factor_restablecido: 'Verificación en dos pasos restablecida',
+  personal_vinculado: 'Ficha de personal vinculada',
+  personal_desvinculado: 'Ficha de personal desvinculada',
+  delegacion_cambiada: 'Permisos delegados cambiados',
+  comando: 'Operación registrada',
+  comando_rechazado: 'Operación rechazada por permisos',
+  lectura: 'Consulta de datos',
 };

@@ -10,6 +10,9 @@ export type Rol = (typeof ROLES)[number];
 /** Roles con acceso amplio: exigen verificación en dos pasos (TOTP). */
 export const ROLES_CON_SEGUNDO_FACTOR: readonly Rol[] = ['administrador', 'direccion', 'subdireccion'];
 
+export const PERMISOS_DELEGABLES = ['confirmar_incidencias', 'autorizar_coberturas'] as const;
+export type PermisoDelegable = (typeof PERMISOS_DELEGABLES)[number];
+
 export const ETIQUETA_ROL: Record<Rol, string> = {
   administrador: 'Administrador de la escuela', direccion: 'Dirección', subdireccion: 'Subdirección',
   prefectura: 'Prefectura', docente: 'Docente', apoyo: 'Personal de apoyo',
@@ -27,11 +30,15 @@ export interface Membresia {
   estado: EstadoMembresia;
   /** true si la invitación caducó sin usarse. */
   caducada: boolean;
+  /** Ficha de personal vinculada (docentes: define sus grupos). */
+  personalId: string | null;
+  /** Permisos que el administrador delegó (D5): confirmar_incidencias, autorizar_coberturas. */
+  permisosDelegados: string[];
 }
 
 type Consulta = Pool | PoolClient;
 
-const SELECT_MEMBRESIA = `SELECT m.id, m.usuario_id, m.escuela_id, e.nombre AS escuela_nombre, e.cct, m.rol, m.estado,
+const SELECT_MEMBRESIA = `SELECT m.id, m.usuario_id, m.escuela_id, e.nombre AS escuela_nombre, e.cct, m.rol, m.estado, m.personal_id, m.permisos_delegados,
   (m.estado = 'invitada' AND m.expira_en <= now()) AS caducada
   FROM acceso.membresias m JOIN escolar.escuelas e ON e.id = m.escuela_id`;
 
@@ -40,6 +47,7 @@ function aMembresia(r: Record<string, unknown>): Membresia {
     id: r.id as string, usuarioId: r.usuario_id as string, escuelaId: r.escuela_id as string,
     escuelaNombre: r.escuela_nombre as string, cct: (r.cct as string | null) ?? null,
     rol: r.rol as Rol, estado: r.estado as EstadoMembresia, caducada: r.caducada === true,
+    personalId: (r.personal_id as string | null) ?? null, permisosDelegados: (r.permisos_delegados as string[] | null) ?? [],
   };
 }
 

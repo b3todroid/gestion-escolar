@@ -8,22 +8,17 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import {
-  ETIQUETA_ROL, ROLES, auditar, enTransaccion, membresiasActivas, membresiasVigentes, requiereSegundoFactor,
+  ETIQUETA_ROL, PERMISOS_DELEGABLES, ROLES, auditar, enTransaccion, membresiasActivas, membresiasVigentes, requiereSegundoFactor,
   type Membresia, type Rol,
 } from './acceso.ts';
 import type { Auth } from './auth.ts';
 import type { Configuracion } from './config.ts';
 import type { EnviadorCorreo } from './correo.ts';
+import { ErrorApi } from './errores.ts';
+import { DatosEscolares, type Actor } from './datosEscolares.ts';
+import { ejecutarComando, esquemaPeticionComando } from './comandos.ts';
 
-export class ErrorApi extends Error {
-  readonly estado: number;
-  readonly codigo: string;
-  readonly campos: Record<string, string>;
-  constructor(estado: number, codigo: string, mensaje: string, campos: Record<string, string> = {}) {
-    super(mensaje);
-    this.estado = estado; this.codigo = codigo; this.campos = campos;
-  }
-}
+export { ErrorApi };
 
 export interface Peticion {
   metodo: string;
@@ -66,8 +61,10 @@ export class ApiEscolar {
   private readonly bd: Pool;
   private readonly auth: Auth;
   private readonly correo: EnviadorCorreo;
+  private readonly datos: DatosEscolares;
   constructor(cfg: Configuracion, bd: Pool, auth: Auth, correo: EnviadorCorreo) {
     this.cfg = cfg; this.bd = bd; this.auth = auth; this.correo = correo;
+    this.datos = new DatosEscolares(bd, cfg.ZONA_HORARIA);
   }
 
   async atender(p: Peticion): Promise<Respuesta> {
@@ -83,6 +80,10 @@ export class ApiEscolar {
     if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/membresias\/([^/]+)\/revocar$/))) return this.revocar(p, m[1]!, m[2]!);
     if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/membresias\/([^/]+)\/restablecer-segundo-factor$/))) return this.restablecerSegundoFactor(p, m[1]!, m[2]!);
     if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/auditoria$/))) return this.auditoria(p, m[1]!);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/membresias\/([^/]+)\/vincular-personal$/))) return this.vincularPersonal(p, m[1]!, m[2]!);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/membresias\/([^/]+)\/delegaciones$/))) return this.delegar(p, m[1]!, m[2]!);
+    if ((m = r('POST', /^\/api\/escuelas\/([^/]+)\/comandos$/))) return this.comando(p, m[1]!);
+    if ((m = r('GET', /^\/api\/escuelas\/([^/]+)\/tablas\/([A-Za-z]+)$/))) return this.leerTabla(p, m[1]!, m[2]!);
     throw new ErrorApi(404, 'NO_ENCONTRADO', 'Ruta no disponible.');
   }
 
@@ -124,7 +125,7 @@ export class ApiEscolar {
       cuerpo: {
         usuario: { id: ctx.usuario.id, nombre: ctx.usuario.nombre, correo: ctx.usuario.correo },
         segundoFactor: { activo: ctx.usuario.segundoFactorActivo, verificado: ctx.sesion.segundoFactorVerificado, requerido },
-        membresias: ctx.membresias.map((m) => ({ id: m.id, escuelaId: m.escuelaId, escuela: m.escuelaNombre, cct: m.cct, rol: m.rol, etiquetaRol: ETIQUETA_ROL[m.rol] })),
+        membresias: ctx.membresias.map((m) => ({ id: m.id, escuelaId: m.escuelaId, escuela: m.escuelaNombre, cct: m.cct, rol: m.rol, etiquetaRol: ETIQUETA_ROL[m.rol], personalId: m.personalId, permisosDelegados: m.permisosDelegados })),
       },
     };
   }
@@ -149,7 +150,7 @@ export class ApiEscolar {
     this.exigirRol(ctx, escuelaId, ['administrador']);
     const { rows } = await this.bd.query(`SELECT m.id, m.usuario_id, u.name AS nombre, u.email AS correo, m.rol, m.estado,
         (m.estado = 'invitada' AND m.expira_en <= now()) AS caducada, m.tipo_correo, m.invitada_en, m.expira_en, m.aceptada_en, m.revocada_en,
-        m.motivo_revocacion, coalesce(u."twoFactorEnabled", false) AS segundo_factor
+        m.motivo_revocacion, coalesce(u."twoFactorEnabled", false) AS segundo_factor, m.personal_id, m.permisos_delegados
       FROM acceso.membresias m JOIN "user" u ON u.id = m.usuario_id
       WHERE m.escuela_id = $1 ORDER BY m.estado = 'revocada', u.name, m.rol`, [escuelaId]);
     const fecha = (d: unknown) => (d instanceof Date ? d.toISOString() : null);
@@ -159,7 +160,7 @@ export class ApiEscolar {
         id: r.id, usuarioId: r.usuario_id, nombre: r.nombre, correo: r.correo, rol: r.rol, etiquetaRol: ETIQUETA_ROL[r.rol as Rol],
         estado: r.estado, caducada: r.caducada, tipoCorreo: r.tipo_correo, invitadaEn: fecha(r.invitada_en), expiraEn: fecha(r.expira_en),
         aceptadaEn: fecha(r.aceptada_en), revocadaEn: fecha(r.revocada_en), motivoRevocacion: r.motivo_revocacion, segundoFactorActivo: r.segundo_factor,
-        esUsted: r.usuario_id === ctx.usuario.id,
+        esUsted: r.usuario_id === ctx.usuario.id, personalId: r.personal_id, permisosDelegados: r.permisos_delegados,
       })),
     };
   }
@@ -264,6 +265,88 @@ export class ApiEscolar {
       FROM acceso.auditoria a LEFT JOIN "user" u ON u.id = a.usuario_id
       WHERE a.escuela_id = $1 ORDER BY a.id DESC LIMIT 100`, [escuelaId]);
     return { estado: 200, cuerpo: rows.map((r) => ({ ocurridoEn: (r.ocurrido_en as Date).toISOString(), accion: r.accion, entidad: r.entidad, detalle: r.detalle, quien: r.quien })) };
+  }
+  // ---------- Fase 8C: datos escolares con permisos por fila ----------
+
+  private actor(ctx: Contexto, escuelaId: string): Actor {
+    if (!uuid.safeParse(escuelaId).success || !ctx.membresias.some((m) => m.escuelaId === escuelaId)) throw SIN_PERMISO();
+    return { usuarioId: ctx.usuario.id, nombre: ctx.usuario.nombre, escuelaId, membresias: ctx.membresias };
+  }
+
+  /** Comando con idempotencia: el mismo opId devuelve el mismo resultado sin repetir la operación. */
+  private async comando(p: Peticion, escuelaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    const actor = this.actor(ctx, escuelaId);
+    const pet = validar(esquemaPeticionComando, p.cuerpo);
+    const previa = await this.bd.query<{ usuario_id: string; escuela_id: string; tipo: string; resultado: unknown }>(
+      'SELECT usuario_id, escuela_id, tipo, resultado FROM acceso.operaciones WHERE op_id = $1', [pet.opId]);
+    if (previa.rows[0]) {
+      const o = previa.rows[0];
+      if (o.usuario_id !== actor.usuarioId || o.escuela_id !== escuelaId || o.tipo !== pet.tipo) throw new ErrorApi(409, 'OPERACION_DISTINTA', 'Ese identificador de operación ya se usó para otra operación.');
+      return { estado: 200, cuerpo: { repetida: true, resultado: o.resultado } };
+    }
+    try {
+      const resultado = await this.datos.ejecutar(actor, (c) => ejecutarComando(c, pet.tipo, pet.datos), async (cl, res) => {
+        await cl.query('INSERT INTO acceso.operaciones (op_id, usuario_id, escuela_id, tipo, resultado) VALUES ($1, $2, $3, $4, $5)',
+          [pet.opId, actor.usuarioId, escuelaId, pet.tipo, JSON.stringify(res ?? null)]);
+        await auditar(cl, { usuarioId: actor.usuarioId, escuelaId, accion: 'comando', entidad: pet.tipo, entidadId: pet.opId });
+      });
+      return { estado: 200, cuerpo: { repetida: false, resultado } };
+    } catch (e) {
+      // Dos envíos simultáneos del mismo opId: el segundo devuelve lo que guardó el primero.
+      if (e instanceof ErrorApi && e.codigo === 'DUPLICADO') {
+        const ya = await this.bd.query('SELECT resultado FROM acceso.operaciones WHERE op_id = $1 AND usuario_id = $2', [pet.opId, actor.usuarioId]);
+        if (ya.rows[0]) return { estado: 200, cuerpo: { repetida: true, resultado: ya.rows[0].resultado } };
+      }
+      if (e instanceof ErrorApi && e.estado === 403) await auditar(this.bd, { usuarioId: actor.usuarioId, escuelaId, accion: 'comando_rechazado', entidad: pet.tipo, entidadId: pet.opId });
+      throw e;
+    }
+  }
+
+  private async leerTabla(p: Peticion, escuelaId: string, tabla: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    const actor = this.actor(ctx, escuelaId);
+    const ciclo = p.consulta.get('ciclo');
+    if (ciclo !== null && !uuid.safeParse(ciclo).success) throw new ErrorApi(400, 'VALIDACION', 'Ciclo inválido.');
+    return { estado: 200, cuerpo: await this.datos.leerTabla(actor, tabla, ciclo) };
+  }
+
+  /** Vincula la membresía con la ficha de personal de la escuela (define los grupos de un docente). */
+  private async vincularPersonal(p: Peticion, escuelaId: string, membresiaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    this.exigirRol(ctx, escuelaId, ['administrador']);
+    const { personalId } = validar(z.object({ personalId: uuid.nullable() }), p.cuerpo);
+    const r = await enTransaccion(this.bd, async (c) => {
+      const m = await this.membresiaDeEscuela(c, escuelaId, membresiaId);
+      if (m.estado === 'revocada') throw new ErrorApi(409, 'YA_REVOCADA', 'Ese acceso está revocado.');
+      if (personalId) {
+        const f = await c.query('SELECT 1 FROM escolar.personal WHERE id = $1 AND escuela_id = $2', [personalId, escuelaId]);
+        if (!f.rowCount) throw new ErrorApi(404, 'NO_ENCONTRADO', 'Esa ficha de personal no existe en esta escuela.', { personalId: 'No existe en esta escuela.' });
+        const otra = await c.query(`SELECT 1 FROM acceso.membresias WHERE escuela_id = $1 AND personal_id = $2 AND usuario_id <> $3 AND estado <> 'revocada'`, [escuelaId, personalId, m.usuario_id]);
+        if (otra.rowCount) throw new ErrorApi(409, 'YA_VINCULADA', 'Esa ficha ya está vinculada con otra persona.', { personalId: 'Ya está vinculada con otra persona.' });
+      }
+      // La ficha identifica a la PERSONA: se vincula en todas sus membresías de esta escuela.
+      await c.query(`UPDATE acceso.membresias SET personal_id = $3, actualizada_en = now() WHERE escuela_id = $1 AND usuario_id = $2 AND estado <> 'revocada'`, [escuelaId, m.usuario_id, personalId]);
+      await auditar(c, { usuarioId: ctx.usuario.id, escuelaId, accion: personalId ? 'personal_vinculado' : 'personal_desvinculado', entidad: 'membresia', entidadId: m.id });
+      return { vinculada: personalId !== null };
+    });
+    return { estado: 200, cuerpo: r };
+  }
+
+  /** Delegación (D5): el administrador delega confirmar incidencias o autorizar coberturas a Dirección o Subdirección. */
+  private async delegar(p: Peticion, escuelaId: string, membresiaId: string): Promise<Respuesta> {
+    const ctx = await this.contexto(p);
+    this.exigirRol(ctx, escuelaId, ['administrador']);
+    const { permisos } = validar(z.object({ permisos: z.array(z.enum(PERMISOS_DELEGABLES, 'Permiso no delegable.')).max(2).transform((v) => [...new Set(v)].sort()) }), p.cuerpo);
+    const r = await enTransaccion(this.bd, async (c) => {
+      const m = await this.membresiaDeEscuela(c, escuelaId, membresiaId);
+      if (m.estado === 'revocada') throw new ErrorApi(409, 'YA_REVOCADA', 'Ese acceso está revocado.');
+      if (!['direccion', 'subdireccion'].includes(m.rol)) throw new ErrorApi(409, 'ROL_NO_DELEGABLE', 'Sólo se delega a Dirección o Subdirección.');
+      await c.query('UPDATE acceso.membresias SET permisos_delegados = $2, actualizada_en = now() WHERE id = $1', [m.id, permisos]);
+      await auditar(c, { usuarioId: ctx.usuario.id, escuelaId, accion: 'delegacion_cambiada', entidad: 'membresia', entidadId: m.id, detalle: { permisos: permisos.join(',') || 'ninguno' } });
+      return { permisos };
+    });
+    return { estado: 200, cuerpo: r };
   }
 }
 

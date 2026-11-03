@@ -113,3 +113,6 @@ Decisiones:
 
 ## Fase 8B — servidor
 `servidor/` (Node, sin marcos HTTP) → Better Auth + API propia → PostgreSQL. El cliente lo usa sólo desde `src/remoto/servidorEscolar.ts` (capa equivalente a `repositories/`) a través de `services/cuenta.ts`, en el mismo origen `/api`. Dependencias nuevas: `better-auth@1.7.11`, `pg@8.23.1` (producción del servidor; no entran al paquete de la app) y `oauth2-mock-server@9.3.0` (sólo pruebas). Justificación y alternativas en `docs/SERVIDOR.md`.
+
+## Fase 8C — permisos
+El servidor se compila con Vite (`servidor/vite.config.ts`) para **reutilizar** `src/services`, `src/domain`, `src/validators` y `src/models`. `servidor/src/repositoriosPg.ts` implementa `Repositorios`/`UnidadDeTrabajo` sobre PostgreSQL: cada servicio usa la transacción de la petición y cada unidad de trabajo es un punto de guardado. Las peticiones de datos escolares corren con el rol `gestion_app` bajo RLS (`docs/PERMISOS.md`). La capa de presentación no cambia: la app sigue local.

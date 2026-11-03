@@ -31,6 +31,8 @@ const esquema = z.object({
   MICROSOFT_TENANT_ID: z.string().min(3).optional(),
   /** Proveedor OIDC de PRUEBA (sólo MODO=pruebas): permite probar el flujo SSO completo sin servicios externos. */
   OIDC_PRUEBA_URL: z.url().optional(),
+  /** Zona horaria de las escuelas (fecha y hora del servidor para pases de lista, salidas, etc.). */
+  ZONA_HORARIA: z.string().min(3).default('America/Mexico_City'),
   /** Límite de solicitudes del inicio de sesión (por ventana de 60 s y dirección). */
   LIMITE_CODIGOS_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(3),
   /** Límite de intentos de código (correo o segundo factor) por ventana de 60 s y dirección. */

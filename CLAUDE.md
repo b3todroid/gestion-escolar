@@ -1,6 +1,6 @@
 # CLAUDE.md — Gestión Escolar
 
-PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`, sólo local) — completada, pendiente de revisión; **no iniciar 8C ni desplegar sin autorización**. **No avanzar de fase sin autorización explícita.**
+PWA **local-first** para gestión escolar. Estado: Fases 1 a 4 completadas, más respaldos. Fase 1 ampliada completada. Fase 2 (catálogos) completada. Fases 3 (horarios, v7) y 4 (módulo docente, v8) completadas. Fase 5 (PWA, offline, respaldos) completada. Fase 6 (PDF/OCR, v9) completada. **Fase 7 — Prefectura** (esquema v10) — completada. **Fase 8A — diseño** (`docs/FASE8A_MULTIUSUARIO.md`) entregado. **Fase 8B — backend y autenticación** (`docs/SERVIDOR.md`) completada. **Fase 8C — permisos y aislamiento** (`docs/PERMISOS.md`, sólo local) — completada, pendiente de revisión; **no iniciar 8D ni desplegar sin autorización**. **No avanzar de fase sin autorización explícita.**
 Leer antes de trabajar: `docs/ESTADO_PROYECTO.md`, `docs/ARQUITECTURA.md`, `docs/REGLAS_NEGOCIO.md`, `docs/MODELO_DATOS.md` (y `docs/IMPORTACIONES.md`, `docs/PRUEBAS.md` según la tarea).
 
 ## Comandos
@@ -72,6 +72,13 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Auditoría `acceso.auditoria` de sólo agregar, sin correos, nombres ni códigos.
 - El cliente (`src/remoto`, `services/cuenta.ts`) **no** toca los datos locales ni importa código de `servidor/`; la API va por el mismo origen `/api` (intermediario de Vite; el SW la excluye).
 
+## Fase 8C (permisos, `docs/PERMISOS.md`)
+- El servidor se compila con Vite (`dist-servidor/`) y **reutiliza** `src/services` sobre `servidor/src/repositoriosPg.ts`: no copiar reglas de negocio al servidor.
+- Por eso el código de `src/services`, `src/domain`, `src/validators` y `src/models` debe poder ejecutarse en Node: nada de `window`, `document` ni IndexedDB en esas capas.
+- Datos escolares sólo con `DatosEscolares.ejecutar` (rol `gestion_app`, `app.usuario_id`, `app.escuela_id`). Nunca consultas de datos escolares con el rol dueño desde la API.
+- Toda tabla nueva del esquema `escolar` necesita fila en `acceso.matriz`, políticas RLS y disparador de misma escuela (la migración 0004 falla si hay tablas sin RLS). Agregar la tabla a la especificación de `aislamiento.test.ts`.
+- Comandos: definir en `comandos.ts` con roles, Zod y servicio de la app; los datos de quien actúa los pone el servidor.
+
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)
 - Archivo JSON por escuela (o todas) con versión de esquema y huella SHA-256. Excluye `ajustes` (preferencias del dispositivo).
 - Restaurar: verificar archivo (Zod por tabla + referencias internas + huella) **fuera** de la transacción → comparar y escribir **dentro**. Nunca hacer operaciones asíncronas ajenas a IndexedDB (p. ej. `crypto.subtle`, `fetch`) dentro de `uow.ejecutar`: Dexie cierra la transacción antes de tiempo.
@@ -105,5 +112,5 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - ExcelJS se evaluó y se descartó en la Fase 3. PDF.js 6.4.299 y Tesseract.js 7.0.0 evaluados e instalados en la Fase 6 (ver `docs/ARQUITECTURA.md`). No instalar jsPDF/pdf-lib hasta la fase que los use; antes, evaluar y documentar igual.
 
 ## Fuera de alcance hasta nuevas fases
-Generación de PDF propio, sincronización multiusuario (8D), despliegue en la nube, RLS (8C).
+Generación de PDF propio, sincronización multiusuario (8D), migración de datos (8E), despliegue en la nube.
 No simular permisos ocultando botones: IndexedDB no ofrece autenticación ni multiusuario.

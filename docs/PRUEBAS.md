@@ -137,3 +137,9 @@ Unitarias en `tests/unit/fase7-prefectura.test.ts` (U) y funcionales en `tests/e
 - `npm run test:servidor` (35, PostgreSQL real por archivo, requiere `PRUEBAS_POSTGRES_URL`): migraciones y huellas, espejo = respaldo, auditoría inmutable, configuración, alta del operador, código al correo (invitados, no invitados, hash, intentos, caducidad, límite), rutas cerradas, segundo factor (obligatorio, pendiente, respaldo, no desactivable), invitaciones con consentimiento, aislamiento entre escuelas, CSRF y tamaño, cierre y revocación de sesiones, restablecimiento, SSO con proveedor OIDC simulado, sin secretos en `src/`.
 - `npm run test:e2e:servidor` (2, navegador + servidor real + base temporal): flujo completo administrador/docente y segundo factor pendiente.
 - `tests/e2e/cuenta-local.spec.ts`: modo local sin servidor y compilación sin secretos.
+
+## Fase 8C — permisos y aislamiento
+- `servidor/pruebas/aislamiento.test.ts` (35): matriz = especificación; 2 escuelas × 6 roles × 31 tablas (lectura y escritura); escuela atada a la ruta; revocados e invitados sin aceptar; docente sin ficha; referencias cruzadas; ciclo cerrado; confirmar/autorizar (D5); banco; historiales.
+- `servidor/pruebas/comandos.test.ts` (16): comandos por HTTP con sesiones reales, idempotencia, reglas de la app en el servidor, delegación, columnas sensibles y auditoría.
+- Datos ficticios completos por escuela: `servidor/pruebas/semilla.ts`.
+- `npm run test:e2e:servidor` usa el servidor **compilado** (`dist-servidor/`).

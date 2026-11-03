@@ -11,7 +11,8 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { isIP } from 'node:net';
 import type { Pool } from 'pg';
-import { ApiEscolar, ErrorApi } from './api.ts';
+import { ApiEscolar } from './api.ts';
+import { ErrorApi } from './errores.ts';
 import { CABECERA_IP, RUTA_AUTH, type Auth } from './auth.ts';
 import type { Configuracion } from './config.ts';
 import type { BuzonDesarrollo, EnviadorCorreo } from './correo.ts';

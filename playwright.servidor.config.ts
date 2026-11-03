@@ -16,7 +16,7 @@ export default defineConfig({
   projects: [{ name: 'movil', use: { ...devices['Pixel 7'] } }],
   webServer: [
     {
-      command: `node servidor/herramientas/servidorPruebas.ts`,
+      command: `npm run servidor:compilar && node dist-servidor/servidorPruebas.mjs`,
       env: { PUERTO_PRUEBAS: String(PUERTO_API), URL_PUBLICA_PRUEBAS: `http://localhost:${PUERTO_APP}` },
       url: `http://127.0.0.1:${PUERTO_API}/api/salud`,
       reuseExistingServer: false,

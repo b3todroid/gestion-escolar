@@ -1,11 +1,30 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8B — Backend y autenticación** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8C sin autorización. Esquema local sin cambios (sigue v10).
+**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 8C — Permisos y aislamiento** — completada en entorno LOCAL con datos ficticios, pendiente de revisión del usuario. No se inicia 8D sin autorización. Esquema local sin cambios (sigue v10).
+
+## Fase 8C — Permisos y aislamiento (2026-11-03)
+**Auditoría inicial:** pruebas en verde (176 unitarias, 58 funcionales, 35 del servidor, 2 con servidor real). Los servicios dependen de interfaces de repositorio genéricas, lo que permite reutilizarlos en el servidor.
+
+**Implementado (detalle en `docs/PERMISOS.md`):**
+- El servidor se compila con Vite y ejecuta los mismos servicios de la app sobre repositorios PostgreSQL.
+- Rol restringido `gestion_app` con matriz de permisos como datos y RLS en las 31 tablas (lectura y escritura por rol: escuela, grupos o propio). Cada transacción queda atada a la escuela de la ruta.
+- Disparadores de misma escuela, ciclo cerrado, confirmar/autorizar (D5), banco de actividades e historiales de sólo agregar.
+- 14 comandos idempotentes con auditoría; lectura filtrada con columnas sensibles por rol.
+- Vínculo de cuenta con ficha de personal y delegación de permisos (API y pantalla «Ficha y permisos»).
+
+**Defectos encontrados y corregidos:**
+- Los formatos de fecha de `pg` eran globales y alteraban el código de 8B (ahora sólo aplican a datos escolares).
+- La actualización de registros numeraba mal los parámetros.
+- Los servicios insertan detalle antes que encabezado (válido en IndexedDB), lo que violaba las llaves foráneas; ahora se verifican al confirmar la transacción.
+- Las llaves foráneas permitían colgar registros de otra escuela (disparador nuevo).
+- Quien tiene dos escuelas podía usar la ruta de una para la otra (transacción atada a la escuela).
+
+**Pendientes / límites:** sin despliegue ni datos reales; la configuración completa sigue en el dispositivo hasta 8D/8E; rendimiento de la RLS por fila por medir; decisiones D13 (alcance de Apoyo) y D14 (escritura del administrador en horarios).
 
 ## Fase 8B — Backend y autenticación (2026-11-03)
 **Auditoría inicial:** pruebas en verde (176 unitarias, 56 funcionales). Decisiones D1–D12 tomadas (datos en México, cada escuela responsable, SSO + código por correo, correo personal con consentimiento).
 
-**Implementado (detalle en `docs/SERVIDOR.md`):** servidor Node propio en `servidor/` con PostgreSQL y migraciones versionadas con huella (autenticación, espejo de las 30 tablas escolares vacío, membresías y auditoría de sólo agregar); Better Auth 1.7.11 sin contraseñas (código al correo, OIDC para Google/Microsoft), sólo personas invitadas, verificación en dos pasos obligatoria para roles amplios, sesiones revocables al instante, límites de intentos, protección CSRF, token nunca expuesto; API de cuenta, sesiones, invitaciones, revocación, restablecimiento de verificación y auditoría; comandos del operador; pantallas `#/cuenta` y `#/cuenta/escuela/ID`; intermediario `/api` en Vite y exclusión en el Service Worker.
+**Implementado (detalle en `docs/SERVIDOR.md`):** servidor Node propio en `servidor/` con PostgreSQL y migraciones versionadas con huella (autenticación, espejo de las 31 tablas escolares vacío, membresías y auditoría de sólo agregar); Better Auth 1.7.11 sin contraseñas (código al correo, OIDC para Google/Microsoft), sólo personas invitadas, verificación en dos pasos obligatoria para roles amplios, sesiones revocables al instante, límites de intentos, protección CSRF, token nunca expuesto; API de cuenta, sesiones, invitaciones, revocación, restablecimiento de verificación y auditoría; comandos del operador; pantallas `#/cuenta` y `#/cuenta/escuela/ID`; intermediario `/api` en Vite y exclusión en el Service Worker.
 
 **Desviación del diseño:** Supabase Auth no pudo obtenerse en el entorno (Docker Hub 429; compilación no autorizada) → Better Auth autohospedado (justificación en `docs/SERVIDOR.md`).
 

@@ -84,6 +84,10 @@ test('inicio de sesión, verificación en dos pasos, invitación, permisos del s
   await page.getByRole('button', { name: 'Enviar invitación' }).click();
   await expect(page.locator('[data-correo="docente.e2e@ejemplo.test"]')).toContainText('Invitación pendiente');
   await expect(page.locator('#lista-auditoria')).toContainText('Invitación enviada');
+  // Ficha de personal (8C): el servidor todavía no tiene fichas de esta escuela (llegan con la migración)
+  await page.locator('summary', { hasText: 'Ficha y permisos de Docente Ficticia E2E' }).click();
+  await expect(page.locator('[data-correo="docente.e2e@ejemplo.test"]')).toContainText('aún no tiene fichas de personal');
+  await expect(page.locator('[data-correo="docente.e2e@ejemplo.test"]')).toContainText('Sin ficha: no verá grupos');
 
   // 4. El docente entra en otro dispositivo: no administra (lo impide el servidor, no un botón oculto)
   const otro = await browser.newContext({ timezoneId: 'America/Mexico_City', locale: 'es-MX' });

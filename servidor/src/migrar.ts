@@ -8,10 +8,11 @@
  */
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { Pool } from 'pg';
 
-export const DIRECTORIO_MIGRACIONES = new URL('../migraciones/', import.meta.url).pathname;
+/** Se ejecuta desde la raíz del proyecto (también la versión compilada en dist-servidor/). */
+export const DIRECTORIO_MIGRACIONES = process.env.MIGRACIONES_DIR ?? resolve(process.cwd(), 'servidor/migraciones');
 const CANDADO = 824_670_301; // identificador arbitrario y fijo del candado de migración
 
 export interface Migracion { nombre: string; sql: string; huella: string }

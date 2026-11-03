@@ -1,6 +1,8 @@
 node_modules/
 dist/
+dist-servidor/
 dev-dist/
+dist-servidor/
 coverage/
 test-results/
 playwright-report/

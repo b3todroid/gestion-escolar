@@ -13,6 +13,12 @@
 | Operador (D8) | `servidor/src/cli.ts`, `servidor/src/operador.ts` | `migrar`, `alta-escuela`, `restablecer-segundo-factor`. No existen en la web |
 | Cliente | `src/remoto/servidorEscolar.ts`, `src/services/cuenta.ts`, `src/pages/cuenta.ts` | Pantallas `#/cuenta` y `#/cuenta/escuela/ID` |
 
+## Fase 8C (resumen; detalle en `docs/PERMISOS.md`)
+- El servidor se **compila con Vite** (`npm run servidor:compilar` → `dist-servidor/`) para reutilizar los servicios, reglas y validaciones de `src/`. `npm run servidor` y `npm run servidor:cli` compilan antes de ejecutar.
+- Permisos por fila (RLS) en las 31 tablas con el rol restringido `gestion_app`. El usuario dueño de la base necesita `CREATEROLE` para la migración 0004: localmente, `ALTER ROLE gestion_dev CREATEROLE;` como superusuario.
+- Comandos idempotentes (`/api/escuelas/ID/comandos`) y lectura filtrada (`/api/escuelas/ID/tablas/TABLA`).
+- Vincular ficha de personal y delegar permisos (D5) desde `#/cuenta/escuela/ID`.
+
 ## Decisión técnica: Better Auth en lugar de Supabase Auth
 El diseño 8A proponía Supabase Auth (GoTrue) autohospedado o Keycloak/Zitadel. En este entorno no fue posible obtener la imagen de Supabase Auth (Docker Hub devolvió 429 y otros registros estaban bloqueados), y compilarla desde su código no fue autorizado. Se eligió **Better Auth** (biblioteca de código abierto, licencia MIT, sin servicios externos, se instala con npm y corre dentro del propio servidor):
 - Cubre lo decidido: código por correo, OIDC/Google/Microsoft, TOTP, sesiones en PostgreSQL, límites de intentos.
@@ -72,6 +78,6 @@ Sin el servidor en marcha, `#/cuenta` indica «Modo local» y todo lo demás fun
 - **Despliegue** en la nube elegida (D11): servidor, PostgreSQL gestionado, HTTPS, proxy inverso con IP de cliente confiable, respaldos y monitoreo.
 - **Envío por SMTP**: el servidor se niega a arrancar en producción sin él.
 - **Registro de Google y Microsoft** con las cuentas del administrador (D8).
-- **8C**: políticas RLS, matriz de permisos completa, delegación (D5) y validación de reglas de negocio en el servidor. Para eso hace falta compartir `domain/` con el servidor, empaquetándolo con Vite.
+- ~~8C~~ hecho (ver `docs/PERMISOS.md`).
 - **8D**: sincronización. **8E**: migración de datos reales, sólo con autorización.
 - **Aviso de privacidad por escuela** (D2) y retención de 1 ciclo (D7).

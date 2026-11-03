@@ -12,8 +12,8 @@ import { alEnviar, botonEnviar, campo, ejecutar, formulario, selector, texto } f
 import { botonAccion, desplegable, encabezado, insignia, migas, seccion, vacio } from '../components/piezas';
 import { esErrorDominio } from '../domain/errores';
 import {
-  ETIQUETA_ACCION_AUDITORIA, ETIQUETA_PROVEEDOR, ETIQUETA_ROL_SERVIDOR, ROLES_SERVIDOR,
-  type ConfiguracionServidor, type Miembro, type Yo,
+  ETIQUETA_ACCION_AUDITORIA, ETIQUETA_PERMISO, ETIQUETA_PROVEEDOR, ETIQUETA_ROL_SERVIDOR, PERMISOS_DELEGABLES, ROLES_SERVIDOR,
+  type ConfiguracionServidor, type FichaServidor, type Miembro, type Yo,
 } from '../services/cuenta';
 
 const AVISO_FASE = 'Función en prueba: iniciar sesión todavía NO envía ni sincroniza tus datos escolares. Todo sigue guardado sólo en este dispositivo.';
@@ -269,8 +269,9 @@ export async function paginaAccesosEscuela(ctx: ContextoPagina, escuelaId: strin
   });
   let miembros: Miembro[];
   let auditoria;
+  let fichas: FichaServidor[];
   try {
-    [miembros, auditoria] = await Promise.all([ctx.s.cuenta.miembros(escuelaId), ctx.s.cuenta.auditoria(escuelaId)]);
+    [miembros, auditoria, fichas] = await Promise.all([ctx.s.cuenta.miembros(escuelaId), ctx.s.cuenta.auditoria(escuelaId), ctx.s.cuenta.fichasServidor(escuelaId)]);
   } catch (e) {
     if (!esErrorDominio(e)) throw e;
     return pagina(h('p', { class: 'mensaje mensaje--error', role: 'alert' }, icono('⚠'), ' ', e.message), h('a', { class: 'boton', href: '#/cuenta' }, 'Volver a la cuenta'));
@@ -300,6 +301,39 @@ export async function paginaAccesosEscuela(ctx: ContextoPagina, escuelaId: strin
     return null;
   }, 'Enviando…');
 
+  const nombreFicha = (f: FichaServidor) => [f.nombre, f.primerApellido, f.segundoApellido].filter(Boolean).join(' ');
+  /** Ficha de personal y delegaciones (D5) de una membresía activa o pendiente. */
+  const permisos = (x: Miembro) => {
+    if (x.estado === 'revocada') return null;
+    const ficha = fichas.find((f) => f.id === x.personalId);
+    const idSel = `ficha-${x.id}`;
+    const elegir = h('select', { id: idSel, name: 'personalId' },
+      h('option', { value: '' }, 'Sin vincular'),
+      ...fichas.map((f) => h('option', { value: f.id, selected: f.id === x.personalId }, nombreFicha(f))));
+    const delegables = ['direccion', 'subdireccion'].includes(x.rol);
+    return desplegable(`Ficha y permisos de ${x.nombre}`, false,
+      fichas.length
+        ? h('div', { class: 'campo' },
+            h('label', { for: idSel }, 'Ficha de personal (define los grupos de un docente)'),
+            elegir,
+            h('button', { type: 'button', class: 'boton boton--secundario boton--chico', onclick: async () => {
+              if (await ejecutar(async () => { await ctx.s.cuenta.vincularPersonal(escuelaId, x.id, elegir.value || null); return elegir.value ? 'Ficha vinculada.' : 'Ficha desvinculada.'; })) await ctx.recargar();
+            } }, 'Guardar ficha'))
+        : h('p', { class: 'ayuda' }, icono('ℹ'), ' El servidor aún no tiene fichas de personal de esta escuela; llegarán con la migración de datos (fase posterior, con autorización).'),
+      ficha ? h('p', {}, insignia(`Vinculada con ${nombreFicha(ficha)}`, 'ok', '✓')) : x.rol === 'docente' ? h('p', {}, insignia('Sin ficha: no verá grupos ni podrá pasar lista', 'aviso', '!')) : null,
+      delegables ? h('fieldset', { class: 'campo casillas' },
+        h('legend', {}, 'Permisos delegados por el administrador'),
+        ...PERMISOS_DELEGABLES.map((perm) => h('label', { class: 'casilla' },
+          h('input', { type: 'checkbox', name: `delegar-${x.id}`, value: perm, checked: x.permisosDelegados.includes(perm) }), h('span', {}, ETIQUETA_PERMISO[perm]))),
+        h('button', { type: 'button', class: 'boton boton--secundario boton--chico', onclick: async (ev: Event) => {
+          const caja = (ev.currentTarget as HTMLElement).closest('fieldset')!;
+          const elegidos = [...caja.querySelectorAll<HTMLInputElement>('input:checked')].map((i) => i.value as (typeof PERMISOS_DELEGABLES)[number]);
+          if (await ejecutar(async () => { await ctx.s.cuenta.delegar(escuelaId, x.id, elegidos); return elegidos.length ? 'Permisos delegados guardados.' : 'Se retiraron los permisos delegados.'; })) await ctx.recargar();
+        } }, 'Guardar permisos'),
+      ) : null,
+    );
+  };
+
   const acciones = (x: Miembro) => {
     if (x.estado === 'revocada' || x.esUsted) return null;
     return h('div', { class: 'renglon__acciones' },
@@ -326,6 +360,7 @@ export async function paginaAccesosEscuela(ctx: ContextoPagina, escuelaId: strin
         ['administrador', 'direccion', 'subdireccion'].includes(x.rol) && x.estado === 'activa'
           ? (x.segundoFactorActivo ? insignia('Dos pasos activa', 'ok', '✓') : insignia('Dos pasos pendiente', 'aviso', '!')) : null,
         acciones(x),
+        permisos(x),
       ))) : vacio('Todavía no hay personas.'),
     ),
     seccion('invitar', 'Invitar', f),
