@@ -16,5 +16,7 @@ echo.
 echo Abriendo Gestion Escolar en http://localhost:5173
 echo NO CIERRES ESTA VENTANA mientras uses la aplicacion. Para detenerla: Ctrl+C
 echo.
-call npm.cmd run dev -- --open
+REM El navegador lo abre Windows (no Vite): algunos equipos bloquean que Vite lo abra (error spawn EPERM).
+start "" /min cmd /c "timeout /t 6 /nobreak >nul & start "" http://localhost:5173/"
+call npm.cmd run dev
 pause
