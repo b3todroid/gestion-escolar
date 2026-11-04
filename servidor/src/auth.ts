@@ -11,7 +11,7 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/a
 import { emailOTP, genericOAuth, twoFactor } from 'better-auth/plugins';
 import type { Pool } from 'pg';
 import { activarInvitaciones, auditar, membresiasVigentes, requiereSegundoFactor } from './acceso.ts';
-import type { Configuracion } from './config.ts';
+import { MODOS_ESTRICTOS, type Configuracion } from './config.ts';
 import type { EnviadorCorreo } from './correo.ts';
 
 export const RUTA_AUTH = '/api/auth';
@@ -132,7 +132,7 @@ export function crearAuth(cfg: Configuracion, bd: Pool, correo: EnviadorCorreo) 
     },
     advanced: {
       cookiePrefix: 'gestion-escolar',
-      useSecureCookies: cfg.MODO === 'produccion',
+      useSecureCookies: MODOS_ESTRICTOS.includes(cfg.MODO),
       ipAddress: { ipAddressHeaders: [CABECERA_IP] },
     },
     telemetry: { enabled: false },

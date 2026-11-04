@@ -1,0 +1,18 @@
+# Fase 11: el contexto de construcción no lleva secretos, datos, respaldos ni artefactos locales.
+node_modules
+dist
+dist-servidor
+dev-dist
+test-results
+playwright-report
+coverage
+.git
+**/.env
+**/.env.*
+!**/.env.example
+deploy/secretos
+deploy/respaldos
+piloto/salida
+*.age
+*.dump
+*.log

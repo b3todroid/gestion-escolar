@@ -61,7 +61,8 @@ function politicaSeguridad(): Plugin {
 // Configuración de compilación y PWA.
 // El Service Worker precachea todos los recursos de la app (local-first):
 // tras la primera carga, la aplicación funciona sin conexión.
-const VERSION_APP = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
+// VERSION_APP (opcional) identifica la compilación desplegada, p. ej. «0.1.0+20261104.1» (Fase 11).
+const VERSION_APP = process.env.VERSION_APP ?? (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
 // Servidor escolar (Fase 8B, opcional): la API se sirve en el MISMO origen (/api) a través
 // de este intermediario, para que la sesión viaje en una cookie HttpOnly y la CSP siga en 'self'.

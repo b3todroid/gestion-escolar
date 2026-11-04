@@ -23,6 +23,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 import { generarPiloto } from '../../piloto/datos';
 import { migrar } from '../src/migrar.ts';
+import { conSecretosDeArchivo } from '../src/config.ts';
 import { PATRON_BASE_PILOTO, cargarDemostracion, crearCuentas, cuentasPiloto } from './cargaPiloto.ts';
 
 const [, , comando, sub, ...resto] = process.argv;
@@ -31,7 +32,7 @@ const numero = (n: string, def: number) => { const v = opcion(n); return v === u
 
 function baseDelPiloto(): { url: URL; nombre: string } {
   if (process.env.MODO === 'produccion') throw new Error('El piloto nunca se ejecuta en producción.');
-  const texto = process.env.DATABASE_URL;
+  const texto = conSecretosDeArchivo(process.env).DATABASE_URL;
   if (!texto) throw new Error('Falta DATABASE_URL (por ejemplo postgres://USUARIO:CLAVE@localhost:5432/gestion_piloto).');
   const url = new URL(texto);
   const nombre = decodeURIComponent(url.pathname.replace(/^\//, ''));
@@ -81,7 +82,7 @@ async function main() {
       await crearCuentas(bd, p.escuelaId, cuentas, false);
       console.info([`Piloto listo en ${nombre}: ESCUELA DEMO GESTIÓN ESCOLAR (DEMO-001), ${r.registros} registros FICTICIOS, huella verificada.`,
         ...cuentas.map((c) => `  ${c.rol.padEnd(14)} ${c.correo}`),
-        'Códigos de acceso: http://localhost:5173/api/desarrollo/buzon?correo=… (sólo en este equipo). Administración y Dirección activan la verificación en dos pasos al entrar.'].join('\n'));
+        'Códigos de acceso: llegan al correo configurado (desarrollo: /api/desarrollo/buzon?correo=… sólo en este equipo; preproducción: buzón de prueba Mailpit en http://127.0.0.1:8025). Administración y Dirección activan la verificación en dos pasos al entrar.'].join('\n'));
     } finally { await bd.end(); }
   } finally { await admin.end(); }
 }

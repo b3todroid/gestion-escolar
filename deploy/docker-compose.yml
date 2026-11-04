@@ -1,0 +1,119 @@
+# Gestión Escolar — despliegue con contenedores (Fase 11).
+# Uso (siempre con un nombre de proyecto por entorno: datos y volúmenes separados):
+#   docker compose -p gestion-prod    -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+#   docker compose -p gestion-preprod -f deploy/docker-compose.yml -f deploy/compose.preproduccion.yml --env-file deploy/preproduccion.env up -d --build
+# Antes: deploy/scripts/generar-secretos.sh (crea deploy/secretos/, nunca va al repositorio).
+#
+# Red: sólo «web» (Caddy) publica puertos (80/443). La base de datos y la API viven en la red
+# «interna», sin salida a internet; la API sale sólo por «correo» (SMTP).
+
+name: gestion-escolar
+
+services:
+  db:
+    image: ${REGISTRO:-docker.io/library}/postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superusuario
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: "--data-checksums --auth-host=scram-sha-256"
+      GESTION_BD: ${GESTION_BD:?Define GESTION_BD en el archivo de entorno}
+      GESTION_USUARIO: ${GESTION_USUARIO:-gestion}
+    secrets: [pg_superusuario, pg_gestion]
+    volumes:
+      - datos_pg:/var/lib/postgresql/data
+      - ./postgres/10-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    networks: [interna]
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Sin «ports»: la base de datos NUNCA se publica.
+
+  servidor:
+    image: gestion-escolar/servidor:${VERSION:-local}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: servidor
+      args:
+        REGISTRO: ${REGISTRO:-docker.io/library}
+        VERSION_APP: ${VERSION:-local}
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      MODO: ${MODO:?Define MODO (produccion o preproduccion)}
+      URL_PUBLICA: ${URL_PUBLICA:-https://${DOMINIO:?Define DOMINIO}}
+      DATABASE_URL_FILE: /run/secrets/database_url
+      BETTER_AUTH_SECRET_FILE: /run/secrets/better_auth_secret
+      HOST: 0.0.0.0
+      PUERTO: "8787"
+      # Sólo la red de los contenedores puede actuar como proxy de confianza.
+      PROXIES_CONFIABLES: ${PROXIES_CONFIABLES:-172.16.0.0/12,192.168.0.0/16,10.0.0.0/8}
+      CORREO_MODO: smtp
+      SMTP_HOST: ${SMTP_HOST:?Define SMTP_HOST}
+      SMTP_PUERTO: ${SMTP_PUERTO:-587}
+      SMTP_SEGURIDAD: ${SMTP_SEGURIDAD:-starttls}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_CLAVE_FILE: ${SMTP_CLAVE_FILE:-}
+      SMTP_REMITENTE: ${SMTP_REMITENTE:?Define SMTP_REMITENTE}
+      ZONA_HORARIA: ${ZONA_HORARIA:-America/Mexico_City}
+      SESION_HORAS: ${SESION_HORAS:-72}
+    secrets: [database_url, better_auth_secret, smtp_clave]
+    networks: [interna, correo]
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    deploy:
+      resources:
+        limits: { memory: 768m }
+
+  web:
+    image: gestion-escolar/web:${VERSION:-local}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+      args:
+        REGISTRO: ${REGISTRO:-docker.io/library}
+        VERSION_APP: ${VERSION:-local}
+    restart: unless-stopped
+    depends_on:
+      servidor: { condition: service_healthy }
+    environment:
+      DOMINIO: ${DOMINIO}
+      TLS: ${TLS:?Define TLS (correo para Let's Encrypt, o internal sólo en pruebas)}
+    ports:
+      - "${PUERTO_HTTP:-80}:80"
+      - "${PUERTO_HTTPS:-443}:443"
+      - "${PUERTO_HTTPS:-443}:443/udp"
+    volumes:
+      - caddy_datos:/data
+      - caddy_config:/config
+    networks: [interna, publica]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  interna:
+    internal: true # sin salida a internet
+  correo: {}
+  publica: {}
+
+volumes:
+  datos_pg: {}
+  caddy_datos: {}
+  caddy_config: {}
+
+secrets:
+  pg_superusuario: { file: ./secretos/pg_superusuario }
+  pg_gestion: { file: ./secretos/pg_gestion }
+  database_url: { file: ./secretos/database_url }
+  better_auth_secret: { file: ./secretos/better_auth_secret }
+  smtp_clave: { file: ./secretos/smtp_clave }

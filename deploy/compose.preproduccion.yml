@@ -1,0 +1,28 @@
+# PREPRODUCCIÓN local (Fase 11): igual que producción, con estas diferencias:
+# - certificado propio de Caddy (TLS=internal) en lugar de Let's Encrypt;
+# - buzón SMTP de PRUEBA (Mailpit) dentro de la red interna: ningún correo sale a internet;
+# - base «gestion_piloto_preprod» con la escuela FICTICIA DEMO-001 (nunca datos reales).
+# Uso: docker compose -p gestion-preprod -f deploy/docker-compose.yml -f deploy/compose.preproduccion.yml --env-file deploy/preproduccion.env up -d --build
+services:
+  correo-prueba:
+    image: ${REGISTRO_EXTRA:-docker.io}/axllent/mailpit:v1.27
+    restart: unless-stopped
+    networks: [correo]
+    ports:
+      - "127.0.0.1:${PUERTO_BUZON:-8025}:8025" # sólo desde este equipo
+  servidor:
+    depends_on:
+      correo-prueba: { condition: service_started }
+  # Carga única de DEMO-001 (datos ficticios) con la herramienta del piloto y sus candados.
+  carga-demo:
+    image: gestion-escolar/servidor:${VERSION:-local}
+    profiles: [carga-demo]
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      MIGRACIONES_DIR: /app/servidor/migraciones
+    secrets: [database_url]
+    networks: [interna]
+    read_only: true
+    command: ["node", "dist-servidor/piloto.mjs", "servidor", "iniciar", "--escala", "${ESCALA_DEMO:-0.2}", "--semanas", "2"]

@@ -9,6 +9,16 @@ playwright-report/
 *.log
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # Fase 10: archivos generados del piloto (datos ficticios; se regeneran con npm run piloto -- datos)
 piloto/salida/
+
+# Fase 11: secretos, respaldos y certificados del despliegue (nunca en el repositorio)
+deploy/.env
+deploy/secretos/
+deploy/respaldos/
+*.age
+*.dump
+deploy/*.env

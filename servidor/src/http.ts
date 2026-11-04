@@ -14,7 +14,8 @@ import type { Pool } from 'pg';
 import { ApiEscolar } from './api.ts';
 import { ErrorApi } from './errores.ts';
 import { CABECERA_IP, RUTA_AUTH, type Auth } from './auth.ts';
-import type { Configuracion } from './config.ts';
+import { MODOS_ESTRICTOS, type Configuracion } from './config.ts';
+import { ipDelCliente, listaConfiable } from './ipCliente.ts';
 import type { BuzonDesarrollo, EnviadorCorreo } from './correo.ts';
 
 const LIMITE_CUERPO = 64 * 1024;
@@ -61,7 +62,8 @@ function enviarJson(res: ServerResponse, estado: number, cuerpo: unknown): void 
 export function crearServidorHttp(cfg: Configuracion, bd: Pool, auth: Auth, correo: EnviadorCorreo, registrar: (mensaje: string) => void = () => {}): ServidorEscolar {
   const api = new ApiEscolar(cfg, bd, auth, correo);
   const origen = new URL(cfg.URL_PUBLICA).origin;
-  const buzon = cfg.MODO !== 'produccion' && cfg.CORREO_MODO === 'buzon' ? (correo as BuzonDesarrollo) : null;
+  const proxies = listaConfiable(cfg.PROXIES_CONFIABLES);
+  const buzon = !MODOS_ESTRICTOS.includes(cfg.MODO) && cfg.CORREO_MODO === 'buzon' ? (correo as BuzonDesarrollo) : null;
 
   const servidor = createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -78,7 +80,8 @@ export function crearServidorHttp(cfg: Configuracion, bd: Pool, auth: Auth, corr
         for (const x of Array.isArray(v) ? v : [v]) cabeceras.append(k, x);
       }
       const ip = req.socket.remoteAddress ?? '';
-      if (isIP(ip)) cabeceras.set(CABECERA_IP, ip.replace(/^::ffff:/, ''));
+      const ipCliente = ipDelCliente(ip, req.headers['x-forwarded-for'], proxies);
+      if (isIP(ipCliente)) cabeceras.set(CABECERA_IP, ipCliente);
 
       // Buzón de desarrollo: sólo fuera de producción y desde el propio equipo.
       if (url.pathname === '/api/desarrollo/buzon' && metodo === 'GET') {

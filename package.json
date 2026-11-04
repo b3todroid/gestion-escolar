@@ -35,6 +35,7 @@
     "@tesseract.js-data/spa": "1.0.0",
     "better-auth": "1.7.11",
     "dexie": "^4.4.7",
+    "nodemailer": "10.1.7",
     "pdfjs-dist": "6.4.299",
     "pg": "8.23.1",
     "tesseract.js": "7.0.0",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.5",
+    "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
     "fake-indexeddb": "^6.2.7",
     "oauth2-mock-server": "9.3.0",

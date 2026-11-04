@@ -12,7 +12,8 @@ import {
   type Membresia, type Rol,
 } from './acceso.ts';
 import type { Auth } from './auth.ts';
-import type { Configuracion } from './config.ts';
+import { MODOS_ESTRICTOS, type Configuracion } from './config.ts';
+import { leerMigraciones } from './migrar.ts';
 import type { EnviadorCorreo } from './correo.ts';
 import { ErrorApi } from './errores.ts';
 import { DatosEscolares, type Actor } from './datosEscolares.ts';
@@ -73,11 +74,24 @@ export class ApiEscolar {
     this.migracion = new Migracion(bd);
   }
 
+  private async lista(): Promise<Respuesta> {
+    try {
+      const { rows } = await this.bd.query<{ n: number }>('SELECT count(*)::int AS n FROM sistema.migraciones');
+      const esperadas = leerMigraciones().length;
+      const ok = rows[0]!.n === esperadas;
+      return { estado: ok ? 200 : 503, cuerpo: { estado: ok ? 'lista' : 'migraciones-pendientes', baseDeDatos: 'ok', migraciones: rows[0]!.n, esperadas } };
+    } catch {
+      return { estado: 503, cuerpo: { estado: 'sin-base-de-datos', baseDeDatos: 'error' } };
+    }
+  }
+
   async atender(p: Peticion): Promise<Respuesta> {
     const r = (metodo: string, patron: RegExp) => (p.metodo === metodo ? patron.exec(p.ruta) : null);
     let m: RegExpExecArray | null;
     if (r('GET', /^\/api\/salud$/)) return { estado: 200, cuerpo: { estado: 'ok' } };
-    if (r('GET', /^\/api\/configuracion$/)) return { estado: 200, cuerpo: { proveedores: this.cfg.proveedores, buzonDesarrollo: this.cfg.CORREO_MODO === 'buzon' && this.cfg.MODO !== 'produccion' } };
+    // Fase 11: «lista para atender» (para el orquestador y el monitoreo). Sin datos personales ni detalles internos.
+    if (r('GET', /^\/api\/salud\/lista$/)) return this.lista();
+    if (r('GET', /^\/api\/configuracion$/)) return { estado: 200, cuerpo: { proveedores: this.cfg.proveedores, buzonDesarrollo: this.cfg.CORREO_MODO === 'buzon' && !MODOS_ESTRICTOS.includes(this.cfg.MODO) } };
     if (r('GET', /^\/api\/yo$/)) return this.yo(p);
     if (r('GET', /^\/api\/yo\/sesiones$/)) return this.sesiones(p);
     if ((m = r('POST', /^\/api\/yo\/sesiones\/([^/]+)\/cerrar$/))) return this.cerrarSesion(p, m[1]!);
