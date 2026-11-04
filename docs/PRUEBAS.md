@@ -7,6 +7,9 @@
 | `npm run check` | typecheck + test + build. |
 | `npm run test:servidor` / `npm run test:e2e:servidor` | Servidor con PostgreSQL real (requieren `PRUEBAS_POSTGRES_URL`). |
 | `npm run test:rendimiento` | Fase 9: mediciones reales con una escuela ficticia de volumen (no corre con `test:e2e`). |
+| `npm run test:piloto` | Fase 10: piloto con DEMO-001 en Android, tableta y escritorio **emulados** (origen propio, puerto 4180). |
+| `npm run test:piloto:multiusuario` | Fase 10: varias personas en navegadores separados contra un servidor real con DEMO-001 (requiere `PRUEBAS_POSTGRES_URL`). |
+| `npm run test:piloto:rendimiento` | Fase 10: tiempos reales en escalas 0.1, 0.5 y 1 (escritorio y teléfono emulado con CPU 4× más lenta). |
 | `npm run test:ux` | Fase 9: 13 pantallas × 3 tamaños, sin desplazamiento horizontal y objetivos ≥ 44 px; capturas en `test-results/ux/`. |
 
 Todas las pruebas usan **datos ficticios** (escuelas, personas y archivos de `tests/fixtures/`).
@@ -164,3 +167,10 @@ Resultado de la última ejecución completa: ver `docs/AUDITORIA_FASE_9.md` §7.
 - `tests/rendimiento/` (`datos.ts` genera la escuela ficticia de volumen: 3 turnos, 30 grupos, 100 trabajadores, 1 500 alumnos, 3 semanas de asistencia).
 - `tests/ux/interfaz.spec.ts`.
 - `tests/e2e/docente.spec.ts`: el recordatorio de respaldo de «Mi día» aparece aunque se calcule después de pintar.
+
+## Fase 10 — piloto integral
+Casos con identificador, pasos, resultado esperado y observado: `docs/CASOS_PRUEBA_PILOTO.md`. Incidencias: `docs/INCIDENCIAS_PILOTO.md`. Tiempos: `docs/RESULTADOS_RENDIMIENTO.md`.
+- `piloto/datos.ts`: generador REPRODUCIBLE de ESCUELA DEMO GESTIÓN ESCOLAR (DEMO-001). Ids estables, escala 0.1–1, sin CCT y marcada como demostración. `tests/piloto/comun.ts` lo carga con «Restaurar» (`PILOTO_ESCALA`, 0.2 por omisión).
+- `tests/piloto/local.spec.ts` (11 casos × 3 dispositivos emulados), `tests/piloto/multiusuario.spec.ts` (3 casos con servidor real; `servidor/herramientas/servidorPiloto.ts`), `tests/piloto/rendimiento.spec.ts`.
+- `tests/unit/fase10-piloto.test.ts`: generador, marca de demostración, limpieza segura, migración v12 → v13, integridad entre vistas de horario (PIL-HOR-02) y recordatorio de respaldo rápido.
+- `servidor/pruebas/piloto.test.ts`: carga con huella verificada y candados de `npm run piloto` (sólo bases `gestion_piloto*` y sólo escuelas de demostración).

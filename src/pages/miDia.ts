@@ -73,8 +73,8 @@ export async function paginaMiDia(ctx: ContextoPagina, persona: Personal): Promi
   // y con volumen (≈165 000) tardaba 2.5 s en mostrar la clase actual (Fase 9).
   const avisoRespaldo = h('div', { class: 'pendiente', role: 'status', id: 'aviso-respaldo' });
   avisoRespaldo.hidden = true;
-  void ctx.s.respaldos.estado(persona.escuelaId, ahora).then((respaldo) => {
-    if (!respaldo.recordar) return;
+  void ctx.s.respaldos.debeRecordar(persona.escuelaId, ahora).then((recordar) => {
+    if (!recordar) return;
     avisoRespaldo.replaceChildren(
       h('p', {}, icono('!'), ' Las listas y reportes de este dispositivo no tienen respaldo reciente.'),
       h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo'));

@@ -239,6 +239,27 @@ export class ServicioRespaldos {
   }
 
   /** Último respaldo y si hubo cambios después (para el recordatorio). */
+  /**
+   * ¿Hay que recordar un respaldo? (Fase 10) Misma regla que `estado().recordar`, pero sin recorrer
+   * toda la escuela cuando no hace falta: Mi día y la pantalla de inicio lo consultan seguido y, con
+   * volumen (~165 000 registros), el recorrido completo competía con la pantalla siguiente.
+   */
+  async debeRecordar(escuelaId: string, ahora: Date): Promise<boolean> {
+    const ultimo = (await this.ctx.repos.ajustes.obtener(`ultimo-respaldo:${escuelaId}`))?.valor ?? null;
+    if (ultimo && ahora.getTime() - new Date(ultimo).getTime() <= DIAS_RECORDATORIO * 86_400_000) return false; // reciente
+    // ¿Tiene algo más que la escuela (registros > 1)? Todo lo demás cuelga de un ciclo, del personal,
+    // de los alumnos o de las plantillas (tablas con índice por escuela).
+    let hayDatos = false;
+    for (const t of ['ciclos', 'personal', 'alumnos', 'plantillasImportacion'] as const) if ((await this.repo(t).contarPor('escuelaId' as never, escuelaId as never)) > 0) { hayDatos = true; break; }
+    if (!hayDatos) return false;
+    if (!ultimo) return true; // nunca respaldada
+    // Respaldo viejo: ¿algún cambio posterior? Se detiene en el primero que encuentra.
+    for (const t of TABLAS_RESPALDO) {
+      for (const r of await this.registrosDe(escuelaId, t)) if (r.actualizadoEn > ultimo) return true;
+    }
+    return false;
+  }
+
   async estado(escuelaId: string, ahora: Date): Promise<{ ultimo: string | null; cambiosDespues: boolean; registros: number; recordar: boolean }> {
     const ultimo = (await this.ctx.repos.ajustes.obtener(`ultimo-respaldo:${escuelaId}`))?.valor ?? null;
     let registros = 0; let masReciente = '';

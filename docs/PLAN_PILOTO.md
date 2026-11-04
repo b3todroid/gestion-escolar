@@ -1,5 +1,7 @@
 # Plan de prueba piloto controlada
 
+> **Fase 10:** el piloto se ejecutó en condiciones SIMULADAS con la escuela ficticia DEMO-001. Resultado y dictamen: `docs/PILOTO_FASE_10.md`. Lista de verificación para el despliegue: `docs/LISTA_VERIFICACION_DESPLIEGUE.md`.
+
 **Estado:** preparado con datos FICTICIOS. El piloto con datos reales **no** puede empezar hasta cumplir los requisitos del apartado 2, y cada uno necesita autorización.
 
 ## 1. Entornos de prueba disponibles hoy (datos ficticios)
@@ -60,6 +62,25 @@ Requiere PostgreSQL 14 o posterior y un usuario con `CREATEDB` y `CREATEROLE`.
 5. En `#/cuenta`, entra con cada correo. El código **no sale por correo**: se lee en http://localhost:5173/api/desarrollo/buzon?correo=CORREO, sólo desde ese equipo.
 6. Cada perfil hace «Usar en este dispositivo», trabaja sin conexión (modo avión) y sincroniza. Conviene usar un navegador o perfil de navegador distinto por cada persona.
 7. Para probar una migración, el administrador usa `#/migracion` con una escuela local **ficticia** de la misma CCT, dada de alta vacía en el servidor con `npm run servidor:cli -- alta-escuela …`.
+
+### C. Entorno del piloto de la Fase 10 (DEMO-001, datos FICTICIOS)
+- **Sólo dispositivo:**
+  ```bash
+  npm run piloto -- datos --escala 1
+  ```
+  ```bash
+  npm run piloto:app
+  ```
+  Abre http://localhost:4180 (origen propio: su almacenamiento está separado del de desarrollo) y carga `piloto/salida/DEMO-001.json` con «Restaurar». Para terminar, «Quitar escuela de demostración» en el panel de la escuela: sólo existe y sólo actúa en escuelas de demostración.
+- **Con servidor:**
+  ```bash
+  DATABASE_URL=postgres://USUARIO:CLAVE@localhost:5432/gestion_piloto npm run piloto -- servidor iniciar
+  ```
+  Crea la base si falta, carga DEMO-001 con la huella verificada e invita a Administración, Dirección, Prefectura y dos docentes (`*.piloto@ejemplo.test`). Para borrarla:
+  ```bash
+  DATABASE_URL=postgres://USUARIO:CLAVE@localhost:5432/gestion_piloto npm run piloto -- servidor limpiar
+  ```
+  La herramienta se niega con cualquier base que no se llame `gestion_piloto*`, o que tenga una escuela que no sea de demostración.
 
 ## 2. Requisitos pendientes para un piloto con datos reales
 | # | Requisito | Responsable | Estado |

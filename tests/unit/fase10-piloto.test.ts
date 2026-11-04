@@ -103,3 +103,57 @@ describe('limpieza segura del piloto', () => {
     db.close();
   });
 });
+
+describe('PIL-HOR-02 · integridad entre vistas de horario (DEMO-001)', () => {
+  it('confirmado → no se cambia sin reabrir; docente ocupado → choque detectado; cambio válido se refleja en grupo y en ambos docentes', async () => {
+    const p = generarPiloto({ escala: 0.2, semanas: 1 });
+    const e = nuevoEntorno();
+    await e.s.respaldos.restaurar(p.contenido, [p.escuelaId]);
+    const grupo = p.docente.grupoId;
+    const asig = (await e.s.asignaciones.listarPorGrupo(grupo)).find((a) => a.personalId === p.docente.id)!;
+    // 1. Horario confirmado: bloqueado
+    await expect(e.s.asignaciones.actualizar(asig.id, { personalId: p.docenteAusente.id, horasSemana: 5 })).rejects.toThrow(/confirmad/i);
+    await e.s.confirmacion.reabrir(grupo, 'Cambio de docente (prueba piloto ficticia)');
+    // 2. El docente de Ciencias da clase en 2° A justo a las horas de Matemáticas de 1° A: choque por hora real
+    await expect(e.s.asignaciones.actualizar(asig.id, { personalId: p.docenteAusente.id, horasSemana: 5 })).rejects.toMatchObject({ codigo: 'TRASLAPE' });
+    expect(await e.s.revisionHorarios.conflictos(p.cicloId)).toEqual([]); // nada quedó a medias
+    // 3. Un docente sin clases (de SE) del mismo turno… cuya SE no choque: se busca uno compatible
+    const candidatos = (await e.s.personal.listar(p.escuelaId)).filter((x) => x.funciones.includes('docente'));
+    let nuevo: string | null = null;
+    for (const c of candidatos) {
+      if (c.id === p.docente.id) continue;
+      try { await e.s.asignaciones.actualizar(asig.id, { personalId: c.id, horasSemana: 5 }); nuevo = c.id; break; } catch { /* ocupado: se prueba otro */ }
+    }
+    expect(nuevo).not.toBeNull();
+    const semanaGrupo = JSON.stringify(await e.s.vistas.semanaGrupo(grupo));
+    expect(semanaGrupo).toContain(nuevo!);
+    const antes = (await e.s.vistas.semanaDocente(p.docente.id, p.cicloId)).totales;
+    const despues = (await e.s.vistas.semanaDocente(nuevo!, p.cicloId)).totales;
+    expect(JSON.stringify(despues)).not.toBe('{}');
+    expect((await e.s.asignaciones.horarioDocente(p.docente.id, p.cicloId)).some((f) => JSON.stringify(f).includes(grupo))).toBe(false);
+    expect((await e.s.asignaciones.horarioDocente(nuevo!, p.cicloId)).some((f) => JSON.stringify(f).includes(grupo))).toBe(true);
+    expect(await e.s.revisionHorarios.conflictos(p.cicloId)).toEqual([]);
+    expect((await e.s.confirmacion.bitacora(grupo)).map((b) => b.accion)).toContain('reabrir');
+    void antes;
+  });
+});
+
+describe('recordatorio de respaldo rápido (debeRecordar)', () => {
+  it('da lo mismo que estado().recordar: vacía, con datos sin respaldo, respaldo reciente, respaldo viejo con y sin cambios', async () => {
+    const e = nuevoEntorno();
+    const igual = async (id: string, ahora: Date) => expect(await e.s.respaldos.debeRecordar(id, ahora)).toBe((await e.s.respaldos.estado(id, ahora)).recordar);
+    const sola = await e.s.escuelas.crear({ nombre: 'Escuela Ficticia Sola', cct: '32ZZZ0011A', nivel: 'secundaria' });
+    await igual(sola.id, new Date());
+    const p = generarPiloto({ escala: 0.1, semanas: 1 });
+    await e.s.respaldos.restaurar(p.contenido, [p.escuelaId]);
+    await igual(p.escuelaId, new Date());
+    expect(await e.s.respaldos.debeRecordar(p.escuelaId, new Date())).toBe(true);
+    await e.s.respaldos.registrarRespaldo([p.escuelaId]);
+    await igual(p.escuelaId, new Date());
+    const enUnMes = new Date(Date.now() + 30 * 86_400_000);
+    await igual(p.escuelaId, enUnMes); // respaldo viejo y sin cambios después
+    await e.s.panel.fijarPerfil(p.docente.id); // (ajuste: no cuenta como dato escolar)
+    await e.s.grados.crearGrado(p.cicloId, { numero: 4, nombre: 'Cuarto grado ficticio' }).catch(() => undefined);
+    await igual(p.escuelaId, enUnMes);
+  });
+});

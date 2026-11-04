@@ -142,6 +142,7 @@ Versión 7: sin cambios de índices; agrega `origen` (null en registros existent
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1 | 2026-11-02 | Esquema inicial de la Fase 1. |
+| 13 | 2026-11-04 | (Fase 10 · piloto) `escuelas.demostracion` (boolean). `upgrade()`: las escuelas existentes quedan con `false`; ningún otro cambio. Una escuela de demostración no lleva CCT (no se inventa una clave oficial), se marca en toda la interfaz y es la única que la limpieza del piloto puede quitar. Sólo la crea el generador del piloto (`piloto/datos.ts`); desde la interfaz nunca se activa ni se quita. Los respaldos anteriores se leen con `false`. Probada v12 → v13 (`fase10-piloto.test.ts`). |
 | 12 | 2026-11-03 | (Fase 9 · rendimiento) Índices `matricula` y `curp` en `alumnos`. Sólo índices; sin `upgrade` ni cambios de datos. La unicidad por escuela la sigue verificando el servicio (el índice no es único porque ambas pueden ser `null` y la unicidad es por escuela). Probada v11 → v12 por las pruebas de migración que abren versiones anteriores. |
 | 11 | 2026-11-03 | (Fase 8D) `pendientes` y `vinculos`. Ver «Local v11». |
 | 10 | 2026-11-03 | Agrega `incidenciasPersonal`, `coberturas`, `bancoActividades`, `bitacoraPrefectura` (sólo tablas nuevas). Probada v9 → v10. |
@@ -181,3 +182,4 @@ Una prueba verifica que el espejo coincide campo por campo con `validators/respa
 ## Local v11 (Fase 8D)
 `pendientes` (cola de cambios por enviar: `++orden, &opId, escuelaId, estado, [tabla+registroId]`) y `vinculos` (escuelas sincronizadas: `escuelaId`). Sólo tablas nuevas; propias del dispositivo, no van en los respaldos. Los repositorios Dexie encolan en la misma transacción los cambios de escuelas vinculadas.
 - `0006_migracion` (Fase 8E, `docs/MIGRACION.md`): `acceso.migraciones` (autorización, conteos, huella, escuela previa, secuencia final; una vigente por escuela) y `acceso.migracion_registros` (para revertir); `umbral_confianza` a `double precision` (exactitud de la huella); excepción de ciclo cerrado sólo dentro de la transacción de migración del servidor (`app.migracion`), nunca para `gestion_app`.
+- `0007_demostracion` (Fase 10): `escolar.escuelas.demostracion boolean NOT NULL DEFAULT false`; `CHECK (NOT demostracion OR cct IS NULL)`; disparador que impide cambiar la marca después de crear la escuela (ni la API ni la sincronización pueden volver «de demostración» —y con ello borrable— una escuela real).

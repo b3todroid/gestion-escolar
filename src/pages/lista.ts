@@ -13,7 +13,9 @@ import { normalizarTexto } from '../domain/texto';
 import { DIAS_SEMANA } from '../services/turnos';
 import { diaDeFecha, fechaLocal, horaLocal } from '../utils/fechas';
 
-interface Borrador { marcas: Map<string, MarcaAsistencia>; llegadas: Map<string, string> }
+/** `base`: huella de lo GUARDADO cuando empezó el borrador. Si lo guardado cambia después (otro
+ *  dispositivo, conflicto resuelto, restauración), el borrador ya no aplica (Fase 10, INC-04). */
+interface Borrador { marcas: Map<string, MarcaAsistencia>; llegadas: Map<string, string>; base: string }
 
 /**
  * Marcas sin guardar por clase y fecha. Viven en memoria mientras se usa la
@@ -38,7 +40,16 @@ export async function paginaLista(ctx: ContextoPagina, sesionId: string, fecha: 
 
   // Estado de partida: lo guardado o, si no hay, todos presentes.
   const guardadas = new Map([...l.marcas].map(([id, a]) => [id, a.marca]));
-  const b: Borrador = borradores.get(clave) ?? { marcas: new Map(guardadas), llegadas: new Map([...l.marcas].filter(([, a]) => a.horaLlegada).map(([id, a]) => [id, a.horaLlegada!])) };
+  const base = `${l.pase?.id ?? '-'}:${l.pase?.version ?? 0}:${[...l.marcas].map(([id, a]) => `${id}=${a.marca}${a.horaLlegada ?? ''}`).sort().join(',')}`;
+  const previo = borradores.get(clave);
+  // Un borrador hecho sobre datos que ya cambiaron NO se reutiliza: mostraría marcas viejas y, al
+  // guardar, revertiría sin aviso lo que guardó otra persona u otro dispositivo.
+  if (previo && previo.base !== base) {
+    borradores.delete(clave);
+    const teniaCambios = l.alumnos.some((a) => (previo.marcas.get(a.id) ?? 'P') !== (guardadas.get(a.id) ?? 'P'));
+    if (teniaCambios) avisar('La lista cambió en otro dispositivo o por una sincronización: se muestra lo guardado y se descartaron tus marcas sin guardar. Revísala antes de corregir.', 'info', 10_000);
+  }
+  const b: Borrador = (previo && previo.base === base ? previo : null) ?? { marcas: new Map(guardadas), llegadas: new Map([...l.marcas].filter(([, a]) => a.horaLlegada).map(([id, a]) => [id, a.horaLlegada!])), base };
   borradores.set(clave, b);
   const marca = (id: string): MarcaAsistencia => b.marcas.get(id) ?? 'P';
   const salioEnClase = (id: string) => l.salidas.some((s) => s.alumnoId === id);

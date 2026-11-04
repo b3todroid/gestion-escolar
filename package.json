@@ -24,6 +24,7 @@
     "piloto:app": "npm run build && npx vite preview --port 4180 --strictPort",
     "test:piloto": "playwright test -c playwright.piloto.config.ts",
     "test:piloto:multiusuario": "playwright test -c playwright.piloto-servidor.config.ts",
+    "test:piloto:rendimiento": "playwright test -c playwright.piloto-rendimiento.config.ts",
     "servidor:demo": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/demo.mjs"
   },
   "engines": {

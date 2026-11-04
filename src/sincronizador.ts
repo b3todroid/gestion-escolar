@@ -64,7 +64,15 @@ export function iniciarSincronizacion(s: Servicios, indicador: HTMLAnchorElement
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void ciclo(); });
   window.addEventListener('hashchange', () => void pintar().catch(registrarError));
   window.addEventListener(EVENTO, () => void pintar().catch(registrarError));
-  setInterval(() => { if (document.visibilityState === 'visible') void pintar().catch(registrarError); }, PINTAR_CADA_MS);
+  // Fase 10: un cambio guardado con conexión se envía en segundos (antes esperaba al ciclo de 30 s).
+  const enviarPendientes = async () => {
+    if (corriendo || !navigator.onLine) return;
+    if ((await s.sincronizacion.estados()).some((e) => e.pendientes > 0 && !e.sinAcceso)) await ciclo();
+  };
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    void pintar().then(enviarPendientes).catch(registrarError);
+  }, PINTAR_CADA_MS);
   setInterval(() => { if (document.visibilityState === 'visible') void ciclo(); }, CADA_MS);
   void ciclo();
   return { ahora: () => ciclo(true) };

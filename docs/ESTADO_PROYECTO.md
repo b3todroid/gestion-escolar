@@ -1,6 +1,39 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-03 · **Trabajo actual:** **Fase 9 — Auditoría integral, estabilización y preparación para piloto — COMPLETADA** (aprobada por el usuario el 2026-11-03). No quedan defectos CRÍTICOS ni ALTOS abiertos en el código. Siguiente fase: sólo con autorización explícita. **No es un piloto real:** no hay servidor desplegado, ningún dato real se usó ni migró, y el piloto necesita autorizaciones (`docs/PLAN_PILOTO.md`). Esquema local v12.
+**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 10 — Prueba piloto integral (condiciones SIMULADAS, DEMO-001)** — terminada y **pendiente de revisión del usuario**. Dictamen: APTO PARA DEMOSTRACIÓN LOCAL; APTO PARA PILOTO CONTROLADO **con condiciones**; **NO APTO todavía para piloto multiusuario** (no hay servidor desplegado). Esquema local v13 y migración del servidor 0007. La Fase 11 no se inicia sin autorización.
+
+## Fase 10 — Prueba piloto integral (2026-11-04)
+Documentos:
+- `docs/PILOTO_FASE_10.md`: informe y dictamen.
+- `docs/CASOS_PRUEBA_PILOTO.md`: 114 casos.
+- `docs/RESULTADOS_RENDIMIENTO.md`
+- `docs/INCIDENCIAS_PILOTO.md`
+- `docs/LISTA_VERIFICACION_DESPLIEGUE.md`
+
+**Auditoría de entrada:** 182 unitarias, 58 de 59 funcionales (prueba intermitente INC-01, corregida), 109 del servidor y 4 con servidor real. Sin CRÍTICOS ni ALTOS. El backend multiusuario existe **sólo en un entorno local**.
+
+**Implementado:**
+- Escuela de **DEMOSTRACIÓN** `escuelas.demostracion` (local v13, servidor 0007): sin CCT, marcada en toda la app e inmutable en el servidor.
+- Generador reproducible `piloto/datos.ts`.
+- Entorno aislado: origen propio y base `gestion_piloto*`.
+- Limpieza segura en el dispositivo y en el servidor (`npm run piloto`), con candados probados.
+- Suites del piloto: local (11 casos × 3 dispositivos emulados), multiusuario con servidor real (3 casos) y rendimiento en 3 escalas × 2 perfiles.
+
+**Defectos encontrados y corregidos:**
+- **ALTO:** el borrador viejo del pase de lista podía revertir en silencio el cambio de otro dispositivo (INC-04).
+- **MEDIOS:**
+  - la escuela de demostración exigía inventar una CCT (INC-02);
+  - el envío con conexión esperaba hasta 30 s (INC-05);
+  - la pantalla de inicio no se pintaba hasta calcular el recordatorio de respaldo (INC-06);
+  - ese recordatorio recorría toda la escuela y competía con la pantalla siguiente: «Abrir pase de lista» tardaba 3,1 s, ahora 66 ms (INC-07).
+
+**Pendientes / bloqueos:**
+- Servidor desplegado (B-01).
+- Dispositivos físicos, incluido iPhone (B-02, B-03).
+- Aviso de privacidad (B-04).
+- Base local por persona (S4 / B-05).
+- Servidor medido con volumen (B-06).
+- Menores: INC-03, U5, U6, S5 y S6.
 
 ## Fase 9 — Auditoría integral y estabilización (2026-11-03)
 Detalle completo en `docs/AUDITORIA_FASE_9.md` (matriz de funcionalidad, integridad, rendimiento, interfaz y pruebas), `docs/SEGURIDAD.md` y `docs/PLAN_PILOTO.md`.

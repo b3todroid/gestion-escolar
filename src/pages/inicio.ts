@@ -18,7 +18,7 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
   avisoRespaldo.hidden = true;
   void (async () => {
     const sinRespaldo: string[] = [];
-    for (const e of escuelas) if ((await ctx.s.respaldos.estado(e.id, new Date())).recordar) sinRespaldo.push(e.nombre);
+    for (const e of escuelas) if (await ctx.s.respaldos.debeRecordar(e.id, new Date())) sinRespaldo.push(e.nombre);
     if (!sinRespaldo.length) return;
     avisoRespaldo.replaceChildren(
       h('p', {}, icono('!'), ` ${sinRespaldo.length === 1 ? `«${sinRespaldo[0]}» tiene` : `${sinRespaldo.length} escuelas tienen`} cambios sin respaldar.`),
