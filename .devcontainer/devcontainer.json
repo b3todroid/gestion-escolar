@@ -1,0 +1,18 @@
+{
+  // Gestión Escolar — PREPRODUCCIÓN DE PRUEBA en GitHub Codespaces (Fase 12). Sólo datos FICTICIOS.
+  // Al abrir el codespace se ejecuta deploy/scripts/codespaces.sh: compila, genera secretos (sólo
+  // dentro del codespace), carga DEMO-001 y deja la app en https://NOMBRE-8080.app.github.dev
+  "name": "Gestión Escolar · pruebas (datos ficticios)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "hostRequirements": { "cpus": 2, "memory": "8gb" },
+  "postStartCommand": "bash deploy/scripts/codespaces.sh",
+  "forwardPorts": [8080, 8025],
+  "portsAttributes": {
+    "8080": { "label": "Gestión Escolar (hacer PÚBLICO)", "onAutoForward": "notify" },
+    "8025": { "label": "Buzón de prueba (códigos) · PRIVADO", "onAutoForward": "silent" },
+    "8443": { "onAutoForward": "ignore" }
+  }
+}

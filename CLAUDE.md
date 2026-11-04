@@ -116,6 +116,7 @@ Rutas: `#/ciclo/ID/docentes` · `#/ciclo/ID/alumnos` · `#/ciclo/ID/importar-dat
 - Seguridad del entorno: `deploy/scripts/verificar-seguridad.sh` (sólo lectura).
 - Límites de códigos: por IP (30/min, NAT escolar) y por correo (`LIMITE_CODIGOS_POR_CORREO`, 3/10 min; 20 en preproducción).
 - Pruebas: `npm run test:despliegue` (21) y `npm run test:preproduccion:flujo` (17) contra `https://localhost:8443`. Usan la hora real: no marcar «Retardo» en pruebas sin reloj controlado.
+- Pruebas en la nube GRATIS: GitHub Codespaces (`.devcontainer/`, `deploy/scripts/codespaces.sh`, `deploy/compose.codespaces.yml`, `deploy/Caddyfile.codespaces`; guía `docs/PRUEBAS_EN_LA_NUBE.md`). Sólo DEMO-001; sólo el puerto 8080 público; buzón 8025 privado. Las directivas comunes de Caddy están en `deploy/caddy/sitio.caddy` (las importan ambos Caddyfile: cambiar ahí, no duplicar).
 - Dispositivos: todo es EMULADO en Chromium; iPhone/Safari NO probado. No afirmar compatibilidad física sin el protocolo de `docs/PRUEBAS_MULTIDISPOSITIVO.md`.
 
 ## Respaldos (`#/respaldos`, `services/respaldos.ts`)

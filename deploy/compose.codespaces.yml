@@ -1,0 +1,9 @@
+# PRUEBAS EN LA NUBE con GitHub Codespaces (Fase 12). Se usa ENCIMA de docker-compose.yml y
+# compose.preproduccion.yml (Mailpit + DEMO-001). Sólo datos FICTICIOS.
+# - GitHub publica el puerto 8080 con HTTPS válido (https://NOMBRE-8080.app.github.dev) y lo reenvía aquí.
+# - Caddy no emite certificado (Caddyfile.codespaces); mismas cabeceras, /api y PWA que producción.
+# - La base y la API siguen SIN puertos; el buzón de prueba sólo en 127.0.0.1 (puerto PRIVADO del codespace).
+# Lo levanta deploy/scripts/codespaces.sh; no se usa a mano.
+services:
+  web:
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile.codespaces", "--adapter", "caddyfile"]

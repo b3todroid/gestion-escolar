@@ -50,7 +50,7 @@ CMD ["node", "dist-servidor/principal.mjs"]
 # ---------- 4. Web (PWA estática + HTTPS + proxy de /api) ----------
 FROM ${REGISTRO}/${CADDY_IMAGEN} AS web
 COPY --from=construccion /app/dist /srv/app
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-# La validez de la configuración se comprueba al construir.
-RUN caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1 | tail -1 || (echo "Caddyfile inválido" && exit 1)
+COPY deploy/Caddyfile deploy/Caddyfile.codespaces deploy/caddy/sitio.caddy /etc/caddy/
+# La validez de la configuración se comprueba al construir (la normal y la de pruebas en Codespaces).
+RUN for c in Caddyfile Caddyfile.codespaces; do DOMINIO=localhost TLS=internal caddy validate --config /etc/caddy/$c --adapter caddyfile >/tmp/v.log 2>&1 || { cat /tmp/v.log; echo "$c inválido"; exit 1; }; done
 EXPOSE 80 443

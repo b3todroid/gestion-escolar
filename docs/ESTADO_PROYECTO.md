@@ -20,6 +20,8 @@ Detalle: `docs/FASE_12_PREPRODUCCION.md` (informe y dictamen), `docs/CONFIGURACI
 - Seguridad sin fallas.
 - Respaldo → verificación → restauración correctos.
 
+**Pruebas en la nube gratis (a pedido del usuario):** GitHub Codespaces. La guía para tableta está en `docs/PRUEBAS_EN_LA_NUBE.md`. Se validó simulando el codespace (9/9 pruebas de navegador con HTTPS delante); falta la primera ejecución en un codespace real.
+
 **No probado:** dispositivos físicos; iPhone/Safari (sin WebKit en el entorno).
 
 **Pendientes:**

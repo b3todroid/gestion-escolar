@@ -1,0 +1,11 @@
+# Gestión Escolar — Caddy para PRUEBAS en GitHub Codespaces (Fase 12). Sólo datos FICTICIOS.
+# GitHub termina el HTTPS (certificado público de *.app.github.dev) y reenvía al puerto 80 de este
+# contenedor; por eso aquí no se emite certificado. Mismas cabeceras, /api y PWA que producción.
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	import /etc/caddy/sitio.caddy
+}

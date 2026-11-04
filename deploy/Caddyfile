@@ -13,55 +13,5 @@
 
 {$DOMINIO:localhost} {
 	tls {$TLS:internal}
-	encode zstd gzip
-
-	header {
-		# HTTPS obligatorio en el navegador durante un año, una vez visto.
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
-		Referrer-Policy "no-referrer"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-		Cross-Origin-Opener-Policy "same-origin"
-		# La CSP completa va en index.html (meta); aquí se agrega lo que una meta no puede expresar.
-		Content-Security-Policy "frame-ancestors 'none'"
-		-Server
-	}
-
-	# API: mismo origen (cookie HttpOnly y CSP 'self'). El buzón de desarrollo nunca se publica.
-	handle /api/desarrollo/* {
-		respond 404
-	}
-	handle /api/* {
-		request_body {
-			max_size 41MB
-		}
-		reverse_proxy servidor:8787 {
-			# Caddy reemplaza X-Forwarded-For con la IP real del cliente (no confía en lo que el cliente envía).
-			health_uri /api/salud
-			health_interval 15s
-			transport http {
-				dial_timeout 5s
-				response_header_timeout 60s
-			}
-		}
-	}
-
-	# PWA estática.
-	handle {
-		root * /srv/app
-		@mapas path *.map
-		respond @mapas 404
-		# Siempre se revisa la versión vigente: así la PWA se actualiza (el SW decide cuándo).
-		@revisar path / /index.html /sw.js /registerSW.js /manifest.webmanifest /workbox-*.js
-		header @revisar Cache-Control "no-cache"
-		@inmutables path /assets/*
-		header @inmutables Cache-Control "public, max-age=31536000, immutable"
-		file_server
-	}
-
-	log {
-		output stdout
-		format json
-	}
+	import /etc/caddy/sitio.caddy
 }
