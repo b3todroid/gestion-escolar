@@ -1,6 +1,6 @@
 # Fase 11 — Despliegue institucional: preparación (informe)
 
-**Fecha:** 2026-11-04.
+**Fecha:** 2026-11-04 · **Estado:** COMPLETADA en su etapa de preparación (aprobada por el usuario el 2026-11-04). Preproducción institucional, producción autorizada y producción operativa: pendientes.
 - **Qué se hizo:** preparar Gestión Escolar Universal para un despliegue institucional seguro y reproducible, y probarlo en una **preproducción local** con contenedores reales (HTTPS, PostgreSQL, SMTP de prueba) y la escuela ficticia DEMO-001.
 - **Qué no se hizo:** no se publicó la aplicación, no se contrató ningún servicio, no se compró ningún dominio y no se usaron ni migraron datos reales.
 
