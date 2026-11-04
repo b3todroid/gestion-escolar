@@ -75,7 +75,7 @@ export async function paginaAplicacion(ctx: ContextoPagina): Promise<Vista> {
           h('dt', {}, 'Versión de la aplicación'), h('dd', {}, __VERSION_APP__),
           h('dt', {}, 'Versión de datos'), h('dd', {}, String(ctx.s.respaldos.versionDatos())),
           h('dt', {}, 'Sincronización'), h('dd', {}, 'No hay: los datos sólo están en este dispositivo. Para pasarlos a otro, usa un respaldo.'),
-          h('dt', {}, 'Cuenta del servidor'), h('dd', {}, h('a', { href: '#/cuenta' }, 'Cuenta del servidor escolar (en prueba)'), ' · no envía tus datos'),
+          h('dt', {}, 'Cuenta del servidor'), h('dd', {}, h('a', { href: '#/cuenta' }, 'Cuenta del servidor escolar'), ' · sólo se sincronizan las escuelas que elijas «Usar en este dispositivo»'),
         ),
         estadoPWA.actualizacionPendiente && estadoPWA.actualizar
           ? h('button', { type: 'button', class: 'boton', onclick: () => void estadoPWA.actualizar?.(true) }, 'Actualizar a la nueva versión')

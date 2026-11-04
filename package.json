@@ -25,6 +25,7 @@
     "test:piloto": "playwright test -c playwright.piloto.config.ts",
     "test:piloto:multiusuario": "playwright test -c playwright.piloto-servidor.config.ts",
     "test:piloto:rendimiento": "playwright test -c playwright.piloto-rendimiento.config.ts",
+    "test:despliegue": "playwright test -c playwright.despliegue.config.ts",
     "servidor:demo": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/demo.mjs"
   },
   "engines": {

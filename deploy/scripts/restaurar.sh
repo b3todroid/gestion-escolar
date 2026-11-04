@@ -22,7 +22,7 @@ fi
 DC=(docker compose -p "$PROYECTO" -f "$AQUI/docker-compose.yml" "${EXTRA[@]}" --env-file "$ENTORNO")
 TMP="$(mktemp -d)"; chmod 700 "$TMP"; trap 'rm -rf "$TMP"' EXIT
 if [ -f "$ARCHIVO.sha256" ]; then ( cd "$(dirname "$ARCHIVO")" && sha256sum -c "$(basename "$ARCHIVO").sha256" >/dev/null ) || { echo "Suma SHA-256 incorrecta." >&2; exit 1; }; fi
-age -d -i "$IDENTIDAD" -o "$TMP/r.tar" "$ARCHIVO"
+age -d -i "$IDENTIDAD" -o "$TMP/r.tar" "$ARCHIVO" 2>/dev/null || { echo "No se pudo descifrar: archivo alterado o identidad equivocada." >&2; exit 1; }
 tar -C "$TMP" -xf "$TMP/r.tar"
 USUARIO="${GESTION_USUARIO:-gestion}"
 EXISTE="$("${DC[@]}" exec -T db psql -U postgres_admin -d postgres -At -c "SELECT 1 FROM pg_database WHERE datname = '$NUEVA'")"

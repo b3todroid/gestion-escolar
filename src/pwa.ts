@@ -1,4 +1,5 @@
 import { registerSW } from 'virtual:pwa-register';
+import { confirmar } from './components/dialogo';
 import { h } from './components/dom';
 import { avisar } from './components/avisos';
 
@@ -41,7 +42,12 @@ export function iniciarPWA(): void {
       estadoPWA.actualizacionPendiente = true;
       const barra = h('div', { class: 'barra-actualizacion', role: 'status' },
         h('span', {}, 'Hay una nueva versión disponible.'),
-        h('button', { type: 'button', class: 'boton boton--chico', onclick: () => void actualizar(true) }, 'Actualizar'),
+        h('button', { type: 'button', class: 'boton boton--chico', onclick: async () => {
+          // Fase 11: actualizar recarga la página. Lo guardado (y la cola por enviar) está en el dispositivo
+          // y no se pierde; lo que se está capturando sin guardar, sí: se pregunta antes.
+          if (document.querySelector('[data-sin-guardar]') && !(await confirmar({ titulo: 'Tienes cambios sin guardar', mensaje: 'Si actualizas ahora se pierde lo que no has guardado (por ejemplo, marcas de una lista). Guarda primero o actualiza más tarde.', textoConfirmar: 'Actualizar de todos modos', textoCancelar: 'Seguir editando', peligro: true }))) return;
+          void actualizar(true);
+        } }, 'Actualizar'),
         h('button', { type: 'button', class: 'boton boton--secundario boton--chico', onclick: () => barra.remove() }, 'Más tarde'),
       );
       document.body.appendChild(barra);

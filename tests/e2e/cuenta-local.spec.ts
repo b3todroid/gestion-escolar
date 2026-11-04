@@ -17,7 +17,7 @@ const test = base.extend<{ errores: string[] }>({
 
 test('sin servidor, la cuenta indica modo local y la aplicación sigue funcionando', async ({ page }) => {
   await page.goto('/#/aplicacion');
-  await page.getByRole('link', { name: 'Cuenta del servidor escolar (en prueba)' }).click();
+  await page.getByRole('link', { name: 'Cuenta del servidor escolar', exact: true }).click();
   await expect(page.locator('#estado-servidor')).toContainText('Modo local: sin servidor escolar');
   await expect(page.locator('#aviso-fase')).toContainText('por sí solo, NO envía tus datos escolares');
   await expect(page.getByLabel('Correo con el que te invitaron')).toHaveCount(0);

@@ -17,5 +17,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "piloto", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.rendimiento.config.ts", "playwright.ux.config.ts", "playwright.piloto.config.ts", "playwright.piloto-servidor.config.ts", "playwright.piloto-rendimiento.config.ts"]
+  "include": ["src", "tests", "piloto", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "playwright.rendimiento.config.ts", "playwright.ux.config.ts", "playwright.piloto.config.ts", "playwright.piloto-servidor.config.ts", "playwright.piloto-rendimiento.config.ts", "playwright.despliegue.config.ts"]
 }

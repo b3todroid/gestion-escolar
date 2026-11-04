@@ -14,8 +14,12 @@ NOMBRE_CONT="verificar-respaldo-$$"
 limpiar() { docker rm -f "$NOMBRE_CONT" >/dev/null 2>&1 || true; rm -rf "$TMP"; }
 trap limpiar EXIT
 
-if [ -f "$ARCHIVO.sha256" ]; then ( cd "$(dirname "$ARCHIVO")" && sha256sum -c "$(basename "$ARCHIVO").sha256" >/dev/null ) && echo "✓ Suma SHA-256 correcta"; else echo "! Sin archivo .sha256 (se continúa)"; fi
-age -d -i "$IDENTIDAD" -o "$TMP/r.tar" "$ARCHIVO" && echo "✓ Descifrado"
+if [ -f "$ARCHIVO.sha256" ]; then
+  ( cd "$(dirname "$ARCHIVO")" && sha256sum -c "$(basename "$ARCHIVO").sha256" >/dev/null 2>&1 ) || { echo "✗ La suma SHA-256 no coincide: archivo alterado. RESPALDO NO VÁLIDO." >&2; exit 1; }
+  echo "✓ Suma SHA-256 correcta"
+else echo "! Sin archivo .sha256 (se continúa)"; fi
+age -d -i "$IDENTIDAD" -o "$TMP/r.tar" "$ARCHIVO" 2>/dev/null || { echo "✗ No se pudo descifrar: archivo alterado o identidad equivocada. RESPALDO NO VÁLIDO." >&2; exit 1; }
+echo "✓ Descifrado"
 tar -C "$TMP" -xf "$TMP/r.tar"
 BASE="$(sed -n 's/.*"base" *: *"\([^"]*\)".*/\1/p' "$TMP/manifiesto.json")"
 [ -n "$BASE" ] || { echo "Manifiesto ilegible." >&2; exit 1; }
@@ -25,7 +29,7 @@ docker run -d --rm --name "$NOMBRE_CONT" --network none -e POSTGRES_PASSWORD=sol
 for _ in $(seq 1 60); do docker exec "$NOMBRE_CONT" pg_isready -U postgres_admin >/dev/null 2>&1 && break; sleep 1; done
 sleep 2
 docker cp "$TMP/base.dump" "$NOMBRE_CONT:/tmp/base.dump" >/dev/null
-docker exec "$NOMBRE_CONT" psql -q -U postgres_admin -d postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE gestion LOGIN CREATEROLE; CREATE ROLE gestion_app NOLOGIN; CREATE DATABASE \"$BASE\" OWNER gestion;"
+docker exec "$NOMBRE_CONT" psql -q -U postgres_admin -d postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE gestion LOGIN CREATEROLE" -c "CREATE ROLE gestion_app NOLOGIN" -c "CREATE DATABASE \"$BASE\" OWNER gestion"
 docker exec "$NOMBRE_CONT" pg_restore -U postgres_admin -d "$BASE" --exit-on-error --no-owner --role=gestion /tmp/base.dump
 echo "✓ Restauración completa sin errores en un PostgreSQL temporal aislado"
 
