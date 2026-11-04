@@ -34,9 +34,17 @@ export async function codigoPorCorreo(ctx: BrowserContext, correo: string, despu
 export async function entrar(page: Page, correo: string) {
   await page.goto(`${URL}/#/cuenta`);
   await page.getByLabel('Correo con el que te invitaron').fill(correo);
-  const t0 = Date.now();
-  await page.getByRole('button', { name: 'Enviar código' }).click();
-  await expect(page.getByLabel('Código de 6 dígitos')).toBeVisible();
+  let t0 = Date.now();
+  // El límite por IP es real (DEP-05 lo agota a propósito): como haría una persona, se espera y se reintenta.
+  for (let intento = 0; ; intento++) {
+    t0 = Date.now();
+    await page.getByRole('button', { name: 'Enviar código' }).click();
+    const limite = page.getByRole('alert').filter({ hasText: 'Demasiados intentos en poco tiempo' }).first();
+    await expect(page.getByLabel('Código de 6 dígitos').or(limite).first()).toBeVisible();
+    if (await page.getByLabel('Código de 6 dígitos').isVisible()) break;
+    if (intento >= 6) throw new Error('El límite de intentos no se liberó');
+    await page.waitForTimeout(15_000);
+  }
   await page.getByLabel('Código de 6 dígitos').fill(await codigoPorCorreo(page.context(), correo, t0));
   await page.getByRole('button', { name: 'Entrar' }).click();
 }

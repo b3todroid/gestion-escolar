@@ -1,6 +1,31 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 11 — Despliegue institucional (preparación)** — **COMPLETADA** (aprobada por el usuario el 2026-11-04) en su etapa de preparación: PREPARACIÓN COMPLETADA. Preproducción validada: NO (sólo local). Producción autorizada: NO. Producción operativa: NO. Nada publicado, contratado ni migrado. Fase 10 (piloto simulado): COMPLETADA (aprobada por el usuario el 2026-11-04).
+**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 12 — Preproducción y validación multidispositivo** — **ENTREGADA, pendiente de aprobación del usuario.** CONFIGURACIÓN PREPARADA: SÍ. PREPRODUCCIÓN DESPLEGADA y VALIDADA: **sólo LOCAL** (contenedores en el equipo de trabajo, dispositivos EMULADOS). Preproducción INSTITUCIONAL: **BLOQUEADA** (falta autorizar proveedor, costo, dominio y SMTP). Producción: NO. Nada publicado, contratado ni migrado. Fase 11: COMPLETADA (aprobada el 2026-11-04).
+
+## Fase 12 — Preproducción y validación multidispositivo (2026-11-04)
+Detalle: `docs/FASE_12_PREPRODUCCION.md` (informe y dictamen), `docs/CONFIGURACION_PREPRODUCCION.md`, `docs/PRUEBAS_MULTIDISPOSITIVO.md`, `docs/PRUEBAS_MULTIUSUARIO.md`, `docs/VALIDACION_DESPLIEGUE.md`.
+
+**Auditoría de entrada:** todo en verde: 191 unitarias, 59 funcionales, 127 del servidor, 4 + 3 con servidor real, y 0 vulnerabilidades.
+
+**Implementado:**
+- `deploy/scripts/desplegar.sh`: 9 pasos con reversión automática, probada con una versión rota.
+- `deploy/scripts/verificar-seguridad.sh`: sólo lectura.
+- `cli verificar-configuracion`.
+- `deploy/ci/verificacion.yml`: inactivo; no despliega.
+- Límite de códigos por CORREO, más límites por IP adecuados a escuelas detrás de NAT.
+
+**Pruebas contra la preproducción:**
+- `test:despliegue`: 21 de 21, que incluyen 4 dispositivos emulados, 5 casos multiusuario en navegadores independientes y 4 de rendimiento medido.
+- `test:preproduccion:flujo`: 17 de 17.
+- Seguridad sin fallas.
+- Respaldo → verificación → restauración correctos.
+
+**No probado:** dispositivos físicos; iPhone/Safari (sin WebKit en el entorno).
+
+**Pendientes:**
+- autorización institucional (proveedor, costo, dominio, SMTP, administración);
+- R-01, P-01, P-02 y S4;
+- aviso de privacidad.
 
 ## Fase 11 — Despliegue institucional: preparación (2026-11-04)
 Detalle: `docs/FASE_11_DESPLIEGUE.md` y los documentos de producción (arquitectura, comparativa, seguridad, respaldos, operación, recuperación, guía de publicación y lista de verificación).

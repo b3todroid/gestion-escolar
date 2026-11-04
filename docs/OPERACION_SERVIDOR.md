@@ -67,6 +67,7 @@ Si la red sale por un proxy con su propia CA:
 HTTPS_PROXY=http://proxy:3128 CA_EXTRA=/ruta/ca.pem deploy/scripts/construir.sh 0.1.0
 ```
 La CA sólo se usa durante la construcción y no queda en la imagen. Si Docker Hub limita las descargas, usa un espejo de las imágenes oficiales con `REGISTRO` (en las pruebas se usó `mirror.gcr.io/library`).
+Si `NO_PROXY` incluye el registro de npm pero la construcción no tiene salida directa, `npm ci` falla con «Exit handler never called!» (visto en la Fase 12): limita `NO_PROXY` a `localhost,127.0.0.1` para la construcción.
 
 ### Fijar las imágenes base
 Para producción, registra el resumen exacto de cada imagen base y fíjalo:
@@ -103,6 +104,12 @@ Después usa `NODE_IMAGEN=node:22.23-slim@sha256:…` y `CADDY_IMAGEN=caddy:2@sh
 La herramienta de monitoreo (Uptime Kuma, el monitor del proveedor de nube u otra) es **decisión institucional**. No registrar contraseñas ni datos personales.
 
 ## 6. Actualización (procedimiento)
+**Desde la Fase 12 hay un guion que hace los pasos 2 a 7 con reversión automática** (`deploy/scripts/desplegar.sh`, ver `docs/VALIDACION_DESPLIEGUE.md`):
+```bash
+deploy/scripts/desplegar.sh -p gestion-prod -e deploy/.env -v NUEVA --con-pruebas
+```
+Verifica Compose y la configuración ANTES de tocar nada, respalda (obligatorio en producción), migra, levanta, revisa la salud y, si falla, vuelve sola a la versión anterior. Lo que sigue es el procedimiento manual equivalente.
+
 1. **Preparar la versión:** etiqueta en git; notas de cambios; revisar si trae migraciones (`servidor/migraciones/NNNN_*.sql`) y si son compatibles hacia atrás. Las migraciones nunca se editan: sólo se agregan.
 2. **Pruebas:**
    ```bash

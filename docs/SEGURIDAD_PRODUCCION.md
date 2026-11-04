@@ -40,10 +40,11 @@ Complementa `docs/SEGURIDAD.md` (controles de la aplicación, Fase 9) con los co
   - la cookie es `SameSite`.
 
 ## 5. Abuso y límites
-- **Límites de intentos por IP real:**
-  - 3 solicitudes de código por minuto;
-  - 10 intentos de código o de segundo factor por minuto;
+- **Límites de intentos por IP real** (ajustados en la Fase 12, porque en una escuela muchas personas salen a internet por la MISMA IP pública):
+  - 30 solicitudes de código por minuto (`LIMITE_CODIGOS_POR_MINUTO`);
+  - 60 intentos de código o de segundo factor por minuto (`LIMITE_INTENTOS_POR_MINUTO`);
   - 120 peticiones por minuto en la autenticación.
+- **Límite por CORREO** (Fase 12, `LIMITE_CODIGOS_POR_CORREO`, 3 cada 10 min por omisión): impide inundar el buzón de una persona aunque se cambie de IP. Preproducción usa 20 para las pruebas automáticas. Probado: `fase11.test` y DEP-05.
 - **Detrás del proxy** (corregido en la Fase 11):
   - el servidor sólo cree `X-Forwarded-For` si la conexión viene de `PROXIES_CONFIABLES`, y la lee de derecha a izquierda;
   - Caddy reemplaza la cabecera que envía el cliente.

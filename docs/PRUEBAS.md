@@ -179,3 +179,16 @@ Casos con identificador, pasos, resultado esperado y observado: `docs/CASOS_PRUE
 - `servidor/pruebas/fase11.test.ts` (12): configuración por entorno (preproducción y producción exigen HTTPS y SMTP; producción con SMTP cifrado y base sin nombre de pruebas), secretos `*_FILE`, variables vacías, IP real detrás del proxy (no se puede falsear), límite por persona, `/api/salud/lista`, SMTP real contra un servidor SMTP mínimo en el proceso (y STARTTLS obligatorio).
 - `npm run test:despliegue` (`tests/despliegue/preproduccion.spec.ts`, 8 casos DEP-01 a DEP-08) contra la **preproducción local en contenedores** (no la levanta; ver `docs/GUIA_PUBLICACION.md` §2): HTTPS y cabeceras, puertos cerrados y base sin internet, código por SMTP real (Mailpit), permisos, límite por IP real, actualización de la PWA con cola pendiente, caída de la base y reinicio de la API.
 - Respaldos del servidor: `deploy/scripts/respaldar.sh`, `verificar-respaldo.sh` (PostgreSQL temporal sin red) y `restaurar.sh`, ejecutados contra la preproducción (resultados en `docs/RESPALDOS_PRODUCCION.md` §6).
+
+## Fase 12 — preproducción y validación multidispositivo
+Todas contra la **preproducción local** (`https://localhost:8443`; levantarla antes con `deploy/scripts/reiniciar-preproduccion.sh deploy/preproduccion.env`). Usan la hora REAL. Detalle en `docs/FASE_12_PREPRODUCCION.md`.
+- `npm run test:despliegue` (21):
+  - `preproduccion.spec.ts`: DEP-01..08. DEP-05 ahora prueba también el límite por correo.
+  - `dispositivos.spec.ts`: 4 perfiles **emulados** en Chromium. El de iPhone es sólo tamaño: no hay WebKit.
+  - `multiusuario.spec.ts`: MUP-01..05, un contexto de navegador por persona; nunca pestañas.
+  - `zz-rendimiento.spec.ts`: REN-01..04. Mide y guarda los resultados en `test-results/rendimiento-preproduccion.json`; no tiene umbrales inventados.
+  - Utilidades: `comun.ts`. `cambiarYGuardar` nunca marca «Retardo», que depende de la hora real, y falla si la app rechaza el guardado.
+- `npm run test:preproduccion:flujo` (17): las pruebas funcionales `flujo-integral`, `catalogos`, `horarios`, `docente`, `prefectura` y `respaldos`, **sin cambios**, servidas por la preproducción. Cada una crea su propia escuela ficticia.
+- `fase11.test.ts`: también prueba `LimitePorClave` y el límite por correo por HTTP. El cuarto código es 429; 20 correos distintos desde la misma IP sí pasan.
+- `deploy/scripts/verificar-seguridad.sh`: sólo lectura; revisa TLS, puertos, secretos, cabeceras y auditoría.
+- `deploy/scripts/desplegar.sh`: casos ejecutados en `docs/VALIDACION_DESPLIEGUE.md` §2 (despliegue, versión rota revertida, Compose inválido, configuración inválida).
