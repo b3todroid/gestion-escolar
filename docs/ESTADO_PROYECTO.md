@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 11 — Despliegue institucional (preparación)** — **COMPLETADA** (aprobada por el usuario el 2026-11-04) en su etapa de preparación: PREPARACIÓN COMPLETADA. Preproducción validada: NO (sólo local). Producción autorizada: NO. Producción operativa: NO. Nada publicado, contratado ni migrado. Fase 10 (piloto simulado) sigue pendiente de revisión.
+**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 11 — Despliegue institucional (preparación)** — **COMPLETADA** (aprobada por el usuario el 2026-11-04) en su etapa de preparación: PREPARACIÓN COMPLETADA. Preproducción validada: NO (sólo local). Producción autorizada: NO. Producción operativa: NO. Nada publicado, contratado ni migrado. Fase 10 (piloto simulado): COMPLETADA (aprobada por el usuario el 2026-11-04).
 
 ## Fase 11 — Despliegue institucional: preparación (2026-11-04)
 Detalle: `docs/FASE_11_DESPLIEGUE.md` y los documentos de producción (arquitectura, comparativa, seguridad, respaldos, operación, recuperación, guía de publicación y lista de verificación).
