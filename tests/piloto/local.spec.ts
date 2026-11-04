@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { a, alumno, cargarDemo, contar, HOY, piloto, radio } from './comun';
+import { cifrar } from '../../src/utils/cifrado';
 
 // Fase 10 — PILOTO en el dispositivo con ESCUELA DEMO GESTIÓN ESCOLAR (DEMO-001). Datos FICTICIOS.
 // Los perfiles (Administración, Docente, Prefectura, Dirección) son PERFILES DE DEMOSTRACIÓN en este
@@ -230,7 +231,7 @@ test('PIL-RES-01 · respaldo cifrado de DEMO-001 → restaurar en otro dispositi
   // Alterado (huella)
   const alterado = JSON.parse(piloto().p.contenido); alterado.datos.alumnos[0].nombre = 'Alterada';
   await p2.locator('#archivo-respaldo').setInputFiles({ name: 'alterado.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(alterado)) });
-  await expect(p2.locator('main')).toContainText(/huella|alterado|modificado/i);
+  await expect(p2.locator('main')).toContainText('El archivo fue modificado o está dañado');
   expect(await contar(p2, 'escuelas')).toBe(0); // nada se escribió
   // El cifrado correcto se restaura completo
   await p2.locator('#archivo-respaldo').setInputFiles({ name: 'cifrado.json', mimeType: 'application/json', buffer: Buffer.from(cifrado) });
@@ -242,6 +243,23 @@ test('PIL-RES-01 · respaldo cifrado de DEMO-001 → restaurar en otro dispositi
   await expect(p2.locator('#informe-restauracion')).toContainText('Restauración completa', { timeout: 300_000 });
   expect(await contar(p2, 'asistencias')).toBe(p.conteos.asistencias);
   await otro.close();
+});
+
+test('PIL-RES-03 · elegir otro archivo mientras se revisa el anterior: la revisión vieja no reemplaza a la vigente (INC-F11-01)', async ({ page }) => {
+  await page.goto('/#/respaldos');
+  const { p } = piloto();
+  const alterado = JSON.parse(p.contenido); alterado.datos.alumnos[0].nombre = 'Alterada';
+  const cifrado = await cifrar(p.contenido, 'clave-ficticia-piloto-10', new Date().toISOString());
+  // 1.º un archivo alterado (su revisión tarda) y, sin esperar, 2.º uno cifrado (pide contraseña al instante).
+  await page.locator('#archivo-respaldo').setInputFiles({ name: 'alterado.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(alterado)) });
+  await page.locator('#archivo-respaldo').setInputFiles({ name: 'cifrado.json', mimeType: 'application/json', buffer: Buffer.from(cifrado) });
+  await expect(page.getByText('«cifrado.json» está protegido con contraseña')).toBeVisible();
+  await page.waitForTimeout(5_000); // la revisión del alterado ya terminó
+  await expect(page.getByText('«cifrado.json» está protegido con contraseña')).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('El archivo fue modificado o está dañado');
+  await page.getByLabel('Contraseña del respaldo').fill('clave-ficticia-piloto-10');
+  await page.getByRole('button', { name: 'Abrir respaldo' }).click();
+  await expect(page.locator('.respaldo-escuela')).toContainText('Se agregará', { timeout: 120_000 });
 });
 
 test('PIL-RES-02 · interrupción: si se cierra la pestaña a mitad de una restauración, no queda nada a medias', async ({ browser }) => {

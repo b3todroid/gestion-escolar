@@ -9,8 +9,14 @@
 
 name: gestion-escolar
 
+# Registros con rotación: sin límite pueden llenar el disco.
+x-registro: &registro
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
 services:
   db:
+    logging: *registro
     image: ${REGISTRO:-docker.io/library}/postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -34,6 +40,7 @@ services:
     # Sin «ports»: la base de datos NUNCA se publica.
 
   servidor:
+    logging: *registro
     image: gestion-escolar/servidor:${VERSION:-local}
     build:
       context: ..
@@ -74,6 +81,7 @@ services:
         limits: { memory: 768m }
 
   web:
+    logging: *registro
     image: gestion-escolar/web:${VERSION:-local}
     build:
       context: ..

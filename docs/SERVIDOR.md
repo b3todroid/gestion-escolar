@@ -5,7 +5,7 @@
 ## Qué incluye
 | Parte | Dónde | Notas |
 |---|---|---|
-| Configuración validada (Zod) | `servidor/src/config.ts` | Sólo variables de entorno; secretos sin valor por omisión; producción bloqueada hasta configurar SMTP en el despliegue |
+| Configuración validada (Zod) | `servidor/src/config.ts` | Sólo variables de entorno (o `*_FILE` para secretos, Fase 11); secretos sin valor por omisión; producción y preproducción exigen HTTPS y SMTP |
 | Migraciones versionadas | `servidor/migraciones/*.sql`, `servidor/src/migrar.ts` | Una vez cada una, en orden, en transacción; huella SHA-256; se detiene si un archivo aplicado cambia o desaparece; candado para evitar ejecuciones simultáneas |
 | Autenticación | `servidor/src/auth.ts` (Better Auth 1.7.11) | Código de 6 dígitos al correo (institucional o personal con consentimiento) y cuenta institucional (Google Workspace / Microsoft 365, OIDC). **Sin contraseñas** y sin registro abierto |
 | Verificación en dos pasos | TOTP + 10 códigos de respaldo | Obligatoria para Administrador, Dirección y Subdirección; complemento propio para exigirla también con código al correo y cuenta institucional |
@@ -76,7 +76,7 @@ Sin el servidor en marcha, `#/cuenta` indica «Modo local» y todo lo demás fun
 
 ## Pendiente (requiere autorización)
 - **Despliegue** en la nube elegida (D11): servidor, PostgreSQL gestionado, HTTPS, proxy inverso con IP de cliente confiable, respaldos y monitoreo.
-- **Envío por SMTP**: el servidor se niega a arrancar en producción sin él.
+- **Envío por SMTP** (implementado en la Fase 11, `CorreoSmtp` con nodemailer 10.1.7): cifrado obligatorio en producción; el servidor se niega a arrancar en producción sin él. Despliegue: `docs/ARQUITECTURA_PRODUCCION.md` y `deploy/`.
 - **Registro de Google y Microsoft** con las cuentas del administrador (D8).
 - ~~8C~~ hecho (ver `docs/PERMISOS.md`). ~~8D~~ hecho (ver `docs/SINCRONIZACION.md`).
 - **8E**: migración de datos reales, sólo con autorización.

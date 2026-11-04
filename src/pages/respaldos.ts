@@ -60,6 +60,10 @@ export async function paginaRespaldos(ctx: ContextoPagina): Promise<Vista> {
   // ---------- Restaurar ----------
   const resultado = h('div', { class: 'importacion', 'aria-live': 'polite' });
   let contenido: string | null = null;
+  // Fase 11 (INC-F11-01): cada archivo elegido abre un «turno». Un análisis que termina tarde (archivo
+  // anterior) no se muestra, y sólo se restaura exactamente el archivo cuya revisión está en pantalla.
+  let turno = 0;
+  let revisado: string | null = null;
   let nombreArchivo = '';
   let claveRestaurar: string | null = null;
 
@@ -107,6 +111,7 @@ export async function paginaRespaldos(ctx: ContextoPagina): Promise<Vista> {
           const b = ev.currentTarget as HTMLButtonElement;
           const ids = [...marcadas];
           if (!contenido || !ids.length || b.disabled) { if (!ids.length) avisar('Selecciona al menos una escuela.', 'info'); return; }
+          if (contenido !== revisado) { avisar('Elegiste otro archivo: espera su revisión antes de restaurar.', 'info'); return; }
           const reemplazos = a.escuelas.filter((x) => ids.includes(x.id) && x.accion === 'reemplazar');
           const ok = await confirmar({
             titulo: reemplazos.length ? '¿Reemplazar los datos actuales?' : '¿Restaurar el respaldo?',
@@ -124,7 +129,7 @@ export async function paginaRespaldos(ctx: ContextoPagina): Promise<Vista> {
               descargar(copia.nombreArchivo.replace('respaldo-', 'copia-antes-de-restaurar-'), copia.contenido);
             }
             const r = await ctx.s.respaldos.restaurar(contenido, ids, claveRestaurar);
-            contenido = null; claveRestaurar = null;
+            contenido = null; claveRestaurar = null; revisado = null;
             informe(r);
             avisar('Restauración completa. Guardado en este dispositivo.', 'exito', 8000);
           } catch (e) {
@@ -139,12 +144,16 @@ export async function paginaRespaldos(ctx: ContextoPagina): Promise<Vista> {
 
   const analizar = async (contrasena: string | null) => {
     if (!contenido) return;
+    const t = turno; const c = contenido;
     reemplazar(resultado, h('p', {}, contrasena ? 'Descifrando y revisando el respaldo…' : 'Revisando el respaldo…'));
     try {
-      const a = await ctx.s.respaldos.analizar(contenido, contrasena);
+      const a = await ctx.s.respaldos.analizar(c, contrasena);
+      if (t !== turno) return; // se eligió otro archivo mientras se revisaba este
       claveRestaurar = contrasena;
+      revisado = c;
       mostrar(a);
     } catch (e) {
+      if (t !== turno) return;
       if (!esErrorDominio(e)) registrarError(e);
       const msg = esErrorDominio(e) ? e.message : 'No se pudo leer el archivo.';
       if (contrasena) pedirClave(msg); else reemplazar(resultado, h('p', { class: 'mensaje mensaje--error', role: 'alert' }, icono('⚠'), ' ', msg));
@@ -167,13 +176,17 @@ export async function paginaRespaldos(ctx: ContextoPagina): Promise<Vista> {
   entrada.addEventListener('change', async () => {
     const f = entrada.files?.[0];
     if (!f) return;
-    nombreArchivo = f.name; claveRestaurar = null;
+    const t = ++turno;
+    nombreArchivo = f.name; claveRestaurar = null; revisado = null;
     reemplazar(resultado, h('p', {}, 'Leyendo el archivo…'));
     try {
-      contenido = await f.text();
+      const leido = await f.text();
+      if (t !== turno) return;
+      contenido = leido;
       if (ctx.s.respaldos.requiereContrasena(contenido)) pedirClave(null);
       else await analizar(null);
     } catch (e) {
+      if (t !== turno) return;
       contenido = null;
       if (!esErrorDominio(e)) registrarError(e);
       reemplazar(resultado, h('p', { class: 'mensaje mensaje--error', role: 'alert' }, icono('⚠'), ' ', esErrorDominio(e) ? e.message : 'No se pudo leer el archivo.'));

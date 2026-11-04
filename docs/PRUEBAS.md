@@ -174,3 +174,8 @@ Casos con identificador, pasos, resultado esperado y observado: `docs/CASOS_PRUE
 - `tests/piloto/local.spec.ts` (11 casos × 3 dispositivos emulados), `tests/piloto/multiusuario.spec.ts` (3 casos con servidor real; `servidor/herramientas/servidorPiloto.ts`), `tests/piloto/rendimiento.spec.ts`.
 - `tests/unit/fase10-piloto.test.ts`: generador, marca de demostración, limpieza segura, migración v12 → v13, integridad entre vistas de horario (PIL-HOR-02) y recordatorio de respaldo rápido.
 - `servidor/pruebas/piloto.test.ts`: carga con huella verificada y candados de `npm run piloto` (sólo bases `gestion_piloto*` y sólo escuelas de demostración).
+
+## Fase 11 — despliegue
+- `servidor/pruebas/fase11.test.ts` (12): configuración por entorno (preproducción y producción exigen HTTPS y SMTP; producción con SMTP cifrado y base sin nombre de pruebas), secretos `*_FILE`, variables vacías, IP real detrás del proxy (no se puede falsear), límite por persona, `/api/salud/lista`, SMTP real contra un servidor SMTP mínimo en el proceso (y STARTTLS obligatorio).
+- `npm run test:despliegue` (`tests/despliegue/preproduccion.spec.ts`, 8 casos DEP-01 a DEP-08) contra la **preproducción local en contenedores** (no la levanta; ver `docs/GUIA_PUBLICACION.md` §2): HTTPS y cabeceras, puertos cerrados y base sin internet, código por SMTP real (Mailpit), permisos, límite por IP real, actualización de la PWA con cola pendiente, caída de la base y reinicio de la API.
+- Respaldos del servidor: `deploy/scripts/respaldar.sh`, `verificar-respaldo.sh` (PostgreSQL temporal sin red) y `restaurar.sh`, ejecutados contra la preproducción (resultados en `docs/RESPALDOS_PRODUCCION.md` §6).

@@ -14,6 +14,14 @@ Cada incidencia corregida tiene una prueba que la detecta, ejecutada después de
 | INC-06 | MEDIO | La pantalla de inicio calculaba el recordatorio de respaldo ANTES de pintarse (el mismo problema que la Fase 9 corrigió en «Mi día») | Revisión de código del piloto | Se pinta primero; el aviso aparece después | Corregida | `respaldos.spec` («tiene cambios sin respaldar») |
 | INC-07 | MEDIO | El recordatorio de respaldo recorría TODOS los registros de la escuela (~165 000) en segundo plano cada vez que se abría Inicio o Mi día. Competía por la CPU con la pantalla siguiente: «Abrir pase de lista» tardó 3,1 s a escala 0.5 y más de 5 s a escala 1 en escritorio | `test:piloto:rendimiento` | `debeRecordar()`: misma regla, pero sólo recorre si el último respaldo es viejo, y se detiene en el primer cambio | Corregida (tiempos en `RESULTADOS_RENDIMIENTO.md`) | `fase10-piloto.test` (equivalencia con `estado()`), `test:piloto:rendimiento` |
 
+## 1b. Encontradas en la Fase 11
+| ID | Severidad | Descripción | Corrección | Estado | Prueba |
+|---|---|---|---|---|---|
+| INC-F11-01 | **ALTO** | Restaurar: una revisión que terminaba tarde (archivo anterior) reemplazaba la del archivo vigente; se podía confirmar un archivo tras ver la revisión de otro | Turno por archivo; sólo se restaura el archivo revisado | Corregida | PIL-RES-01 (3 de 6 → 6 de 6) |
+| INC-F11-02 | **ALTO** (despliegue) | SMTP no implementado: producción imposible | `CorreoSmtp` (nodemailer) | Corregida | `fase11.test`, DEP-03 |
+| INC-F11-03 | **ALTO** (despliegue) | Detrás de un proxy, todas las personas compartirían la IP del proxy (bloqueo general; sin freno al atacante) | `PROXIES_CONFIABLES` | Corregida | `fase11.test`, DEP-05 |
+| INC-F11-04 | MEDIO | Textos de «Aplicación y datos» afirmaban que la cuenta no envía datos | Texto corregido | Corregida | `cuenta-local.spec` |
+
 ## 2. Pendientes de fases anteriores (siguen abiertas)
 | ID | Severidad | Descripción | Estado |
 |---|---|---|---|

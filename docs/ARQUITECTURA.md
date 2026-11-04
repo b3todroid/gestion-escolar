@@ -123,3 +123,8 @@ El servidor se compila con Vite (`servidor/vite.config.ts`) para **reutilizar** 
 - **Esquema local v12**: índices `matricula` y `curp` en `alumnos`. `Repositorio.obtenerVarios(ids)` (Dexie `bulkGet`; PostgreSQL `id = ANY($1::uuid[])`) para leer muchos por id en una consulta.
 - `insertarVarios` consulta el vínculo de sincronización una vez por escuela, no por registro.
 - «Mi día» pinta primero y calcula el recordatorio de respaldo después (recorre todos los registros de la escuela).
+
+## Fase 11 — despliegue
+- **nodemailer 10.1.7** (sólo en el servidor, licencia MIT-0, sin dependencias): envío SMTP de códigos e invitaciones. Se eligió la biblioteca estándar de Node para SMTP en lugar de escribir un cliente propio (TLS, STARTTLS y autenticación son delicados). Se fijó una versión publicada hace más de dos semanas, no la más reciente. Tipos: `@types/nodemailer` 8.0.2 (sólo desarrollo).
+- Contenedores (`deploy/`): Node 22.23-slim, Caddy 2 y PostgreSQL 16-alpine (imágenes oficiales; espejo configurable). Arquitectura completa: `docs/ARQUITECTURA_PRODUCCION.md`.
+- Servidor: modos `preproduccion` y `produccion` (estrictos); `HOST`, `PROXIES_CONFIABLES` (`servidor/src/ipCliente.ts`), secretos `*_FILE`, `/api/salud/lista`.

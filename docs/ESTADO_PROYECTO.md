@@ -1,6 +1,39 @@
 # Estado del proyecto
 
-**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 10 — Prueba piloto integral (condiciones SIMULADAS, DEMO-001)** — terminada y **pendiente de revisión del usuario**. Dictamen: APTO PARA DEMOSTRACIÓN LOCAL; APTO PARA PILOTO CONTROLADO **con condiciones**; **NO APTO todavía para piloto multiusuario** (no hay servidor desplegado). Esquema local v13 y migración del servidor 0007. La Fase 11 no se inicia sin autorización.
+**Última actualización:** 2026-11-04 · **Trabajo actual:** **Fase 11 — Despliegue institucional (preparación)** — **PREPARACIÓN COMPLETADA**, pendiente de revisión del usuario. Preproducción validada: NO (sólo local). Producción autorizada: NO. Producción operativa: NO. Nada publicado, contratado ni migrado. Fase 10 (piloto simulado) sigue pendiente de revisión.
+
+## Fase 11 — Despliegue institucional: preparación (2026-11-04)
+Detalle: `docs/FASE_11_DESPLIEGUE.md` y los documentos de producción (arquitectura, comparativa, seguridad, respaldos, operación, recuperación, guía de publicación y lista de verificación).
+
+**Auditoría de entrada:**
+- Todas las pruebas en verde.
+- El backend, la autenticación y los permisos son reales; el servidor funciona **sólo localmente**.
+- **Bloqueos de despliegue encontrados y resueltos:**
+  - SMTP no implementado;
+  - el servidor sólo escuchaba en 127.0.0.1;
+  - detrás de un proxy, todas las personas compartirían la IP del proxy;
+  - la salud no revisaba la base de datos;
+  - no había empaquetado, HTTPS ni respaldos del servidor.
+
+**Implementado:**
+- `deploy/` (Dockerfile, Compose, Caddy, preproducción con Mailpit, scripts de secretos, construcción, salud, respaldo cifrado con age, verificación aislada, restauración a una base nueva y reinicio de preproducción).
+- Servidor:
+  - modo `preproduccion`;
+  - SMTP con nodemailer 10.1.7 (cifrado obligatorio en producción);
+  - `HOST`, `PROXIES_CONFIABLES` y secretos `*_FILE`;
+  - `/api/salud/lista`;
+  - producción nunca usa bases de prueba.
+- PWA: confirmación antes de actualizar si hay cambios sin guardar.
+
+**Pruebas:** suites completas, más 13 del servidor y 8 de despliegue contra la pila real en contenedores (HTTPS, SMTP, permisos, IP real, actualización, recuperación), más respaldo, verificación y restauración reales.
+
+**Recomendación:** arquitectura híbrida (nube en México y respaldos cifrados en el NAS institucional). Costos: requieren cotización.
+
+**Pendientes / bloqueos:**
+- autorización, contratación, dominio y SMTP institucional;
+- dispositivos físicos e iPhone;
+- aviso de privacidad;
+- S4, P-01, P-02 y B-06.
 
 ## Fase 10 — Prueba piloto integral (2026-11-04)
 Documentos:

@@ -1,5 +1,7 @@
 # Lista de verificación para un despliegue institucional
 
+> **Fase 11:** esta lista se amplió y se sustituye por `docs/CHECKLIST_PRODUCCION.md`. La configuración del despliegue está en `deploy/` y su guía en `docs/GUIA_PUBLICACION.md`.
+
 **Nada de esta lista se ejecutó contra un servicio real:** no se publicó la aplicación, no se contrató nada y no se usaron datos reales. Cada punto necesita la autorización indicada. Marca: ☑ hecho y verificado en desarrollo · ☐ pendiente.
 
 ## A. Requisitos de la aplicación (verificados en desarrollo)
