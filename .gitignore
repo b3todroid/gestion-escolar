@@ -22,3 +22,4 @@ deploy/respaldos/
 *.age
 *.dump
 deploy/*.env
+deploy/registro/
