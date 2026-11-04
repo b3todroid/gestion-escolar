@@ -181,11 +181,14 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
     titulo: escuela.nombre,
     contenido: h('div', { class: 'pagina' },
       migas([{ texto: 'Inicio', href: '#/' }, { texto: escuela.nombreCorto ?? escuela.nombre }]),
-      encabezado(escuela.nombre, 'Panel principal'),
+      encabezado(escuela.nombre, escuela.demostracion ? 'Panel principal · DEMOSTRACIÓN (datos ficticios)' : 'Panel principal'),
+      escuela.demostracion ? h('p', { class: 'mensaje mensaje--aviso', id: 'escuela-demostracion' }, icono('◆'),
+        ` Escuela de DEMOSTRACIÓN${escuela.nombreCorto ? ` (${escuela.nombreCorto})` : ''}: todos sus datos son ficticios y no son información oficial. No tiene CCT.`) : null,
       panel,
       seccion('datos', 'Datos del plantel',
         h('dl', { class: 'datos' },
-          h('dt', {}, 'Clave (CCT)'), h('dd', {}, escuela.cct ?? 'Sin registrar'),
+          escuela.demostracion ? h('dt', {}, 'Identificador') : null, escuela.demostracion ? h('dd', {}, escuela.nombreCorto ?? 'DEMO') : null,
+          h('dt', {}, 'Clave (CCT)'), h('dd', {}, escuela.demostracion ? 'No aplica (escuela de demostración)' : escuela.cct ?? 'Sin registrar'),
           h('dt', {}, 'Entidad'), h('dd', {}, nombreEntidad(escuela.entidad) ?? 'Sin registrar'),
           h('dt', {}, 'Municipio o alcaldía'), h('dd', {}, escuela.localidad ?? 'Sin registrar'),
           escuela.zonaEscolar ? h('dt', {}, 'Zona escolar') : null, escuela.zonaEscolar ? h('dd', {}, escuela.zonaEscolar) : null,
@@ -203,6 +206,15 @@ export async function paginaEscuela(ctx: ContextoPagina, id: string): Promise<Vi
             });
             if (ok && await ejecutar(async () => { await ctx.s.escuelas.eliminar(escuela.id); return 'Escuela eliminada.'; })) ctx.ir('#/');
           }, 'peligro'),
+          // Limpieza del piloto: sólo existe para escuelas de DEMOSTRACIÓN (el servicio lo vuelve a verificar).
+          escuela.demostracion ? botonAccion('Quitar escuela de demostración', async () => {
+            const ok = await confirmar({
+              titulo: `¿Quitar «${escuela.nombre}» de este dispositivo?`,
+              mensaje: 'Se borran todos sus datos ficticios (ciclos, personal, alumnos, horarios, asistencia y Prefectura). Las escuelas reales no se tocan. Esta acción no se puede deshacer.',
+              textoConfirmar: 'Quitar escuela de demostración', peligro: true,
+            });
+            if (ok && await ejecutar(async () => { const r = await ctx.s.respaldos.quitarDemostracion(escuela.id); return `Escuela de demostración quitada (${r.registros} registros ficticios).`; })) ctx.ir('#/');
+          }, 'peligro') : null,
         ),
       ),
       catalogos,

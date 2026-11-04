@@ -129,7 +129,7 @@ export async function sembrarLocal(repos: Repositorios, uow: { ejecutar<R>(f: ()
   const { hoy, dia } = hoyEnMexico();
   return uow.ejecutar(async () => {
     await repos.escuelas.insertar({ id: escuela.id, creadoEn: ahora, actualizadoEn: ahora, version: 2, nombre: escuela.nombre, nombreCorto: null, cct: escuela.cct, nivel: 'secundaria',
-      entidad: '32', localidad: 'Municipio Ejemplo', zonaEscolar: null, sector: null, domicilio: 'Domicilio ficticio 123', telefono: null, correo: null, logotipo: null });
+      entidad: '32', localidad: 'Municipio Ejemplo', zonaEscolar: null, sector: null, domicilio: 'Domicilio ficticio 123', telefono: null, correo: null, logotipo: null, demostracion: false });
     return generar(repos, escuela.id, meta, ahora, hoy, dia, haceDias(hoy, 7));
   });
 }

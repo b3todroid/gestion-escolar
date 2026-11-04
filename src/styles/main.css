@@ -871,3 +871,6 @@ main:focus { outline: none; }
 .barra__sinc:focus-visible { outline: 3px solid var(--acento, #f2c14e); }
 .tabla-comparacion { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 0.5rem 0; }
 .tabla-comparacion th, .tabla-comparacion td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--borde); overflow-wrap: anywhere; }
+
+/* Fase 10 — escuela de DEMOSTRACIÓN (datos ficticios): aviso con texto y símbolo, no sólo color. */
+.aviso-demostracion { margin: 0; padding: 0.5rem 1rem; background: var(--lapiz); color: var(--lapiz-texto); font-weight: 700; font-size: 0.9rem; text-align: center; border-bottom: 2px solid var(--lapiz-texto); }

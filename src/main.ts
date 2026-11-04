@@ -27,6 +27,7 @@ import { paginaAccesosEscuela, paginaCuenta } from './pages/cuenta';
 import { paginaSincronizacion } from './pages/sincronizacion';
 import { paginaMigracion } from './pages/migracion';
 import { iniciarSincronizacion } from './sincronizador';
+import { iniciarAvisoDemostracion } from './demostracion';
 import { paginaBancoActividades, paginaCobertura, paginaPrefectura, paginaPrefecturaInicio, paginaReportesPrefectura } from './pages/prefectura';
 
 const principal = document.getElementById('contenido');
@@ -40,6 +41,8 @@ if (typeof indexedDB === 'undefined') {
   const servicios = crearServicios();
   const indicadorSinc = document.getElementById('sincronizacion') as HTMLAnchorElement | null;
   if (indicadorSinc) iniciarSincronizacion(servicios, indicadorSinc);
+  const avisoDemo = document.getElementById('demostracion');
+  if (avisoDemo) iniciarAvisoDemostracion(servicios, avisoDemo);
   new Aplicacion(servicios, principal)
     .ruta('/', paginaRaiz)
     .ruta('/escuelas', paginaInicio)

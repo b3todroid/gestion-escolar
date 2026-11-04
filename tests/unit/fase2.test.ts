@@ -54,7 +54,7 @@ describe('migración del esquema', () => {
     await v2.open();
     expect(v2.verno).toBe(VERSION_ESQUEMA);
     // La migración v5 conserva todo y completa los campos nuevos sin inventar datos.
-    expect(await v2.escuelas.get(escuela.id)).toEqual({ ...escuela, nombreCorto: null, entidad: null, zonaEscolar: null, sector: null, domicilio: null, telefono: null, correo: null, logotipo: null });
+    expect(await v2.escuelas.get(escuela.id)).toEqual({ ...escuela, nombreCorto: null, entidad: null, zonaEscolar: null, sector: null, domicilio: null, telefono: null, correo: null, logotipo: null, demostracion: false });
     expect(await v2.personal.count()).toBe(0);
     expect(await v2.actividades.count()).toBe(0);
     expect((await v2.grupos.toArray())[0]).toMatchObject({ nombre: 'A', activo: true });

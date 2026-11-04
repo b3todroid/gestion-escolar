@@ -37,7 +37,7 @@ export type ValoresPlantel = Partial<Record<keyof EntradaEscuela, string | null>
  * Campos del plantel: obligatorios a la vista y los opcionales en un
  * desplegable (formularios breves). La entidad se sugiere a partir de la CCT.
  */
-export function camposPlantel(f: string, v: ValoresPlantel, abrirOpcionales = false): HTMLElement[] {
+export function camposPlantel(f: string, v: ValoresPlantel, abrirOpcionales = false, demostracion = false): HTMLElement[] {
   const hayOpcionales = ['zonaEscolar', 'sector', 'domicilio', 'telefono', 'correo', 'logotipo'].some((k) => v[k as keyof EntradaEscuela]);
   const logo = h('input', { type: 'hidden', name: 'logotipo', value: v.logotipo ?? '' });
   const vista = h('img', { class: 'logo-vista', alt: 'Vista previa del logotipo', hidden: !v.logotipo, src: v.logotipo || undefined, width: 96, height: 96 });
@@ -79,8 +79,12 @@ export function camposPlantel(f: string, v: ValoresPlantel, abrirOpcionales = fa
     ),
   );
 
-  const cct = campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: v.cct, requerido: true, maxlength: 14, mayusculas: true, ayuda: '10 caracteres, como aparece en documentos oficiales (por ejemplo 00AAA0000A). Sólo se revisa el formato; no se consulta ningún registro oficial.' });
-  const entidad = selector(f, { nombre: 'entidad', etiqueta: 'Entidad federativa', requerido: true, valor: v.entidad ?? undefined, opciones: ENTIDADES.map(([c, n]) => ({ valor: c, texto: n })) });
+  // Escuela de DEMOSTRACIÓN (Fase 10): sin CCT; nunca se inventa una clave oficial.
+  const cct = demostracion
+    ? campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: '', maxlength: 14, ayuda: 'No aplica: es una escuela de DEMOSTRACIÓN con datos ficticios (identificador DEMO-001). No se inventa una clave oficial.' })
+    : campo(f, { nombre: 'cct', etiqueta: 'Clave de centro de trabajo (CCT)', valor: v.cct, requerido: true, maxlength: 14, mayusculas: true, ayuda: '10 caracteres, como aparece en documentos oficiales (por ejemplo 00AAA0000A). Sólo se revisa el formato; no se consulta ningún registro oficial.' });
+  if (demostracion) cct.querySelector('input')!.disabled = true;
+  const entidad = selector(f, { nombre: 'entidad', etiqueta: 'Entidad federativa', requerido: !demostracion, valor: v.entidad ?? undefined, opciones: ENTIDADES.map(([c, n]) => ({ valor: c, texto: n })) });
   // Sugiere la entidad a partir de los dos primeros dígitos de la CCT (si no se eligió otra).
   const inCct = cct.querySelector('input')!;
   const selEntidad = entidad.querySelector('select')!;

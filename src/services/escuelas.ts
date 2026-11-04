@@ -1,5 +1,5 @@
 import type { Escuela } from '../models';
-import { esquemaDatosPlantel, esquemaEscuela, validar, type EntradaEscuela } from '../validators/esquemas';
+import { esquemaDatosPlantel, esquemaDatosPlantelDemostracion, esquemaEscuela, validar, type EntradaEscuela } from '../validators/esquemas';
 import { asegurarSinDuplicado } from '../domain/reglas';
 import { ErrorDominio } from '../domain/errores';
 import { type Contexto, metadatosActualizados, metadatosNuevos, requerir } from './contexto';
@@ -21,7 +21,8 @@ export class ServicioEscuelas {
     const datos = validar(estricto ? esquemaDatosPlantel : esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       await this.verificarDuplicados(datos.nombre, datos.cct, undefined);
-      const escuela: Escuela = { ...metadatosNuevos(this.ctx), ...datos };
+      // Desde la interfaz nunca se crea una escuela de demostración (sólo el generador del piloto).
+      const escuela: Escuela = { ...metadatosNuevos(this.ctx), ...datos, demostracion: false };
       await this.ctx.repos.escuelas.insertar(escuela);
       return escuela;
     });
@@ -34,11 +35,14 @@ export class ServicioEscuelas {
   }
 
   async actualizar(id: string, entrada: EntradaEscuela, estricto = false): Promise<Escuela> {
-    const datos = validar(estricto ? esquemaDatosPlantel : esquemaEscuela, entrada);
+    const previa = await this.obtener(id);
+    const datos = validar(estricto ? (previa.demostracion ? esquemaDatosPlantelDemostracion : esquemaDatosPlantel) : esquemaEscuela, entrada);
     return this.ctx.uow.ejecutar(async () => {
       const actual = await this.obtener(id);
+      if (actual.demostracion && datos.cct) throw new ErrorDominio('VALIDACION', 'Una escuela de demostración no lleva CCT.', [{ campo: 'cct', mensaje: 'Una escuela de demostración no lleva CCT: no se inventa una clave oficial.' }]);
       await this.verificarDuplicados(datos.nombre, datos.cct, id);
-      const escuela: Escuela = { ...actual, ...datos, ...metadatosActualizados(this.ctx, actual) };
+      // La marca de demostración no cambia al editar.
+      const escuela: Escuela = { ...actual, ...datos, demostracion: actual.demostracion, ...metadatosActualizados(this.ctx, actual) };
       await this.ctx.repos.escuelas.actualizar(escuela);
       return escuela;
     });

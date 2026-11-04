@@ -201,6 +201,32 @@ export class ServicioRespaldos {
     };
   }
 
+  /**
+   * Limpieza del piloto (Fase 10): quita del dispositivo una escuela de DEMOSTRACIÓN con todos sus
+   * registros. Nunca actúa sobre una escuela real (sin la marca `demostracion`) ni sobre una
+   * sincronizada con el servidor. Todo o nada.
+   */
+  async quitarDemostracion(escuelaId: string): Promise<{ registros: number }> {
+    return this.ctx.uow.ejecutar(async () => {
+      const e = await this.ctx.repos.escuelas.obtener(escuelaId);
+      if (!e) throw new ErrorDominio('NO_ENCONTRADO', 'No se encontró la escuela.');
+      if (e.demostracion !== true) throw new ErrorDominio('ESTADO_NO_PERMITIDO', 'Sólo se pueden quitar escuelas de demostración. Las escuelas reales nunca se borran con esta función.');
+      if (await this.vinculada(e.id)) throw new ErrorDominio('ESTADO_NO_PERMITIDO', 'La escuela se sincroniza con el servidor: quítala desde «Sincronización».');
+      const personal = new Set((await this.registrosDe(e.id, 'personal')).map((r) => r.id));
+      let registros = 0;
+      for (const t of TABLAS_RESPALDO) {
+        const ids = (await this.registrosDe(e.id, t)).map((r) => r.id);
+        await this.repo(t).eliminarVarios(ids);
+        registros += ids.length;
+      }
+      // Preferencias del dispositivo que apuntaban a esa escuela.
+      const perfil = await this.ctx.repos.ajustes.obtener('perfil-docente');
+      if (perfil?.valor && personal.has(perfil.valor)) await this.ctx.repos.ajustes.actualizar({ ...perfil, valor: null, ...metadatosActualizados(this.ctx, perfil) });
+      if (await this.ctx.repos.ajustes.obtener(`ultimo-respaldo:${e.id}`)) await this.ctx.repos.ajustes.eliminar(`ultimo-respaldo:${e.id}`);
+      return { registros };
+    });
+  }
+
   async registrarRespaldo(escuelaIds: string[]): Promise<void> {
     return this.ctx.uow.ejecutar(async () => {
       for (const id of escuelaIds) {

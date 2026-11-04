@@ -14,12 +14,16 @@
     "test:e2e": "playwright test",
     "servidor": "npm run servidor:compilar && node --env-file-if-exists=servidor/.env dist-servidor/principal.mjs",
     "servidor:cli": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/cli.mjs",
-    "test:servidor": "vitest run --config servidor/vitest.config.ts",
+    "test:servidor": "npm run servidor:compilar --silent && vitest run --config servidor/vitest.config.ts",
     "test:e2e:servidor": "playwright test -c playwright.servidor.config.ts",
     "check": "npm run typecheck && npm run test && npm run build",
     "servidor:compilar": "vite build -c servidor/vite.config.ts",
     "test:rendimiento": "playwright test -c playwright.rendimiento.config.ts",
     "test:ux": "playwright test -c playwright.ux.config.ts",
+    "piloto": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/piloto.mjs",
+    "piloto:app": "npm run build && npx vite preview --port 4180 --strictPort",
+    "test:piloto": "playwright test -c playwright.piloto.config.ts",
+    "test:piloto:multiusuario": "playwright test -c playwright.piloto-servidor.config.ts",
     "servidor:demo": "npm run servidor:compilar --silent && node --env-file-if-exists=servidor/.env dist-servidor/demo.mjs"
   },
   "engines": {

@@ -33,6 +33,12 @@ export interface Escuela extends Metadatos {
   telefono: string | null; // 10 dígitos
   correo: string | null;
   logotipo: string | null; // imagen reducida como data URL (png/jpeg/webp)
+  /**
+   * Escuela de DEMOSTRACIÓN con datos ficticios (Fase 10). No tiene CCT (no se inventa una clave
+   * oficial), se identifica en toda la interfaz y es la única que se puede quitar con la limpieza
+   * del piloto. Sólo la crea el generador del piloto: no se activa desde la interfaz.
+   */
+  demostracion: boolean;
 }
 
 export interface CicloEscolar extends Metadatos {

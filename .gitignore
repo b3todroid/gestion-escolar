@@ -9,3 +9,6 @@ playwright-report/
 *.log
 .env
 .env.*
+
+# Fase 10: archivos generados del piloto (datos ficticios; se regeneran con npm run piloto -- datos)
+piloto/salida/

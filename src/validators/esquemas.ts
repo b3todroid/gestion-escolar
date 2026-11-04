@@ -100,6 +100,11 @@ export const esquemaDatosPlantel = esquemaEscuela
     }
   });
 
+/** Edición de una escuela de DEMOSTRACIÓN: igual, pero sin CCT (nunca se inventa una clave oficial). */
+export const esquemaDatosPlantelDemostracion = esquemaEscuela
+  .refine((v) => v.cct === null, { message: 'Una escuela de demostración no lleva CCT: no se inventa una clave oficial.', path: ['cct'] })
+  .refine((v) => v.localidad !== null, { message: 'El municipio o alcaldía es obligatorio.', path: ['localidad'] });
+
 export const esquemaCiclo = z
   .object({
     nombre: texto('El nombre del ciclo', 4, 40),

@@ -27,6 +27,8 @@ export const ESQUEMAS_TABLA = {
     nombreCorto: opcional(60).default(null), entidad: opcional(2).default(null), zonaEscolar: opcional(20).default(null), sector: opcional(20).default(null),
     domicilio: opcional(200).default(null), telefono: opcional(10).default(null), correo: opcional(120).default(null),
     logotipo: z.string().max(400_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/).nullable().default(null),
+    // Versión 13 (Fase 10); los respaldos anteriores no lo tienen.
+    demostracion: z.boolean().default(false),
   }),
   ciclos: z.object({ ...enEscuela, nombre: texto(40), fechaInicio: fecha, fechaFin: fecha, estado: z.enum(ESTADOS_CICLO) }),
   turnos: z.object({ ...enCiclo, nombre: texto(40) }),

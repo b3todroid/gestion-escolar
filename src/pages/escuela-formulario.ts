@@ -19,7 +19,7 @@ function vista(ctx: ContextoPagina, escuela: Escuela | null): Vista {
   const titulo = escuela ? 'Editar datos escolares' : 'Registrar escuela';
   const f = 'f-escuela';
   const form = formulario(f, null,
-    ...camposPlantel(f, escuela ?? {}),
+    ...camposPlantel(f, escuela ?? {}, false, escuela?.demostracion === true),
     h('div', { class: 'acciones' },
       h('a', { class: 'boton boton--secundario', href: escuela ? `#/escuela/${escuela.id}` : '#/' }, 'Cancelar'),
       botonEnviar(escuela ? 'Guardar cambios' : 'Registrar escuela'),

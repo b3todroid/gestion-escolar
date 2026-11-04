@@ -77,6 +77,8 @@ test('flujo integral: de la configuración al reporte de asistencia', async ({ p
   // CONSULTAR CLASE (dispositivo del docente: preferencia, no autenticación)
   await page.goto('/#/perfil');
   await page.getByRole('button', { name: 'Soy yo' }).click();
+  // Fase 10 (INC-01): esperar a que la elección quede guardada antes de recargar (era intermitente).
+  await expect(page.getByRole('heading', { level: 1, name: /^Hola,/ })).toBeVisible();
   await page.goto('/');
   const ahora = page.locator('.ahora');
   await expect(ahora).toHaveAttribute('data-estado', 'clase');

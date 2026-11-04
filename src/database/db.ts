@@ -17,7 +17,7 @@ import type {
 
 export const NOMBRE_BD = 'gestion-escolar';
 /** Versión actual del esquema (debe coincidir con la última this.version(n)). */
-export const VERSION_ESQUEMA = 12;
+export const VERSION_ESQUEMA = 13;
 
 export class BaseDatosEscolar extends Dexie {
   escuelas!: Table<Escuela, string>;
@@ -200,7 +200,13 @@ export class BaseDatosEscolar extends Dexie {
     // alumnos tardaba 95 s por ese costo cuadrático).
     this.version(12).stores({ alumnos: 'id, escuelaId, matricula, curp' });
 
-    // Para fases futuras: agregar this.version(13) (con .upgrade() si hay que transformar
+    // v13 (Fase 10 · piloto): escuelas.demostracion (escuela FICTICIA del piloto, sin CCT).
+    // Sin índices nuevos. Las escuelas existentes quedan como NO de demostración.
+    this.version(13).stores({}).upgrade(async (tx) => {
+      await tx.table('escuelas').toCollection().modify((e: { demostracion?: boolean }) => { if (e.demostracion === undefined) e.demostracion = false; });
+    });
+
+    // Para fases futuras: agregar this.version(14) (con .upgrade() si hay que transformar
     // datos sin perderlos) y documentarlo en docs/MODELO_DATOS.md.
   }
 }

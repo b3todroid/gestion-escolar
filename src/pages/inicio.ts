@@ -6,13 +6,25 @@ import { NIVEL_ETIQUETA } from './etiquetas';
 import { descartarBorrador, leerBorrador } from './borrador';
 import { confirmar } from '../components/dialogo';
 import { consultarAlmacenamiento, formatoBytes, solicitarPersistencia } from '../utils/almacenamiento';
+import { registrarError } from '../utils/registro';
 
 export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
   const escuelas = await ctx.s.escuelas.listar();
   const alm = await consultarAlmacenamiento();
   const borrador = leerBorrador();
-  const sinRespaldo = [];
-  for (const e of escuelas) if ((await ctx.s.respaldos.estado(e.id, new Date())).recordar) sinRespaldo.push(e.nombre);
+  // Fase 10: el recordatorio de respaldo recorre todos los registros de cada escuela; se calcula
+  // DESPUÉS de pintar para no retrasar la pantalla de inicio (con volumen tardaba ~2.5 s).
+  const avisoRespaldo = h('div', { class: 'pendiente', role: 'status', id: 'aviso-respaldo-inicio' });
+  avisoRespaldo.hidden = true;
+  void (async () => {
+    const sinRespaldo: string[] = [];
+    for (const e of escuelas) if ((await ctx.s.respaldos.estado(e.id, new Date())).recordar) sinRespaldo.push(e.nombre);
+    if (!sinRespaldo.length) return;
+    avisoRespaldo.replaceChildren(
+      h('p', {}, icono('!'), ` ${sinRespaldo.length === 1 ? `«${sinRespaldo[0]}» tiene` : `${sinRespaldo.length} escuelas tienen`} cambios sin respaldar.`),
+      h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo'));
+    avisoRespaldo.hidden = false;
+  })().catch(registrarError);
 
   const pendiente = borrador
     ? h('section', { class: 'pendiente', 'aria-labelledby': 'pendiente-titulo' },
@@ -41,8 +53,8 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
           h('a', { class: 'tarjeta-escuela', href: `#/escuela/${e.id}` },
             e.logotipo ? h('img', { class: 'tarjeta-escuela__logo', src: e.logotipo, alt: '', width: 48, height: 48 }) : h('span', { class: 'tarjeta-escuela__logo tarjeta-escuela__logo--vacio', 'aria-hidden': 'true' }, (e.nombreCorto ?? e.nombre).charAt(0)),
             h('span', { class: 'tarjeta-escuela__texto' },
-              h('span', { class: 'tarjeta-escuela__nombre' }, e.nombre),
-              h('span', { class: 'tarjeta__meta' }, [NIVEL_ETIQUETA[e.nivel], e.cct ? `CCT ${e.cct}` : null, e.localidad].filter(Boolean).join(', '))),
+              h('span', { class: 'tarjeta-escuela__nombre' }, e.nombre, e.demostracion ? h('span', { class: 'insignia insignia--aviso' }, '◆ DEMOSTRACIÓN') : null),
+              h('span', { class: 'tarjeta__meta' }, [NIVEL_ETIQUETA[e.nivel], e.cct ? `CCT ${e.cct}` : e.demostracion ? `${e.nombreCorto ?? 'DEMO'} · datos ficticios` : null, e.localidad].filter(Boolean).join(', '))),
             h('span', { class: 'tarjeta-escuela__accion' }, 'Continuar'),
           ),
         ),
@@ -64,9 +76,7 @@ export async function paginaInicio(ctx: ContextoPagina): Promise<Vista> {
         h('p', { class: 'bienvenida__subtitulo' }, 'Sistema de administración y organización escolar'),
       ),
       pendiente,
-      sinRespaldo.length ? h('div', { class: 'pendiente', role: 'status' },
-        h('p', {}, icono('!'), ` ${sinRespaldo.length === 1 ? `«${sinRespaldo[0]}» tiene` : `${sinRespaldo.length} escuelas tienen`} cambios sin respaldar.`),
-        h('a', { class: 'boton boton--chico', href: '#/respaldos' }, 'Descargar respaldo')) : null,
+      avisoRespaldo,
       !escuelas.length && !borrador ? h('section', { class: 'bienvenida__inicio', 'aria-label': 'Primeros pasos' },
         h('a', { class: 'boton boton--ancho boton--grande boton--principal-alto', href: '#/asistente' }, 'Configurar mi escuela'),
         h('ol', { class: 'bienvenida__pasos' },

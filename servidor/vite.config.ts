@@ -18,6 +18,8 @@ export default defineConfig({
         cli: 'servidor/src/cli.ts',
         servidorPruebas: 'servidor/herramientas/servidorPruebas.ts',
         demo: 'servidor/herramientas/demo.ts',
+        piloto: 'servidor/herramientas/piloto.ts',
+        servidorPiloto: 'servidor/herramientas/servidorPiloto.ts',
       },
       output: { format: 'es', entryFileNames: '[name].mjs', chunkFileNames: 'compartido/[name]-[hash].mjs' },
     },
