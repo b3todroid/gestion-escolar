@@ -70,6 +70,9 @@ services:
       SMTP_REMITENTE: ${SMTP_REMITENTE:?Define SMTP_REMITENTE}
       ZONA_HORARIA: ${ZONA_HORARIA:-America/Mexico_City}
       SESION_HORAS: ${SESION_HORAS:-72}
+      LIMITE_CODIGOS_POR_MINUTO: ${LIMITE_CODIGOS_POR_MINUTO:-30}
+      LIMITE_INTENTOS_POR_MINUTO: ${LIMITE_INTENTOS_POR_MINUTO:-60}
+      LIMITE_CODIGOS_POR_CORREO: ${LIMITE_CODIGOS_POR_CORREO:-3}
     secrets: [database_url, better_auth_secret, smtp_clave]
     networks: [interna, correo]
     read_only: true

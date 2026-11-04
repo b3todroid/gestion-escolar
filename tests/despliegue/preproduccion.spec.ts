@@ -1,64 +1,15 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { generarPiloto } from '../../piloto/datos';
+import { cambiarYGuardar, claseDeHoy, docker, entrar, FECHA, lista, p, pasesDe, PROYECTO, URL } from './comun';
 
 // Fase 11 — PRUEBAS DE DESPLIEGUE contra la PREPRODUCCIÓN local en contenedores (deploy/):
 // Caddy con HTTPS → servidor → PostgreSQL, correo SMTP REAL hacia un buzón de prueba (Mailpit) y la
 // escuela FICTICIA DEMO-001. Nada sale a internet. Requiere la pila levantada (docs/GUIA_PUBLICACION.md §2).
-const URL = process.env.URL_PREPRODUCCION ?? 'https://localhost:8443';
-const BUZON = process.env.URL_BUZON_PRUEBA ?? 'http://127.0.0.1:8025';
-const PROYECTO = ['compose', '-p', 'gestion-preprod', '-f', 'deploy/docker-compose.yml', '-f', 'deploy/compose.preproduccion.yml', '--env-file', 'deploy/preproduccion.env'];
-const docker = (...args: string[]) => execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-const FECHA = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-
-/** Último código de acceso enviado POR SMTP a ese correo (leído del buzón de prueba). */
-async function codigoPorCorreo(ctx: BrowserContext, correo: string, despuesDe: number): Promise<string> {
-  for (let i = 0; i < 30; i++) {
-    const r = await ctx.request.get(`${BUZON}/api/v1/search?query=${encodeURIComponent(`to:"${correo}"`)}`);
-    const { messages } = (await r.json()) as { messages: { ID: string; Created: string }[] };
-    const nuevo = messages.find((m) => Date.parse(m.Created) >= despuesDe - 2000);
-    if (nuevo) {
-      const m = (await (await ctx.request.get(`${BUZON}/api/v1/message/${nuevo.ID}`)).json()) as { Text: string };
-      const c = /\b(\d{6})\b/.exec(m.Text)?.[1];
-      if (c) return c;
-    }
-    await new Promise((ok) => setTimeout(ok, 500));
-  }
-  throw new Error('No llegó el código por SMTP');
-}
-
-async function entrar(page: Page, correo: string) {
-  await page.goto(`${URL}/#/cuenta`);
-  await page.getByLabel('Correo con el que te invitaron').fill(correo);
-  const t0 = Date.now();
-  await page.getByRole('button', { name: 'Enviar código' }).click();
-  await expect(page.getByLabel('Código de 6 dígitos')).toBeVisible();
-  await page.getByLabel('Código de 6 dígitos').fill(await codigoPorCorreo(page.context(), correo, t0));
-  await page.getByRole('button', { name: 'Entrar' }).click();
-}
-const lista = (page: Page) => page.request.get(`${URL}/api/salud/lista`).then((r) => r.status());
-/** Cambia la marca del alumno n (a F o R, la que no tenga) y guarda: lista nueva o corrección. */
-async function cambiarYGuardar(page: Page, n: number) {
-  const grupo = page.getByRole('radiogroup').nth(n);
-  const nueva = (await grupo.getByRole('radio', { name: 'Falta' }).isChecked()) ? 'Retardo' : 'Falta';
-  await grupo.getByRole('radio', { name: nueva }).check();
-  if (await page.getByRole('button', { name: 'Guardar lista' }).isVisible()) await page.getByRole('button', { name: 'Guardar lista' }).click();
-  else {
-    await page.getByRole('button', { name: 'Guardar cambios' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Guardar cambios' }).click();
-  }
-}
-const pasesDeHoy = async (page: Page) => ((await (await page.request.get(`${URL}/api/escuelas/${p.escuelaId}/tablas/pases`)).json()) as { fecha: string; sesionId: string; correcciones: number }[])
-  .filter((x) => x.fecha === FECHA && x.sesionId === sesionHoy);
+const sesionHoy = claseDeHoy(p.docente.id).id;
+const pasesDeHoy = (page: Page) => pasesDe(page, sesionHoy);
 
 test.describe.configure({ mode: 'serial' });
 let ctx: BrowserContext; let page: Page;
-const p = generarPiloto({ escala: 0.2, semanas: 2, hoy: FECHA });
-const sesionHoy = (() => {
-  const datos = JSON.parse(p.contenido).datos as { sesiones: { id: string; personalId: string; dia: number }[] };
-  const dia = ((new Date(`${FECHA}T12:00:00Z`).getUTCDay() + 6) % 7) + 1;
-  return datos.sesiones.find((s) => s.personalId === p.docente.id && s.dia === Math.min(dia, 5))!.id;
-})();
 
 test.beforeAll(async ({ browser }) => { ctx = await browser.newContext({ ignoreHTTPSErrors: true }); page = await ctx.newPage(); });
 test.afterAll(async () => { await ctx.close(); });
@@ -114,18 +65,20 @@ test('DEP-04 · autorización en el servidor: la docente no puede invitar ni ver
   expect(cruzado.status()).toBe(403);
 });
 
-test('DEP-05 · detrás del proxy, el límite de intentos usa la IP real: inventar X-Forwarded-For no lo evita', async () => {
+test('DEP-05 · detrás del proxy, los límites usan la IP real (inventar X-Forwarded-For no los evita) y hay límite por correo', async () => {
   const otro = await page.context().browser()!.newContext({ ignoreHTTPSErrors: true });
+  const pedir = (email: string, i: number) => otro.request.post(`${URL}/api/auth/email-otp/send-verification-otp`, { headers: { origin: URL, 'x-forwarded-for': `203.0.113.${(i % 200) + 10}` }, data: { email, type: 'sign-in' } }).then((r) => r.status());
+  // Por correo: 4.º código para la misma dirección → 429 (el límite por correo de preproducción es 20; producción usa 3).
+  const limiteCorreo = Number(process.env.LIMITE_CODIGOS_POR_CORREO_PREPROD ?? 20);
+  const mismo: number[] = [];
+  for (let i = 0; i <= limiteCorreo; i++) mismo.push(await pedir('limite.correo.preprod@ejemplo.test', i));
+  expect(mismo.at(-1)).toBe(429);
+  // Por IP real: 30 por minuto. Con correos distintos y una IP inventada distinta en cada intento, el límite llega igual.
   const estados: number[] = [];
-  for (let i = 0; i < 5; i++) {
-    const r = await otro.request.post(`${URL}/api/auth/email-otp/send-verification-otp`, { headers: { origin: URL, 'x-forwarded-for': `203.0.113.${i + 10}` }, data: { email: 'limite.preprod@ejemplo.test', type: 'sign-in' } });
-    estados.push(r.status());
-  }
+  for (let i = 0; i < 35; i++) estados.push(await pedir(`ip.${i}.preprod@ejemplo.test`, i));
   await otro.close();
-  // Límite: 3 por minuto y por IP REAL (incluye el código que se pidió en DEP-03 desde este mismo equipo).
-  // Si el servidor creyera la cabecera inventada, las 5 solicitudes (5 «IP» distintas) pasarían.
-  expect(estados.filter((e) => e === 200).length).toBeLessThanOrEqual(3);
-  expect(estados.slice(-2)).toEqual([429, 429]);
+  expect(estados.filter((e) => e === 200).length).toBeLessThanOrEqual(30);
+  expect(estados.slice(-3)).toEqual([429, 429, 429]);
 });
 
 test('DEP-06 · actualización de la PWA con cambios por enviar: aviso, actualización y nada se pierde; después se envían', async () => {

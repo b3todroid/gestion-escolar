@@ -101,6 +101,7 @@ export function crearAuth(cfg: Configuracion, bd: Pool, correo: EnviadorCorreo) 
     }) as unknown as (typeof plugins)[number]);
   }
 
+  const porCorreo = new LimitePorClave(cfg.LIMITE_CODIGOS_POR_CORREO, 10 * 60_000);
   return betterAuth({
     appName: 'Gestión Escolar',
     baseURL: cfg.URL_PUBLICA,
@@ -146,6 +147,10 @@ export function crearAuth(cfg: Configuracion, bd: Pool, correo: EnviadorCorreo) 
         if (ruta === '/email-otp/send-verification-otp' && (ctx.body as { type?: string } | undefined)?.type !== 'sign-in') {
           throw new APIError('BAD_REQUEST', { message: 'Sólo se envían códigos para iniciar sesión.' });
         }
+        if (ruta === '/email-otp/send-verification-otp' && !porCorreo.permitir(String((ctx.body as { email?: unknown } | undefined)?.email ?? ''))) {
+          // Igual para correos invitados y no invitados: no revela quién tiene cuenta.
+          throw new APIError('TOO_MANY_REQUESTS', { message: 'Se pidieron demasiados códigos para este correo. Espera unos minutos.' });
+        }
         if (RUTAS_CON_SEGUNDO_FACTOR_PENDIENTE.has(ruta) || ruta.startsWith('/sign-in') || ruta.startsWith('/callback') || ruta === '/email-otp/send-verification-otp' || ruta === '/ok' || ruta === '/error') return;
         const s = await getSessionFromCtx(ctx);
         if (!s) return; // los propios puntos de Better Auth exigen sesión cuando corresponde
@@ -189,4 +194,23 @@ function viaDeInicio(ruta: string | undefined): string {
   if (ruta.startsWith('/callback')) return 'cuenta_institucional';
   if (ruta.startsWith('/two-factor/')) return 'segundo_factor';
   return 'otra';
+}
+
+/**
+ * Límite deslizante en memoria por clave (Fase 12): p. ej. códigos por correo en 10 minutos.
+ * Con varias réplicas de la API cada una lleva su cuenta (el límite efectivo se multiplica):
+ * con una sola instancia, que es el despliegue preparado, es exacto.
+ */
+export class LimitePorClave {
+  private readonly marcas = new Map<string, number[]>();
+  constructor(private readonly maximo: number, private readonly ventanaMs: number, private readonly ahora: () => number = Date.now) {}
+  permitir(clave: string): boolean {
+    const k = clave.trim().toLowerCase();
+    const t = this.ahora();
+    const recientes = (this.marcas.get(k) ?? []).filter((x) => t - x < this.ventanaMs);
+    if (recientes.length >= this.maximo) { this.marcas.set(k, recientes); return false; }
+    recientes.push(t); this.marcas.set(k, recientes);
+    if (this.marcas.size > 10_000) for (const [c, v] of this.marcas) if (!v.some((x) => t - x < this.ventanaMs)) this.marcas.delete(c);
+    return true;
+  }
 }

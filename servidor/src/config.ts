@@ -52,10 +52,15 @@ const esquema = z.object({
   OIDC_PRUEBA_URL: z.url().optional(),
   /** Zona horaria de las escuelas (fecha y hora del servidor para pases de lista, salidas, etc.). */
   ZONA_HORARIA: z.string().min(3).default('America/Mexico_City'),
-  /** Límite de solicitudes del inicio de sesión (por ventana de 60 s y dirección). */
-  LIMITE_CODIGOS_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(3),
-  /** Límite de intentos de código (correo o segundo factor) por ventana de 60 s y dirección. */
-  LIMITE_INTENTOS_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(10),
+  /**
+   * Límite de solicitudes de código por ventana de 60 s y dirección IP. Fase 12: 30 por omisión, porque
+   * todo el personal de una escuela suele salir a internet por la MISMA IP pública (NAT).
+   */
+  LIMITE_CODIGOS_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(30),
+  /** Límite de intentos de código (correo o segundo factor) por ventana de 60 s y dirección IP. */
+  LIMITE_INTENTOS_POR_MINUTO: z.coerce.number().int().min(1).max(1000).default(60),
+  /** Fase 12: códigos por correo en 10 minutos (frena el abuso sin depender de la IP compartida). */
+  LIMITE_CODIGOS_POR_CORREO: z.coerce.number().int().min(1).max(100).default(3),
 });
 
 export type Configuracion = z.infer<typeof esquema> & {

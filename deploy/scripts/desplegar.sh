@@ -76,7 +76,9 @@ sano() {
 }
 if sano "$VERSION_NUEVA"; then
   deploy/scripts/salud.sh "$URL" "${INSEGURO[@]}" | sed 's/^/   /'
-  anotar "7-8 · salud y pruebas rápidas correctas: DESPLEGADO $VERSION_NUEVA"
+  # La versión desplegada queda en el archivo de entorno: un reinicio posterior no vuelve en silencio a la anterior.
+  if grep -q '^VERSION=' "$ENTORNO"; then sed -i "s/^VERSION=.*/VERSION=$VERSION_NUEVA/" "$ENTORNO"; else printf 'VERSION=%s\n' "$VERSION_NUEVA" >> "$ENTORNO"; fi
+  anotar "7-8 · salud y pruebas rápidas correctas: DESPLEGADO $VERSION_NUEVA (VERSION actualizada en $ENTORNO)"
   exit 0
 fi
 
@@ -84,6 +86,7 @@ fi
 anotar "7-8 · FALLÓ la salud de $VERSION_NUEVA"
 if [ -z "$ANTERIOR" ] || [ "$ANTERIOR" = "$VERSION_NUEVA" ]; then anotar "9 · no hay versión anterior a la cual volver"; exit 1; fi
 VERSION="$ANTERIOR" "${DC[@]}" up -d --no-build servidor web >/dev/null 2>&1 || true
+if grep -q '^VERSION=' "$ENTORNO"; then sed -i "s/^VERSION=.*/VERSION=$ANTERIOR/" "$ENTORNO"; fi
 if sano "$ANTERIOR"; then anotar "9 · REVERTIDO a $ANTERIOR (sano)"; else anotar "9 · REVERSIÓN a $ANTERIOR SIN SALUD: atender de inmediato (docs/PLAN_RECUPERACION.md)"; fi
 echo "Si $VERSION_NUEVA aplicó migraciones no compatibles con $ANTERIOR, restaura el respaldo previo en una base NUEVA (docs/PLAN_RECUPERACION.md §4)." >&2
 exit 1

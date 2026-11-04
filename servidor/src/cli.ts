@@ -14,7 +14,8 @@ import { altaEscuela, restablecerSegundoFactorOperador } from './operador.ts';
 import { leerMigraciones, migrar } from './migrar.ts';
 
 const [comando, ...resto] = process.argv.slice(2);
-const cfg = leerConfiguracion();
+let cfg: ReturnType<typeof leerConfiguracion>;
+try { cfg = leerConfiguracion(); } catch (e) { console.error((e as Error).message); process.exit(1); }
 const bd = new pg.Pool({ connectionString: cfg.DATABASE_URL });
 try {
   if (comando === 'verificar-configuracion') {

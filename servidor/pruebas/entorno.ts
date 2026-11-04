@@ -56,7 +56,7 @@ export async function crearEntorno(extra: Record<string, string> = {}, puerto = 
   const base = await crearBasePrueba();
   const cfg = leerConfiguracion({
     MODO: 'pruebas', DATABASE_URL: base.url, BETTER_AUTH_SECRET: randomBytes(32).toString('base64url'),
-    URL_PUBLICA: URL_APP, LIMITE_CODIGOS_POR_MINUTO: '500', LIMITE_INTENTOS_POR_MINUTO: '500', ...extra,
+    URL_PUBLICA: URL_APP, LIMITE_CODIGOS_POR_MINUTO: '500', LIMITE_INTENTOS_POR_MINUTO: '500', LIMITE_CODIGOS_POR_CORREO: '100', ...extra,
   });
   const bd = new pg.Pool({ connectionString: cfg.DATABASE_URL, max: 5 });
   await migrar(bd);

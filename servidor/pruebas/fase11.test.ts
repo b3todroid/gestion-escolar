@@ -2,6 +2,7 @@ import { createServer, type Server } from 'node:net';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { leerConfiguracion } from '../src/config.ts';
 import { CorreoSmtp } from '../src/correo.ts';
+import { LimitePorClave } from '../src/auth.ts';
 import { ipDelCliente, listaConfiable } from '../src/ipCliente.ts';
 import { crearEntorno, URL_APP, type Entorno } from './entorno.ts';
 
@@ -140,4 +141,29 @@ test('una variable vacía cuenta como no definida (archivos de entorno de Compos
   const c = leerConfiguracion({ ...base, CORREO_MODO: 'buzon', SMTP_USUARIO: '', SMTP_CLAVE_FILE: '', GOOGLE_CLIENT_ID: '' });
   expect(c.SMTP_USUARIO).toBeUndefined();
   expect(c.proveedores).toEqual([]);
+});
+
+describe('Fase 12 · límite de códigos por CORREO (escuelas detrás de una misma IP)', () => {
+  test('ventana deslizante: 3 por correo en 10 min, sin distinguir mayúsculas; vuelve a permitir al pasar la ventana', () => {
+    let t = 0;
+    const l = new LimitePorClave(3, 600_000, () => t);
+    expect([l.permitir('a@ejemplo.test'), l.permitir('A@Ejemplo.test'), l.permitir('a@ejemplo.test'), l.permitir('a@ejemplo.test')]).toEqual([true, true, true, false]);
+    expect(l.permitir('b@ejemplo.test')).toBe(true);
+    t = 600_001;
+    expect(l.permitir('a@ejemplo.test')).toBe(true);
+  });
+  test('por HTTP: el 4.º código para el mismo correo se rechaza; otra persona desde la MISMA IP sí recibe el suyo', async () => {
+    const e = await crearEntorno({ LIMITE_CODIGOS_POR_CORREO: '3', LIMITE_CODIGOS_POR_MINUTO: '30' });
+    try {
+      const n = e.navegador();
+      const pedir = (email: string) => n.post('/api/auth/email-otp/send-verification-otp', { email, type: 'sign-in' }).then((r) => r.estado);
+      const mismo = [];
+      for (let i = 0; i < 4; i++) mismo.push(await pedir('repetida@ejemplo.test'));
+      expect(mismo).toEqual([200, 200, 200, 429]);
+      // 20 personas distintas desde la misma IP (como el personal detrás del NAT de la escuela): todas pasan.
+      const varias = [];
+      for (let i = 0; i < 20; i++) varias.push(await pedir(`docente${i}@ejemplo.test`));
+      expect(varias.every((x) => x === 200)).toBe(true);
+    } finally { await e.cerrar(); }
+  });
 });
