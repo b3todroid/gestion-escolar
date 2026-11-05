@@ -192,3 +192,8 @@ Todas contra la **preproducción local** (`https://localhost:8443`; levantarla a
 - `fase11.test.ts`: también prueba `LimitePorClave` y el límite por correo por HTTP. El cuarto código es 429; 20 correos distintos desde la misma IP sí pasan.
 - `deploy/scripts/verificar-seguridad.sh`: sólo lectura; revisa TLS, puertos, secretos, cabeceras y auditoría.
 - `deploy/scripts/desplegar.sh`: casos ejecutados en `docs/VALIDACION_DESPLIEGUE.md` §2 (despliegue, versión rota revertida, Compose inválido, configuración inválida).
+
+## Manual de uso (capturas)
+- `npx playwright test -c playwright.manual.config.ts`: recorre la app en modo local (una escuela ficticia nueva y DEMO-001) y guarda capturas en `manual-capturas/img`, carpeta fuera de git. No es una prueba de aceptación: anota los pasos que fallan en `manual-capturas/registro.json`.
+- `npx playwright test -c playwright.manual-servidor.config.ts`: captura las pantallas del servidor contra la preproducción local. Antes hay que reiniciarla.
+- `node scripts/manual/generar.mjs`: compone `docs/manual/MANUAL_GESTION_ESCOLAR.pdf`. Usa Chromium; el texto está en `scripts/manual/contenido.mjs`.
